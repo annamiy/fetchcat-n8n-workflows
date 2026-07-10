@@ -131,14 +131,14 @@
             {
               "type": "text",
               "role": "user",
-              "content": "=Candidate profile:\n{{ $(\"Configuration\").first().json.candidateProfile }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}"
+              "content": "=Candidate profile:\n{{ $(\"Configuration\").first().json.candidateProfile }}\n\nMinimum score for qualification: {{ $(\"Configuration\").first().json.minimumScore }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}"
             }
           ]
         },
         "simplify": true,
         "builtInTools": {},
         "options": {
-          "instructions": "Score the job against the candidate profile. Mark qualified only for a credible fit. Return the strict schema.",
+          "instructions": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason. Return the strict schema.",
           "maxTokens": 1200,
           "reasoning": {
             "reasoningOptions": [
@@ -156,7 +156,7 @@
                 "verbosity": "low",
                 "name": "linkedin_job_fit",
                 "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"qualified\",\"score\",\"reason\"],\"properties\":{\"qualified\":{\"type\":\"boolean\"},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}",
-                "description": "Score the job against the candidate profile. Mark qualified only for a credible fit. Return the strict schema.",
+                "description": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason. Return the strict schema.",
                 "strict": true
               }
             ]
@@ -196,7 +196,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst minimumScore = Number($(\"Configuration\").first().json.minimumScore);\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string') {\n    throw new Error('OpenAI returned an invalid LinkedIn job score.');\n  }\n  if (!score.qualified || score.score < minimumScore) continue;\n  output.push({ json: {\n    jobId: item.json.jobId,\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    posted: item.json.postedAtText,\n    url: item.json.jobUrl,\n    score: score.score,\n    reason: score.reason,\n    scrapedAt: new Date().toISOString()\n  } });\n}\nreturn output;"
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst minimumScore = Number($(\"Configuration\").first().json.minimumScore);\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  output.push({ json: {\n    jobId: item.json.jobId,\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    posted: item.json.postedAtText,\n    url: item.json.jobUrl,\n    score: score.score,\n    reason: score.reason,\n    scrapedAt: new Date().toISOString()\n  } });\n}\nreturn output;"
       },
       "id": "10000000-0000-0000-4000-8000-000000000010",
       "name": "Validate and Filter Scores",

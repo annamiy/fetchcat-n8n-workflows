@@ -40,7 +40,7 @@ flowchart LR
 - Actor input is fixed to `past24h`, newest first, and at most 10 jobs.
 - Descriptions are capped before they reach OpenAI.
 - `Remove Duplicates` retains up to 10,000 `jobId` values across executions.
-- Invalid AI output stops the workflow before Google Sheets or Slack.
+- Invalid AI items are discarded before Google Sheets or Slack.
 - A duplicate, empty, or below-threshold run creates no rows and sends no Slack
   message.
 

@@ -239,15 +239,15 @@ return normalized;`
   }),
   node('10000000-', 7, 'Remove Previously Seen Jobs', 'n8n-nodes-base.removeDuplicates', 2, [-80, 0], dedupeParameters('={{ $json.jobId }}')),
   node('10000000-', 8, 'Score Job Fit', '@n8n/n8n-nodes-langchain.openAi', 2.3, [160, 120], openAiParameters(
-    '=Candidate profile:\n{{ $("Configuration").first().json.candidateProfile }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}',
+    '=Candidate profile:\n{{ $("Configuration").first().json.candidateProfile }}\n\nMinimum score for qualification: {{ $("Configuration").first().json.minimumScore }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}',
     'linkedin_job_fit',
     linkedInSchema,
-    'Score the job against the candidate profile. Mark qualified only for a credible fit. Return the strict schema.',
+    'Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason. Return the strict schema.',
     1200
   )),
   node('10000000-', 9, 'Merge Job and Score', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
   node('10000000-', 10, 'Validate and Filter Scores', 'n8n-nodes-base.code', 2, [640, 0], {
-    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string') {\n    throw new Error('OpenAI returned an invalid LinkedIn job score.');\n  }\n  if (!score.qualified || score.score < minimumScore) continue;\n  output.push({ json: {\n    jobId: item.json.jobId,\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    posted: item.json.postedAtText,\n    url: item.json.jobUrl,\n    score: score.score,\n    reason: score.reason,\n    scrapedAt: new Date().toISOString()\n  } });\n}\nreturn output;`
+    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  output.push({ json: {\n    jobId: item.json.jobId,\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    posted: item.json.postedAtText,\n    url: item.json.jobUrl,\n    score: score.score,\n    reason: score.reason,\n    scrapedAt: new Date().toISOString()\n  } });\n}\nreturn output;`
   }),
   node('10000000-', 11, 'Append Qualified Jobs', 'n8n-nodes-base.googleSheets', 4.7, [880, 0], {
     operation: 'append',
@@ -555,15 +555,15 @@ return normalized;`
   }),
   node('30000000-', 7, 'Remove Previously Seen Posts', 'n8n-nodes-base.removeDuplicates', 2, [-80, 0], dedupeParameters('={{ $json.redditId }}')),
   node('30000000-', 8, 'Classify Buying Intent', '@n8n/n8n-nodes-langchain.openAi', 2.3, [160, 120], openAiParameters(
-    '=Product context:\n{{ $("Configuration").first().json.productContext }}\n\nClassify this Reddit post:\n{{ JSON.stringify($json) }}',
+    '=Product context:\n{{ $("Configuration").first().json.productContext }}\n\nMinimum score for qualification: {{ $("Configuration").first().json.minimumScore }}\n\nClassify this Reddit post:\n{{ JSON.stringify($json) }}',
     'reddit_buying_intent',
     redditSchema,
-    'Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Mark qualified only when outreach-free monitoring would be useful. Return the strict schema.',
+    'Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Set qualified to true exactly when buying intent is high or medium and score meets the supplied minimum. Always provide non-empty reason and summary fields. Return the strict schema.',
     1500
   )),
   node('30000000-', 9, 'Merge Post and Classification', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
   node('30000000-', 10, 'Validate and Filter Intent', 'n8n-nodes-base.code', 2, [640, 0], {
-    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst intents = new Set(['high', 'medium', 'low', 'none']);\nconst output = [];\nfor (const item of $input.all()) {\n  const result = parseStructured(item.json, ['qualified', 'buyingIntent', 'score', 'reason', 'summary']);\n  if (!result || typeof result.qualified !== 'boolean' || !intents.has(result.buyingIntent) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || typeof result.summary !== 'string') {\n    throw new Error('OpenAI returned an invalid Reddit intent classification.');\n  }\n  if (!result.qualified || !['high', 'medium'].includes(result.buyingIntent) || result.score < minimumScore) continue;\n  output.push({ json: {\n    redditId: item.json.redditId,\n    subreddit: item.json.subreddit,\n    title: item.json.title,\n    url: item.json.url,\n    intent: result.buyingIntent,\n    intentScore: result.score,\n    reason: result.reason,\n    summary: result.summary\n  } });\n}\nreturn output;`
+    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst intents = new Set(['high', 'medium', 'low', 'none']);\nconst output = [];\nfor (const item of $input.all()) {\n  const result = parseStructured(item.json, ['qualified', 'buyingIntent', 'score', 'reason', 'summary']);\n  if (!result || typeof result.qualified !== 'boolean' || !intents.has(result.buyingIntent) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim() || typeof result.summary !== 'string' || !result.summary.trim()) continue;\n  if (!result.qualified || !['high', 'medium'].includes(result.buyingIntent) || result.score < minimumScore) continue;\n  output.push({ json: {\n    redditId: item.json.redditId,\n    subreddit: item.json.subreddit,\n    title: item.json.title,\n    url: item.json.url,\n    intent: result.buyingIntent,\n    intentScore: result.score,\n    reason: result.reason,\n    summary: result.summary\n  } });\n}\nreturn output;`
   }),
   node('30000000-', 11, 'Build Telegram Digest', 'n8n-nodes-base.code', 2, [880, 0], {
     jsCode: String.raw`const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

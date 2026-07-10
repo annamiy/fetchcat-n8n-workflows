@@ -34,7 +34,7 @@ flowchart LR
 - No more than 10 posts reach OpenAI.
 - Up to 10,000 Reddit IDs are retained across prior executions.
 - Only `high` or `medium` buying intent above the threshold can pass.
-- Invalid structured output stops delivery.
+- Invalid structured-output items are discarded before delivery.
 - Duplicate, empty, and below-threshold runs send no Telegram message.
 
 ## QA
