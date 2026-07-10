@@ -1,6 +1,6 @@
 # Reddit Buying-Intent Alerts
 
-Runs the FetchCat Reddit Scraper for a configurable search and optional
+Runs `fetch_cat/reddit-scraper` for a configurable search and optional
 subreddit, removes posts seen in earlier executions, classifies explicit buying
 intent with strict structured output, and sends one Telegram digest containing
 at most five qualified posts.
@@ -45,4 +45,3 @@ message with five posts, and the duplicate and negative paths send nothing.
 Then export, sanitize, reimport, and execute the sanitized workflow.
 
 The fixtures are synthetic and do not represent real Reddit users or posts.
-

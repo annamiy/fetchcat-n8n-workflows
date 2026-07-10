@@ -1,7 +1,8 @@
 {
   "slug": "reddit-buying-intent-alerts",
   "title": "Reddit Buying-Intent Alerts",
-  "actorId": "fetch_cat/reddit-scraper",
+  "actorId": "DAj0KBMoCNDqMLe82",
+  "actorSlug": "fetch_cat/reddit-scraper",
   "version": "1.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [

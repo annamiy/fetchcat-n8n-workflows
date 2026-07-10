@@ -1,7 +1,8 @@
 {
   "slug": "linkedin-job-match-digest",
   "title": "LinkedIn Job Match Digest",
-  "actorId": "fetch_cat/linkedin-jobs-scraper",
+  "actorId": "0XhGPLTjZjicBXYV5",
+  "actorSlug": "fetch_cat/linkedin-jobs-scraper",
   "version": "1.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [

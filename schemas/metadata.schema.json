@@ -8,6 +8,7 @@
     "slug",
     "title",
     "actorId",
+    "actorSlug",
     "version",
     "minimumN8nVersion",
     "integrations",
@@ -24,6 +25,10 @@
       "minLength": 5
     },
     "actorId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]+$"
+    },
+    "actorSlug": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$"
     },
@@ -81,4 +86,3 @@
     }
   }
 }
-

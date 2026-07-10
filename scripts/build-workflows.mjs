@@ -213,7 +213,7 @@ return [{ json: {
 } }];`
   }),
   node('10000000-', 5, 'Fetch LinkedIn Jobs', '@apify/n8n-nodes-apify.apify', 1, [-560, 0], actorParameters(
-    'fetch_cat/linkedin-jobs-scraper',
+    '0XhGPLTjZjicBXYV5',
     'LinkedIn Jobs Scraper',
     '={{ JSON.stringify($json.actorInput) }}'
   )),
@@ -405,7 +405,7 @@ return [{ json: {
 } }];`
   }),
   node('20000000-', 5, 'Fetch YouTube Transcript', '@apify/n8n-nodes-apify.apify', 1, [-440, 0], actorParameters(
-    'fetch_cat/youtube-transcript-scraper',
+    'H7e6sHWbYadmHLoNu',
     'YouTube Transcript Scraper',
     '={{ JSON.stringify($json.actorInput) }}'
   )),
@@ -528,7 +528,7 @@ return [{ json: { actorInput: {
 } } }];`
   }),
   node('30000000-', 5, 'Fetch Reddit Posts', '@apify/n8n-nodes-apify.apify', 1, [-560, 0], actorParameters(
-    'fetch_cat/reddit-scraper',
+    'DAj0KBMoCNDqMLe82',
     'Reddit Scraper',
     '={{ JSON.stringify($json.actorInput) }}'
   )),

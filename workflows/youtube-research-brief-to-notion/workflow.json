@@ -101,7 +101,7 @@
         "actorId": {
           "__rl": true,
           "mode": "list",
-          "value": "fetch_cat/youtube-transcript-scraper",
+          "value": "H7e6sHWbYadmHLoNu",
           "cachedResultName": "YouTube Transcript Scraper"
         },
         "customBody": "={{ JSON.stringify($json.actorInput) }}",

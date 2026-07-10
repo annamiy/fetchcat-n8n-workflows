@@ -87,6 +87,7 @@ for (const slug of workflowSlugs()) {
   if (serialized.includes('"active":true')) fail(slug, 'contains an active nested object');
   if (serialized.includes('"credentials":')) fail(slug, 'contains a credential key');
   if (!serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
+  if (!readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
   if (metadata.integrations.includes('OpenAI') && !serialized.includes('gpt-5.4-mini')) {
     fail(slug, 'does not pin gpt-5.4-mini');
   }
@@ -116,4 +117,3 @@ if (errors.length) {
 }
 
 console.log(`Validated ${workflowSlugs().length} workflows with no public credential references.`);
-

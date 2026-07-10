@@ -1,6 +1,6 @@
 # LinkedIn Job Match Digest
 
-Runs the FetchCat LinkedIn Jobs Scraper for the newest jobs from the past 24
+Runs `fetch_cat/linkedin-jobs-scraper` for the newest jobs from the past 24
 hours, removes jobs seen in earlier executions, scores each new job against a
 candidate profile with strict structured output, appends qualified jobs to
 Google Sheets, and sends one Slack digest containing the top five.
@@ -53,4 +53,3 @@ marking the workflow `qa-passed`.
 
 Synthetic Actor output and assertions are under `fixtures/`; they contain no
 real jobs or personal data.
-

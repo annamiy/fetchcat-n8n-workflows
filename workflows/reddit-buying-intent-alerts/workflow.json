@@ -67,7 +67,7 @@
         "actorId": {
           "__rl": true,
           "mode": "list",
-          "value": "fetch_cat/reddit-scraper",
+          "value": "DAj0KBMoCNDqMLe82",
           "cachedResultName": "Reddit Scraper"
         },
         "customBody": "={{ JSON.stringify($json.actorInput) }}",

@@ -1,7 +1,7 @@
 # YouTube Research Brief to Notion
 
 Accepts one public YouTube URL, language code, and research goal through an n8n
-Form. The FetchCat YouTube Transcript Scraper retrieves captions for exactly one
+Form. `fetch_cat/youtube-transcript-scraper` retrieves captions for exactly one
 video. OpenAI turns the capped transcript into a strict research brief, and the
 workflow creates a page in a dedicated Notion database before redirecting the
 form response to that page.

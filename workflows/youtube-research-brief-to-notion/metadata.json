@@ -1,7 +1,8 @@
 {
   "slug": "youtube-research-brief-to-notion",
   "title": "YouTube Research Brief to Notion",
-  "actorId": "fetch_cat/youtube-transcript-scraper",
+  "actorId": "H7e6sHWbYadmHLoNu",
+  "actorSlug": "fetch_cat/youtube-transcript-scraper",
   "version": "1.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
