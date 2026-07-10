@@ -1,0 +1,28 @@
+{
+  "description": "Synthetic LinkedIn Actor output for deterministic transformation tests.",
+  "items": [
+    {
+      "jobId": "synthetic-job-001",
+      "title": "Automation Engineer",
+      "companyName": "Example Systems",
+      "location": "Remote",
+      "postedAtText": "2 hours ago",
+      "jobUrl": "https://example.com/jobs/synthetic-job-001",
+      "description": "Build n8n workflows, API integrations, and reliable JavaScript data pipelines.",
+      "employmentType": "Full-time",
+      "seniorityLevel": "Senior"
+    },
+    {
+      "jobId": "synthetic-job-002",
+      "title": "Office Coordinator",
+      "companyName": "Example Operations",
+      "location": "On-site",
+      "postedAtText": "4 hours ago",
+      "jobUrl": "https://example.com/jobs/synthetic-job-002",
+      "description": "Coordinate office supplies and room bookings.",
+      "employmentType": "Full-time",
+      "seniorityLevel": "Entry"
+    }
+  ]
+}
+

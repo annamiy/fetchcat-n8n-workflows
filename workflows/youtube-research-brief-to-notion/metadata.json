@@ -1,0 +1,19 @@
+{
+  "slug": "youtube-research-brief-to-notion",
+  "title": "YouTube Research Brief to Notion",
+  "actorId": "fetch_cat/youtube-transcript-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Notion"
+  ],
+  "testLimits": {
+    "actorItems": 1,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 3.33,
+    "youtubeVideos": 1
+  },
+  "releaseState": "development"
+}

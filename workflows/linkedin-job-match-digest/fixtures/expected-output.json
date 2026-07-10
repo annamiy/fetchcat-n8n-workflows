@@ -1,0 +1,11 @@
+{
+  "description": "Assertions for a controlled score where only synthetic-job-001 qualifies.",
+  "assertions": [
+    "At most 10 Actor items reach OpenAI.",
+    "Only schema-valid scores at or above the configured threshold reach Google Sheets.",
+    "The qualified row contains jobId synthetic-job-001 and all nine documented columns.",
+    "Slack receives one digest with no more than five jobs.",
+    "An immediate rerun creates no rows and sends no Slack message."
+  ]
+}
+

@@ -1,0 +1,446 @@
+{
+  "name": "YouTube Research Brief to Notion",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "none",
+        "formTitle": "YouTube Research Brief",
+        "formDescription": "Create a focused research brief from one public YouTube video.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "YouTube URL",
+              "fieldName": "youtubeUrl",
+              "fieldType": "text",
+              "placeholder": "https://www.youtube.com/watch?v=...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Language",
+              "fieldName": "language",
+              "fieldType": "text",
+              "defaultValue": "en",
+              "placeholder": "en",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Research goal",
+              "fieldName": "researchGoal",
+              "fieldType": "textarea",
+              "placeholder": "What should the brief help you understand or decide?",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "path": "youtube-research-brief",
+          "buttonLabel": "Create brief",
+          "ignoreBots": true,
+          "useWorkflowTimezone": true,
+          "respondWithOptions": {
+            "values": {
+              "respondWith": "redirect",
+              "redirectUrl": "={{ $(\"Create Notion Brief\").first().json.url }}"
+            }
+          }
+        }
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000001",
+      "name": "YouTube Research Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -1160,
+        -80
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "20000000-0000-0000-4000-8000-000000000002",
+      "name": "Manual QA Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1160,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  youtubeUrl: 'https://www.youtube.com/watch?v=aircAruvnKk',\n  language: 'en',\n  researchGoal: 'Summarize the central argument and extract practical next steps.'\n} }];"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000003",
+      "name": "Manual QA Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -920,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst youtubeUrl = String(input.youtubeUrl || input['YouTube URL'] || '').trim();\nconst language = String(input.language || input.Language || 'en').trim().toLowerCase();\nconst researchGoal = String(input.researchGoal || input['Research goal'] || '').trim();\nlet parsed;\ntry { parsed = new URL(youtubeUrl); } catch { throw new Error('Enter a valid public YouTube URL.'); }\nconst allowedHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be']);\nif (parsed.protocol !== 'https:' || !allowedHosts.has(parsed.hostname)) throw new Error('Only public HTTPS YouTube URLs are accepted.');\nif (!/^[a-z]{2,3}(?:-[a-z]{2})?$/.test(language)) throw new Error('Language must be a short code such as en or pt-br.');\nif (researchGoal.length < 10 || researchGoal.length > 1000) throw new Error('Research goal must be 10 to 1000 characters.');\nreturn [{ json: {\n  youtubeUrl,\n  language,\n  researchGoal,\n  actorInput: {\n    videoUrls: [youtubeUrl],\n    language,\n    includeTimestamps: true,\n    includeMetadata: true,\n    maxVideos: 1\n  }\n} }];"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000004",
+      "name": "Validate Form Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -680,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Actors",
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "fetch_cat/youtube-transcript-scraper",
+          "cachedResultName": "YouTube Transcript Scraper"
+        },
+        "customBody": "={{ JSON.stringify($json.actorInput) }}",
+        "timeout": 300,
+        "memory": 1024,
+        "build": "latest"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000005",
+      "name": "Fetch YouTube Transcript",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nif (rows.length !== 1) throw new Error('Expected one transcript result, received ' + rows.length + '.');\nconst data = rows[0].json;\nif (data.captionsAvailable === false || data.error) throw new Error('Captions are unavailable: ' + (data.error || 'no captions found'));\nconst transcript = String(data.transcriptText || '').trim();\nif (transcript.length < 20) throw new Error('Captions are unavailable or empty for this video.');\nconst researchGoal = $('Validate Form Input').first().json.researchGoal;\nreturn [{ json: {\n  videoId: String(data.videoId || ''),\n  videoUrl: String(data.videoUrl || $('Validate Form Input').first().json.youtubeUrl),\n  title: String(data.title || 'YouTube Research Brief'),\n  channelName: String(data.channelName || ''),\n  language: String(data.language || $('Validate Form Input').first().json.language),\n  duration: data.duration || null,\n  researchGoal,\n  transcript: transcript.slice(0, 60000),\n  transcriptTruncated: transcript.length > 60000\n} }];"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000006",
+      "name": "Validate and Cap Transcript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "user",
+              "content": "=Research goal:\n{{ $json.researchGoal }}\n\nVideo title: {{ $json.title }}\nChannel: {{ $json.channelName }}\n\nTranscript:\n{{ $json.transcript }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "builtInTools": {},
+        "options": {
+          "instructions": "Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.",
+          "maxTokens": 1800,
+          "reasoning": {
+            "reasoningOptions": [
+              {
+                "effort": "low",
+                "summary": "none"
+              }
+            ]
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": [
+              {
+                "type": "json_schema",
+                "verbosity": "low",
+                "name": "youtube_research_brief",
+                "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"summary\",\"keyIdeas\",\"actionItems\",\"timestampedMoments\"],\"properties\":{\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":4000},\"keyIdeas\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"actionItems\":{\"type\":\"array\",\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"timestampedMoments\":{\"type\":\"array\",\"maxItems\":10,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"timestamp\",\"title\",\"insight\"],\"properties\":{\"timestamp\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":20},\"title\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":200},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}}}}",
+                "description": "Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.",
+                "strict": true
+              }
+            ]
+          }
+        }
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000007",
+      "name": "Generate Research Brief",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        40,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "addSuffix"
+            }
+          }
+        }
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000008",
+      "name": "Merge Transcript and Brief",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody } }];"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000009",
+      "name": "Validate and Format Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "apiKey",
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "00000000-0000-0000-0000-000000000000"
+        },
+        "title": "={{ $json.title }}",
+        "simple": true,
+        "propertiesUi": {
+          "propertyValues": []
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionBody }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000010",
+      "name": "Create Notion Brief",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const page = $input.first().json;\nif (!page.url || !String(page.url).startsWith('https://')) throw new Error('Notion did not return a page URL.');\nreturn [{ json: { url: page.url, formSubmittedText: 'Research brief created: ' + page.url } }];"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000011",
+      "name": "Return Notion URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "width": 760,
+        "height": 250,
+        "content": "## YouTube Research Brief\n\nConnect Apify, OpenAI, and Notion credentials, then select the `FetchCat n8n QA Briefs` database. The form accepts one public HTTPS YouTube URL, language code, and research goal. Keep the workflow unpublished during QA.",
+        "color": 7
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000012",
+      "name": "Form Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        -440
+      ]
+    },
+    {
+      "parameters": {
+        "width": 900,
+        "height": 250,
+        "content": "## Cost and failure controls\n\nThe Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion. Transcript input is capped at 60,000 characters. Confirm the captioned public video in Manual QA Input before CLI execution.",
+        "color": 7
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000013",
+      "name": "QA Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        -440
+      ]
+    },
+    {
+      "parameters": {
+        "width": 720,
+        "height": 250,
+        "content": "## Notion output\n\nOpenAI must satisfy a strict JSON schema. The resulting page contains a summary, key ideas, action items, and timestamped moments. Form submissions redirect to the created Notion page.",
+        "color": 7
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000014",
+      "name": "Output Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -440
+      ]
+    }
+  ],
+  "connections": {
+    "YouTube Research Form": {
+      "main": [
+        [
+          {
+            "node": "Validate Form Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual QA Trigger": {
+      "main": [
+        [
+          {
+            "node": "Manual QA Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual QA Input": {
+      "main": [
+        [
+          {
+            "node": "Validate Form Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Form Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch YouTube Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch YouTube Transcript": {
+      "main": [
+        [
+          {
+            "node": "Validate and Cap Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate and Cap Transcript": {
+      "main": [
+        [
+          {
+            "node": "Merge Transcript and Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Research Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Research Brief": {
+      "main": [
+        [
+          {
+            "node": "Merge Transcript and Brief",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Transcript and Brief": {
+      "main": [
+        [
+          {
+            "node": "Validate and Format Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate and Format Brief": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Brief": {
+      "main": [
+        [
+          {
+            "node": "Return Notion URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

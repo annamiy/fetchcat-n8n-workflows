@@ -1,0 +1,18 @@
+{
+  "slug": "reddit-buying-intent-alerts",
+  "title": "Reddit Buying-Intent Alerts",
+  "actorId": "fetch_cat/reddit-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Telegram"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 3.33
+  },
+  "releaseState": "development"
+}

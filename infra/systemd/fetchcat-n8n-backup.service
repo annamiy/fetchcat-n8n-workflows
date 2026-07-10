@@ -1,0 +1,12 @@
+[Unit]
+Description=Back up FetchCat n8n PostgreSQL and state
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=hanna
+Group=hanna
+ExecStart=/data/n8n/scripts/backup.sh
+Nice=10
+

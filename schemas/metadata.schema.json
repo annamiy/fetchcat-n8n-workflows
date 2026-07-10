@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/annamiy/fetchcat-n8n-workflows/schemas/metadata.schema.json",
+  "title": "FetchCat n8n workflow metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slug",
+    "title",
+    "actorId",
+    "version",
+    "minimumN8nVersion",
+    "integrations",
+    "testLimits",
+    "releaseState"
+  ],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5
+    },
+    "actorId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "minimumN8nVersion": {
+      "const": "2.26.8"
+    },
+    "integrations": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "testLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actorItems", "apifyBackedExecutions", "budgetUsd"],
+      "properties": {
+        "actorItems": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "apifyBackedExecutions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "budgetUsd": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "youtubeVideos": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        }
+      }
+    },
+    "releaseState": {
+      "enum": [
+        "development",
+        "qa-passed",
+        "github-public",
+        "creator-draft",
+        "creator-submitted",
+        "creator-public"
+      ]
+    }
+  }
+}
+

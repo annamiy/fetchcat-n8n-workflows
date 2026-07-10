@@ -1,0 +1,557 @@
+{
+  "name": "LinkedIn Job Match Digest",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "10000000-0000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000002",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1280,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    keywords: ['automation engineer', 'workflow automation'],\n    location: 'Remote',\n    candidateProfile: 'Senior automation engineer with n8n, JavaScript, APIs, and data pipeline experience.',\n    minimumScore: 70,\n    maxItems: 10,\n    sheetName: 'Jobs'\n  }\n}];"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000003",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $input.first().json;\nif (!Array.isArray(config.keywords) || config.keywords.length === 0) throw new Error('Configure at least one job keyword.');\nif (!config.candidateProfile || config.candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: {\n  actorInput: {\n    keywords: config.keywords,\n    location: config.location,\n    maxItems,\n    includeDetails: true,\n    datePosted: 'past24h',\n    sortBy: 'newest'\n  }\n} }];"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000004",
+      "name": "Build Actor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Actors",
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "fetch_cat/linkedin-jobs-scraper",
+          "cachedResultName": "LinkedIn Jobs Scraper"
+        },
+        "customBody": "={{ JSON.stringify($json.actorInput) }}",
+        "timeout": 300,
+        "memory": 1024,
+        "build": "latest"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000005",
+      "name": "Fetch LinkedIn Jobs",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalized = [];\nfor (const item of $input.all().slice(0, 10)) {\n  const job = item.json;\n  if (!job.jobId || !job.title || !job.jobUrl) continue;\n  normalized.push({ json: {\n    jobId: String(job.jobId),\n    title: String(job.title),\n    companyName: String(job.companyName || 'Unknown company'),\n    location: String(job.location || 'Not specified'),\n    postedAtText: String(job.postedAtText || ''),\n    jobUrl: String(job.jobUrl),\n    description: String(job.description || '').slice(0, 12000),\n    employmentType: String(job.employmentType || ''),\n    seniorityLevel: String(job.seniorityLevel || ''),\n    applicantsText: String(job.applicantsText || '')\n  } });\n}\nreturn normalized;"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000006",
+      "name": "Normalize and Cap Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "logic": "removeItemsWithAlreadySeenKeyValues",
+        "dedupeValue": "={{ $json.jobId }}",
+        "options": {
+          "scope": "node",
+          "historySize": 10000
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000007",
+      "name": "Remove Previously Seen Jobs",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "user",
+              "content": "=Candidate profile:\n{{ $(\"Configuration\").first().json.candidateProfile }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "builtInTools": {},
+        "options": {
+          "instructions": "Score the job against the candidate profile. Mark qualified only for a credible fit. Return the strict schema.",
+          "maxTokens": 500,
+          "reasoning": {
+            "reasoningOptions": [
+              {
+                "effort": "low",
+                "summary": "none"
+              }
+            ]
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": [
+              {
+                "type": "json_schema",
+                "verbosity": "low",
+                "name": "linkedin_job_fit",
+                "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"qualified\",\"score\",\"reason\"],\"properties\":{\"qualified\":{\"type\":\"boolean\"},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}",
+                "description": "Score the job against the candidate profile. Mark qualified only for a credible fit. Return the strict schema.",
+                "strict": true
+              }
+            ]
+          }
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000008",
+      "name": "Score Job Fit",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "addSuffix"
+            }
+          }
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000009",
+      "name": "Merge Job and Score",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst minimumScore = Number($(\"Configuration\").first().json.minimumScore);\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string') {\n    throw new Error('OpenAI returned an invalid LinkedIn job score.');\n  }\n  if (!score.qualified || score.score < minimumScore) continue;\n  output.push({ json: {\n    jobId: item.json.jobId,\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    posted: item.json.postedAtText,\n    url: item.json.jobUrl,\n    score: score.score,\n    reason: score.reason,\n    scrapedAt: new Date().toISOString()\n  } });\n}\nreturn output;"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000010",
+      "name": "Validate and Filter Scores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0000000000000000000000000000000000000000000"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gid=0",
+          "cachedResultName": "Jobs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "jobId": "={{ $json.jobId }}",
+            "title": "={{ $json.title }}",
+            "company": "={{ $json.company }}",
+            "location": "={{ $json.location }}",
+            "posted": "={{ $json.posted }}",
+            "url": "={{ $json.url }}",
+            "score": "={{ $json.score }}",
+            "reason": "={{ $json.reason }}",
+            "scrapedAt": "={{ $json.scrapedAt }}"
+          },
+          "schema": [
+            {
+              "id": "jobId",
+              "displayName": "jobId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "posted",
+              "displayName": "posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score",
+              "displayName": "score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "scrapedAt",
+              "displayName": "scrapedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000011",
+      "name": "Append Qualified Jobs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = $input.all().map((item) => item.json).sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | ' + job.reason + '\\n' + job.url);\nreturn [{ json: { slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + lines.join('\\n\\n') } }];"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000012",
+      "name": "Build Slack Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0000000000"
+        },
+        "messageType": "text",
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000013",
+      "name": "Send Slack Digest",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "width": 720,
+        "height": 260,
+        "content": "## LinkedIn Job Match Digest\n\n1. Configure keywords, location, candidate profile, and score threshold.\n2. Connect Apify, OpenAI, Google Sheets, and Slack credentials.\n3. Select the `Jobs` tab and QA Slack channel.\n4. Keep the schedule unpublished until QA passes.\n\nThe Actor and AI stages are capped at 10 jobs. Previously seen `jobId` values are removed before AI scoring.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000014",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1320,
+        -440
+      ]
+    },
+    {
+      "parameters": {
+        "width": 720,
+        "height": 260,
+        "content": "## Fail-closed delivery\n\nOnly schema-valid scores at or above the configured threshold reach Google Sheets. Slack receives one digest containing at most five jobs. Empty and duplicate runs produce no external writes.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000015",
+      "name": "Delivery Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        820,
+        -440
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Build Actor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Actor Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch LinkedIn Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch LinkedIn Jobs": {
+      "main": [
+        [
+          {
+            "node": "Normalize and Cap Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize and Cap Jobs": {
+      "main": [
+        [
+          {
+            "node": "Remove Previously Seen Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Previously Seen Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge Job and Score",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Score Job Fit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Job Fit": {
+      "main": [
+        [
+          {
+            "node": "Merge Job and Score",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Job and Score": {
+      "main": [
+        [
+          {
+            "node": "Validate and Filter Scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate and Filter Scores": {
+      "main": [
+        [
+          {
+            "node": "Append Qualified Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Qualified Jobs": {
+      "main": [
+        [
+          {
+            "node": "Build Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Slack Digest": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

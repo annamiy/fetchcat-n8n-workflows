@@ -1,0 +1,30 @@
+{
+  "description": "Synthetic Reddit Actor output for deterministic transformation tests.",
+  "items": [
+    {
+      "type": "post",
+      "id": "synthetic-reddit-001",
+      "subreddit": "examplebusiness",
+      "title": "Looking for a reliable research automation tool",
+      "text": "We need to compare options this week and have budget approved.",
+      "author": "synthetic_author_1",
+      "url": "https://example.com/reddit/synthetic-reddit-001",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "score": 8,
+      "commentCount": 2
+    },
+    {
+      "type": "post",
+      "id": "synthetic-reddit-002",
+      "subreddit": "examplebusiness",
+      "title": "Sharing our internal automation notes",
+      "text": "No purchase is planned; this is only a retrospective.",
+      "author": "synthetic_author_2",
+      "url": "https://example.com/reddit/synthetic-reddit-002",
+      "createdAt": "2026-01-01T09:00:00.000Z",
+      "score": 3,
+      "commentCount": 0
+    }
+  ]
+}
+

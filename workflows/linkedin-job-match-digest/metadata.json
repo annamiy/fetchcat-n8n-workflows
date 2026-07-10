@@ -1,0 +1,19 @@
+{
+  "slug": "linkedin-job-match-digest",
+  "title": "LinkedIn Job Match Digest",
+  "actorId": "fetch_cat/linkedin-jobs-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets",
+    "Slack"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 3.34
+  },
+  "releaseState": "development"
+}

@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily FetchCat n8n backup
+
+[Timer]
+OnCalendar=*-*-* 03:20:00 Europe/Lisbon
+Persistent=true
+RandomizedDelaySec=10m
+Unit=fetchcat-n8n-backup.service
+
+[Install]
+WantedBy=timers.target
+

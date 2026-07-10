@@ -1,0 +1,98 @@
+name: fetchcat-n8n
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fetchcat-n8n-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /data/n8n/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+
+  community-nodes:
+    image: docker.n8n.io/n8nio/n8n:2.26.8
+    container_name: fetchcat-n8n-community-nodes
+    user: node
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        mkdir -p /home/node/.n8n/nodes &&
+        cd /home/node/.n8n/nodes &&
+        npm install --omit=dev --no-audit --no-fund --save-exact @apify/n8n-nodes-apify@0.6.10
+    volumes:
+      - /data/n8n/state:/home/node/.n8n
+    security_opt:
+      - no-new-privileges:true
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.26.8
+    container_name: fetchcat-n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      community-nodes:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: n8n.nosova.me
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      N8N_EDITOR_BASE_URL: https://n8n.nosova.me
+      WEBHOOK_URL: https://n8n.nosova.me/
+      N8N_PROXY_HOPS: 1
+      N8N_SECURE_COOKIE: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RUNNERS_ENABLED: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      N8N_HIRING_BANNER_ENABLED: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: "true"
+      N8N_COMMUNITY_PACKAGES_ENABLED: "true"
+      N8N_VERIFIED_PACKAGES_ENABLED: "true"
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: 168
+      EXECUTIONS_DATA_PRUNE_MAX_COUNT: 5000
+      GENERIC_TIMEZONE: Europe/Lisbon
+      TZ: Europe/Lisbon
+    volumes:
+      - /data/n8n/state:/home/node/.n8n
+      - /data/n8n/qa-evidence:/data/qa-evidence
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5678/healthz').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  backend:
+    driver: bridge
+

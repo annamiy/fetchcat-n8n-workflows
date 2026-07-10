@@ -1,0 +1,413 @@
+{
+  "name": "Reddit Buying-Intent Alerts",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "30000000-0000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000002",
+      "name": "Every Two Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1280,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  searchQuery: 'looking for OR recommend OR alternative',\n  subreddit: 'smallbusiness',\n  productContext: 'Automation and web-scraping services for business research and lead generation.',\n  minimumScore: 70,\n  maxItems: 10\n} }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000003",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $input.first().json;\nif (!config.searchQuery || String(config.searchQuery).length < 3) throw new Error('Configure a Reddit search query.');\nif (!config.productContext || String(config.productContext).length < 20) throw new Error('Product context must be at least 20 characters.');\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: { actorInput: {\n  searchQuery: String(config.searchQuery),\n  searchSubreddit: String(config.subreddit || ''),\n  sort: 'new',\n  timeFilter: 'day',\n  maxPostsPerSource: maxItems,\n  includeComments: false\n} } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000004",
+      "name": "Build Actor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Actors",
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "fetch_cat/reddit-scraper",
+          "cachedResultName": "Reddit Scraper"
+        },
+        "customBody": "={{ JSON.stringify($json.actorInput) }}",
+        "timeout": 300,
+        "memory": 1024,
+        "build": "latest"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000005",
+      "name": "Fetch Reddit Posts",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalized = [];\nfor (const item of $input.all()) {\n  const post = item.json;\n  if (post.type && String(post.type).toLowerCase() !== 'post') continue;\n  if (!post.id || !post.title) continue;\n  normalized.push({ json: {\n    redditId: String(post.id),\n    subreddit: String(post.subreddit || ''),\n    title: String(post.title),\n    text: String(post.text || post.selfText || post.body || '').slice(0, 8000),\n    author: String(post.author || ''),\n    url: String(post.url || post.permalink || ''),\n    createdAt: String(post.createdAt || ''),\n    score: Number(post.score || 0),\n    commentCount: Number(post.commentCount || 0)\n  } });\n  if (normalized.length === 10) break;\n}\nreturn normalized;"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000006",
+      "name": "Normalize and Cap Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "logic": "removeItemsWithAlreadySeenKeyValues",
+        "dedupeValue": "={{ $json.redditId }}",
+        "options": {
+          "scope": "node",
+          "historySize": 10000
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000007",
+      "name": "Remove Previously Seen Posts",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "user",
+              "content": "=Product context:\n{{ $(\"Configuration\").first().json.productContext }}\n\nClassify this Reddit post:\n{{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "builtInTools": {},
+        "options": {
+          "instructions": "Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Mark qualified only when outreach-free monitoring would be useful. Return the strict schema.",
+          "maxTokens": 650,
+          "reasoning": {
+            "reasoningOptions": [
+              {
+                "effort": "low",
+                "summary": "none"
+              }
+            ]
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": [
+              {
+                "type": "json_schema",
+                "verbosity": "low",
+                "name": "reddit_buying_intent",
+                "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"qualified\",\"buyingIntent\",\"score\",\"reason\",\"summary\"],\"properties\":{\"qualified\":{\"type\":\"boolean\"},\"buyingIntent\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\",\"none\"]},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}",
+                "description": "Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Mark qualified only when outreach-free monitoring would be useful. Return the strict schema.",
+                "strict": true
+              }
+            ]
+          }
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000008",
+      "name": "Classify Buying Intent",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "addSuffix"
+            }
+          }
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000009",
+      "name": "Merge Post and Classification",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst minimumScore = Number($(\"Configuration\").first().json.minimumScore);\nconst intents = new Set(['high', 'medium', 'low', 'none']);\nconst output = [];\nfor (const item of $input.all()) {\n  const result = parseStructured(item.json, ['qualified', 'buyingIntent', 'score', 'reason', 'summary']);\n  if (!result || typeof result.qualified !== 'boolean' || !intents.has(result.buyingIntent) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || typeof result.summary !== 'string') {\n    throw new Error('OpenAI returned an invalid Reddit intent classification.');\n  }\n  if (!result.qualified || !['high', 'medium'].includes(result.buyingIntent) || result.score < minimumScore) continue;\n  output.push({ json: {\n    redditId: item.json.redditId,\n    subreddit: item.json.subreddit,\n    title: item.json.title,\n    url: item.json.url,\n    intent: result.buyingIntent,\n    intentScore: result.score,\n    reason: result.reason,\n    summary: result.summary\n  } });\n}\nreturn output;"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000010",
+      "name": "Validate and Filter Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst posts = $input.all().map((item) => item.json).sort((a, b) => b.intentScore - a.intentScore).slice(0, 5);\nif (posts.length === 0) return [];\nconst lines = posts.map((post, index) => (index + 1) + '. <b>' + escapeHtml(post.title) + '</b> [' + post.intent + ', ' + post.intentScore + '/100]\\n' + escapeHtml(post.summary) + '\\n' + escapeHtml(post.reason) + '\\n' + escapeHtml(post.url));\nreturn [{ json: { telegramMessage: '<b>Reddit Buying-Intent Alerts</b>\\n\\n' + lines.join('\\n\\n') } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000011",
+      "name": "Build Telegram Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "-1000000000000",
+        "text": "={{ $json.telegramMessage }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_notification": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000012",
+      "name": "Send Telegram Digest",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "width": 760,
+        "height": 260,
+        "content": "## Reddit Buying-Intent Alerts\n\nConfigure the search query, optional subreddit, product context, and score threshold. Connect Apify, OpenAI, and Telegram credentials, then select the dedicated QA group. Keep the two-hour schedule unpublished until QA passes.",
+        "color": 7
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000013",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1320,
+        -440
+      ]
+    },
+    {
+      "parameters": {
+        "width": 820,
+        "height": 260,
+        "content": "## Monitoring only\n\nComments are disabled and the workflow never replies to or contacts authors. It caps Actor output at 10 posts, deduplicates Reddit IDs before AI, validates strict classifications, and sends one digest containing at most five posts. Empty and duplicate runs send nothing.",
+        "color": 7
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000014",
+      "name": "Safety Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -440
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Two Hours": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Build Actor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Actor Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch Reddit Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Reddit Posts": {
+      "main": [
+        [
+          {
+            "node": "Normalize and Cap Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize and Cap Posts": {
+      "main": [
+        [
+          {
+            "node": "Remove Previously Seen Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Previously Seen Posts": {
+      "main": [
+        [
+          {
+            "node": "Merge Post and Classification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Classify Buying Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Buying Intent": {
+      "main": [
+        [
+          {
+            "node": "Merge Post and Classification",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Post and Classification": {
+      "main": [
+        [
+          {
+            "node": "Validate and Filter Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate and Filter Intent": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Digest": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
