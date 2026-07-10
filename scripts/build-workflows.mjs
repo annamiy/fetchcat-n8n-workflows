@@ -208,7 +208,7 @@ return [{ json: {
     maxItems,
     includeDetails: true,
     datePosted: 'past24h',
-    sortBy: 'newest'
+    sortBy: 'recent'
   }
 } }];`
   }),
@@ -396,7 +396,7 @@ return [{ json: {
   language,
   researchGoal,
   actorInput: {
-    videoUrls: [youtubeUrl],
+    videoUrls: [{ url: youtubeUrl }],
     language,
     includeTimestamps: true,
     includeMetadata: true,

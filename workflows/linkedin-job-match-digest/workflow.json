@@ -49,7 +49,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $input.first().json;\nif (!Array.isArray(config.keywords) || config.keywords.length === 0) throw new Error('Configure at least one job keyword.');\nif (!config.candidateProfile || config.candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: {\n  actorInput: {\n    keywords: config.keywords,\n    location: config.location,\n    maxItems,\n    includeDetails: true,\n    datePosted: 'past24h',\n    sortBy: 'newest'\n  }\n} }];"
+        "jsCode": "const config = $input.first().json;\nif (!Array.isArray(config.keywords) || config.keywords.length === 0) throw new Error('Configure at least one job keyword.');\nif (!config.candidateProfile || config.candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: {\n  actorInput: {\n    keywords: config.keywords,\n    location: config.location,\n    maxItems,\n    includeDetails: true,\n    datePosted: 'past24h',\n    sortBy: 'recent'\n  }\n} }];"
       },
       "id": "10000000-0000-0000-4000-8000-000000000004",
       "name": "Build Actor Input",
