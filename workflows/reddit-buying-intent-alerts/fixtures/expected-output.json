@@ -1,11 +1,11 @@
 {
   "description": "Assertions for a controlled classification where only synthetic-reddit-001 qualifies.",
   "assertions": [
-    "At most 10 posts reach OpenAI and comments are not requested.",
+    "At most 10 posts reach one OpenAI batch request and comments are not requested.",
     "Only schema-valid high or medium intent above the threshold qualifies.",
     "Telegram receives one HTML-safe digest containing no more than five posts.",
     "The workflow performs no reply, comment, direct message, or author contact operation.",
-    "An immediate rerun sends no Telegram message."
+    "An immediate delivered-item rerun sends no Telegram message.",
+    "A Telegram failure does not commit Reddit IDs to the delivery ledger."
   ]
 }
-

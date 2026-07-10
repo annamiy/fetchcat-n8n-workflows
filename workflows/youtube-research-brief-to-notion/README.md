@@ -15,9 +15,13 @@ form and workflow remain unpublished.
 2. Add Apify and OpenAI credentials to the processing nodes.
 3. Create a Notion database named `FetchCat n8n QA Briefs`, share it with the
    selected Notion integration, and select it in `Create Notion Brief`.
-4. Confirm or replace the captioned public video in `Manual QA Input` before a
+4. Create `FetchCat Delivery Ledger` with `workflowSlug`, `itemKey`, and
+   `destination` string columns plus a `deliveredAt` date/time column.
+5. Import `../shared-error-notifications/workflow.json` and select it as this
+   workflow's error workflow.
+6. Confirm or replace the captioned public video in `Manual QA Input` before a
    CLI execution.
-5. Keep the workflow unpublished. Use the form's test URL for form-specific QA.
+7. Keep the workflow unpublished. Use the form's test URL for form-specific QA.
 
 The form accepts only HTTPS URLs on YouTube hosts. Language must be a short code,
 and the research goal must contain 10 to 1,000 characters.
@@ -29,16 +33,19 @@ flowchart LR
   F[Form or manual QA input] --> V[Validate URL and goal]
   V --> A[Run transcript Actor]
   A --> C[Require captions and cap text]
-  C --> O[Strict AI research brief]
+  C --> D[Keep request absent from delivery ledger]
+  D --> O[Strict AI research brief]
   O --> N[Create Notion page]
-  N --> R[Return page URL]
+  N --> L[Commit request to ledger]
+  L --> R[Return page URL]
 ```
 
 - The Actor receives one URL and `maxVideos: 1`.
 - Missing or unavailable captions stop the workflow before OpenAI and Notion.
 - Timestamped caption segments are preserved as `[mm:ss]` transcript lines and
   capped at 60,000 characters before AI processing.
-- Exact video and research-goal reruns are deduplicated before OpenAI and Notion.
+- Delivered video and research-goal reruns stop before OpenAI and Notion. The
+  request is committed only after Notion succeeds, so failed writes are retryable.
 - Output must contain `summary`, `keyIdeas`, `actionItems`, and at least three
   `timestampedMoments` copied from timestamps present in the transcript.
 - Notion renders Research goal, Summary, Key ideas, Action items, and

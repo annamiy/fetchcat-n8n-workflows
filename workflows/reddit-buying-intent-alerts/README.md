@@ -1,8 +1,8 @@
 # Reddit Buying-Intent Alerts
 
 Runs `fetch_cat/reddit-scraper` for a configurable search and optional
-subreddit, removes posts seen in earlier executions, classifies explicit buying
-intent with strict structured output, and sends one Telegram digest containing
+subreddit, checks a durable delivery ledger, classifies all new posts in one
+strict structured AI call, and sends one Telegram digest containing
 at most five qualified posts.
 
 The workflow has a manual trigger and a two-hour schedule. It monitors only: it
@@ -11,32 +11,40 @@ never comments, replies, messages authors, or performs outreach.
 ## Setup
 
 1. Install `@apify/n8n-nodes-apify@0.6.10` and import `workflow.json`.
-2. Add Apify and OpenAI credentials to the processing nodes.
-3. Create a Telegram group named `FetchCat n8n QA`, add a dedicated bot, and
+2. Create `FetchCat Delivery Ledger` and `FetchCat Reddit Config` using the
+   schemas below, then add one config row whose `configKey` is `default`.
+3. Add Apify and OpenAI credentials to the processing nodes.
+4. Create a Telegram group named `FetchCat n8n QA`, add a dedicated bot, and
    connect the bot credential in n8n.
-4. Select that group's chat ID in `Send Telegram Digest`.
-5. Edit the `Configuration` node with the search query, optional subreddit,
-   sort, time window, product context, and minimum score. Start with global
-   relevance search unless the subreddit has reliable search results.
-6. Keep the schedule unpublished until QA passes.
+5. Select that group's chat ID in `Send Telegram Digest`.
+6. Import `../shared-error-notifications/workflow.json` and select it as this
+   workflow's error workflow. Keep the schedule unpublished until QA passes.
+
+Reddit config columns: `configKey`, `searchQuery`, `subreddit`, `sort`,
+`timeFilter`, and `productContext` as strings; `minimumScore` and `maxItems` as
+numbers. Ledger columns: `workflowSlug`, `itemKey`, and `destination` as
+strings, plus `deliveredAt` as date/time. Start with global relevance search.
 
 ## Behavior
 
 ```mermaid
 flowchart LR
   T[Manual or two-hour trigger] --> A[Run Reddit Actor]
-  A --> D[Cap and deduplicate Reddit ID]
-  D --> O[Strict AI intent classification]
+  A --> D[Keep IDs absent from delivery ledger]
+  D --> O[One strict AI batch classification]
   O --> F[Validate and filter]
   F --> G[Send one Telegram digest]
+  G --> L[Commit evaluated IDs to ledger]
 ```
 
 - Actor search sort and time window are configurable; defaults are global
   relevance over the past week, with comments disabled.
-- No more than 10 posts reach OpenAI.
-- Up to 10,000 Reddit IDs are retained across prior executions.
+- No more than 10 posts reach one OpenAI batch request.
+- Batch validation fails closed unless every input Reddit ID has exactly one
+  result and there are no extras.
 - Only `high` or `medium` buying intent above the threshold can pass.
-- Invalid structured-output items are discarded before delivery.
+- IDs are committed only after Telegram succeeds, so destination failures stay
+  retryable.
 - Alerts include subreddit, post age, Reddit score, comment count, summary,
   qualification reason, and a direct post link.
 - Duplicate, empty, and below-threshold runs send no Telegram message.

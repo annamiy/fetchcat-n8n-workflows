@@ -25,11 +25,13 @@ exact full commit SHA.
    screenshots, and private evidence artifact.
 2. Re-run repository CI checks and secret scanning on the exact commit.
 3. Review the public README, setup steps, costs, limitations, sticky notes,
-   synthetic fixtures, and credential-free screenshots as a new user would.
+   Data Table schemas, companion error-workflow instructions, synthetic
+   fixtures, and credential-free screenshots as a new user would.
 4. Merge the approved public repository PR and record the merge SHA on the same
    issue.
 5. Run `npm run package -- <slug>` and verify the package contains only the
-   documented public contract.
+   documented public contract. Confirm sanitization removed credentials and
+   the instance-local `settings.errorWorkflow` ID.
 6. Update release state only to the state actually achieved.
 7. Use `agent-browser` with the existing Creator account to prepare the Creator
    Portal draft. Fill fields and upload the sanitized workflow/package, but do
@@ -63,4 +65,3 @@ Submission: BLOCKED PENDING ANNA APPROVAL
 
 Only after exact approval may the workflow enter Creator review. Creator review
 or library publication is never equivalent to activating the private workflow.
-

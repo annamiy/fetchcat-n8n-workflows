@@ -1,14 +1,16 @@
 {
   "slug": "youtube-research-brief-to-notion",
   "title": "YouTube Research Brief to Notion",
+  "workflowKind": "actor-template",
   "actorId": "H7e6sHWbYadmHLoNu",
   "actorSlug": "fetch_cat/youtube-transcript-scraper",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",
     "OpenAI",
-    "Notion"
+    "Notion",
+    "n8n Data Tables"
   ],
   "testLimits": {
     "actorItems": 1,
@@ -16,5 +18,5 @@
     "budgetUsd": 3.33,
     "youtubeVideos": 1
   },
-  "releaseState": "development"
+  "releaseState": "qa-passed"
 }

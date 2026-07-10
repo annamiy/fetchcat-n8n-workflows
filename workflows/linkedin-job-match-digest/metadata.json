@@ -1,20 +1,22 @@
 {
   "slug": "linkedin-job-match-digest",
   "title": "LinkedIn Job Match Digest",
+  "workflowKind": "actor-template",
   "actorId": "0XhGPLTjZjicBXYV5",
   "actorSlug": "fetch_cat/linkedin-jobs-scraper",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",
     "OpenAI",
     "Google Sheets",
-    "Slack"
+    "Slack",
+    "n8n Data Tables"
   ],
   "testLimits": {
     "actorItems": 10,
     "apifyBackedExecutions": 3,
     "budgetUsd": 3.34
   },
-  "releaseState": "development"
+  "releaseState": "qa-passed"
 }

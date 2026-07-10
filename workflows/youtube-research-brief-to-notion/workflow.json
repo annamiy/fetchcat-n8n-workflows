@@ -133,18 +133,33 @@
     },
     {
       "parameters": {
-        "operation": "removeItemsSeenInPreviousExecutions",
-        "logic": "removeItemsWithAlreadySeenKeyValues",
-        "dedupeValue": "={{ $json.dedupeKey }}",
-        "options": {
-          "scope": "node",
-          "historySize": 10000
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workflowSlug",
+              "condition": "eq",
+              "keyValue": "youtube-research-brief-to-notion"
+            },
+            {
+              "keyName": "itemKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.dedupeKey }}"
+            }
+          ]
         }
       },
       "id": "20000000-0000-0000-4000-8000-000000000015",
-      "name": "Remove Duplicate Requests",
-      "type": "n8n-nodes-base.removeDuplicates",
-      "typeVersion": 2,
+      "name": "Keep Undelivered Requests",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
       "position": [
         40,
         0
@@ -383,14 +398,96 @@
     },
     {
       "parameters": {
-        "jsCode": "const page = $input.first().json;\nif (!page.url || !String(page.url).startsWith('https://')) throw new Error('Notion did not return a page URL.');\nreturn [{ json: { url: page.url, formSubmittedText: 'Research brief created: ' + page.url } }];"
+        "jsCode": "return [{ json: { workflowSlug: 'youtube-research-brief-to-notion', itemKey: $('Validate and Cap Transcript').first().json.dedupeKey } }];"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000016",
+      "name": "Prepare Delivery Ledger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "workflowSlug": "={{ $json.workflowSlug }}",
+            "itemKey": "={{ $json.itemKey }}",
+            "destination": "Notion",
+            "deliveredAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "workflowSlug",
+              "displayName": "workflowSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itemKey",
+              "displayName": "itemKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination",
+              "displayName": "destination",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000017",
+      "name": "Commit Delivered Brief",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const page = $('Create Notion Brief').first().json;\nif (!page.url || !String(page.url).startsWith('https://')) throw new Error('Notion did not return a page URL.');\nreturn [{ json: { url: page.url, formSubmittedText: 'Research brief created: ' + page.url } }];"
       },
       "id": "20000000-0000-0000-4000-8000-000000000011",
       "name": "Return Notion URL",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1240,
+        1720,
         0
       ]
     },
@@ -414,7 +511,7 @@
       "parameters": {
         "width": 900,
         "height": 250,
-        "content": "## Cost and failure controls\n\nThe Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion. Transcript input is capped at 60,000 characters. Confirm the captioned public video in Manual QA Input before CLI execution.",
+        "content": "## Cost and failure controls\n\nThe Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion. Transcript input is capped at 60,000 characters. Confirm the captioned public video in Manual QA Input before server-side QA execution.",
         "color": 7
       },
       "id": "20000000-0000-0000-4000-8000-000000000013",
@@ -428,9 +525,9 @@
     },
     {
       "parameters": {
-        "width": 960,
+        "width": 1080,
         "height": 250,
-        "content": "## Notion output\n\nExact video and research-goal reruns are removed before OpenAI and Notion. OpenAI must satisfy a strict JSON schema. The resulting page contains a summary, key ideas, action items, and timestamped moments. Form submissions redirect to the created Notion page.",
+        "content": "## Notion output\n\nThe delivery ledger is checked before OpenAI. A request is committed only after Notion creates the page successfully, so failed destination writes remain retryable. OpenAI must satisfy a strict schema. The page contains real headings, key ideas, action items, and timestamped moments.",
         "color": 7
       },
       "id": "20000000-0000-0000-4000-8000-000000000014",
@@ -503,14 +600,14 @@
       "main": [
         [
           {
-            "node": "Remove Duplicate Requests",
+            "node": "Keep Undelivered Requests",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Remove Duplicate Requests": {
+    "Keep Undelivered Requests": {
       "main": [
         [
           {
@@ -560,6 +657,28 @@
       ]
     },
     "Create Notion Brief": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Commit Delivered Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit Delivered Brief": {
       "main": [
         [
           {

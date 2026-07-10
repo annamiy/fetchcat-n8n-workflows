@@ -1,0 +1,18 @@
+{
+  "slug": "shared-error-notifications",
+  "title": "FetchCat Private Workflow Error Alerts",
+  "workflowKind": "support",
+  "actorId": null,
+  "actorSlug": null,
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Telegram"
+  ],
+  "testLimits": {
+    "actorItems": 0,
+    "apifyBackedExecutions": 0,
+    "budgetUsd": 0
+  },
+  "releaseState": "qa-passed"
+}

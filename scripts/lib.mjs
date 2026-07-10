@@ -71,8 +71,10 @@ export function sanitizeWorkflow(workflow) {
   clean(copy);
   copy.active = false;
   copy.pinData = {};
+  const settings = { ...(copy.settings ?? {}) };
+  delete settings.errorWorkflow;
   copy.settings = {
-    ...(copy.settings ?? {}),
+    ...settings,
     executionOrder: 'v1',
     timezone: 'Europe/Lisbon'
   };

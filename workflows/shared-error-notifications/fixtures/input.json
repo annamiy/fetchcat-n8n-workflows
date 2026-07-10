@@ -1,0 +1,13 @@
+{
+  "description": "Synthetic n8n Error Trigger payload with no private production data.",
+  "items": [
+    {
+      "workflow": { "name": "Synthetic QA workflow" },
+      "execution": {
+        "id": "fixture-execution",
+        "lastNodeExecuted": "Throw Synthetic Error",
+        "error": { "message": "Synthetic QA failure" }
+      }
+    }
+  ]
+}

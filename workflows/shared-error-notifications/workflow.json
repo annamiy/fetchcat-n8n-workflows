@@ -1,0 +1,115 @@
+{
+  "name": "FetchCat Private Workflow Error Alerts",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "40000000-0000-0000-4000-8000-000000000001",
+      "name": "Workflow Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst execution = event.execution || {};\nconst workflow = event.workflow || {};\nconst escapeHtml = (value) => String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst message = String(execution.error?.message || event.error?.message || 'Unknown workflow error').slice(0, 1500);\nconst parts = [\n  '<b>FetchCat n8n workflow failed</b>',\n  '<b>Workflow:</b> ' + escapeHtml(workflow.name || 'Unknown'),\n  '<b>Execution:</b> ' + escapeHtml(execution.id || 'Unavailable'),\n  '<b>Last node:</b> ' + escapeHtml(execution.lastNodeExecuted || 'Unavailable'),\n  '<b>Error:</b> ' + escapeHtml(message)\n];\nif (execution.url && String(execution.url).startsWith('https://')) parts.push('<a href=\"' + escapeHtml(execution.url) + '\">Open failed execution</a>');\nreturn [{ json: { telegramMessage: parts.join('\\n') } }];"
+      },
+      "id": "40000000-0000-0000-4000-8000-000000000002",
+      "name": "Format Private Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "-1000000000000",
+        "text": "={{ $json.telegramMessage }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_notification": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "40000000-0000-0000-4000-8000-000000000003",
+      "name": "Send Private Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        40,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "width": 700,
+        "height": 220,
+        "content": "## Shared private error notifications\n\nConnect the dedicated Telegram credential and QA group. In each monitored workflow, select this workflow under Settings > Error workflow. After a synthetic failure test, activate this Error Trigger workflow; monitored Actor workflows and schedules remain inactive.",
+        "color": 7
+      },
+      "id": "40000000-0000-0000-4000-8000-000000000004",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "width": 700,
+        "height": 220,
+        "content": "## Minimal operational data\n\nAlerts contain workflow name, execution ID, last node, a truncated error message, and the private execution link. Input items, credentials, tokens, cookies, and stack traces are never included.",
+        "color": 7
+      },
+      "id": "40000000-0000-0000-4000-8000-000000000005",
+      "name": "Privacy Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -340
+      ]
+    }
+  ],
+  "connections": {
+    "Workflow Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Private Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Private Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Private Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

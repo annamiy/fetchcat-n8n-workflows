@@ -8,9 +8,10 @@ and is designed to fail closed before writing to an external service.
 
 | Workflow | Actor | Destinations | State |
 | --- | --- | --- | --- |
-| [LinkedIn Job Match Digest](workflows/linkedin-job-match-digest/) | `fetch_cat/linkedin-jobs-scraper` | Google Sheets, Slack | Development |
-| [YouTube Research Brief to Notion](workflows/youtube-research-brief-to-notion/) | `fetch_cat/youtube-transcript-scraper` | Notion | Development |
-| [Reddit Buying-Intent Alerts](workflows/reddit-buying-intent-alerts/) | `fetch_cat/reddit-scraper` | Telegram | Development |
+| [LinkedIn Job Match Digest](workflows/linkedin-job-match-digest/) | `fetch_cat/linkedin-jobs-scraper` | Google Sheets, Slack | QA passed |
+| [YouTube Research Brief to Notion](workflows/youtube-research-brief-to-notion/) | `fetch_cat/youtube-transcript-scraper` | Notion | QA passed |
+| [Reddit Buying-Intent Alerts](workflows/reddit-buying-intent-alerts/) | `fetch_cat/reddit-scraper` | Telegram | QA passed |
+| [Private Workflow Error Alerts](workflows/shared-error-notifications/) | Companion workflow | Telegram | QA passed |
 
 All schedules are inactive in Git. Importing through the n8n CLI also forces them
 inactive. Creator Portal packages remain drafts until a separate approval is given.
@@ -21,6 +22,8 @@ inactive. Creator Portal packages remain drafts until a separate approval is giv
 - `@apify/n8n-nodes-apify` `0.6.10`
 - Node.js 20 or newer for repository tooling
 - Credentials for the integrations named by each workflow
+- n8n Data Tables named `FetchCat Delivery Ledger`, `FetchCat LinkedIn Config`,
+  and `FetchCat Reddit Config`
 
 The reference Docker Compose deployment is under [`infra/`](infra/). Runtime
 secrets belong in n8n's encrypted credential store and must never be added to a
@@ -38,10 +41,12 @@ npm run sanitize -- exported-workflow.json clean-workflow.json
 npm run package -- linkedin-job-match-digest
 ```
 
-The import, execute, and export commands use the supported n8n CLI inside the
+The import and export commands use the supported n8n CLI inside the
 container named by `N8N_CONTAINER` (default: `fetchcat-n8n`). The execute command
-resolves the imported workflow by its exact public title and runs `n8n execute
---id`.
+resolves the imported workflow by its exact public title. n8n 2.26.8 disables
+Data Table nodes in standalone CLI executions, so ledger-backed workflows must
+be executed through the private server editor or a controlled inactive QA
+trigger; the command fails early with that explanation.
 
 ## Public Contract
 
@@ -66,10 +71,13 @@ network URLs, and personal email addresses in workflow artifacts. Testing is
 limited to three Apify-backed executions per workflow, ten Actor items per run,
 one YouTube video per run, and a shared total budget of USD 10.
 
+Actor templates use a durable delivery ledger instead of execution-local
+deduplication. LinkedIn and Reddit make one structured AI request per batch,
+and the companion error workflow sends minimal private failure alerts.
+
 This repository does not modify any FetchCat Actor source, metadata, README,
 task, schema, or Store page.
 
 ## License
 
 [MIT](LICENSE)
-

@@ -8,7 +8,7 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -1280,
+        -1520,
         80
       ]
     },
@@ -30,33 +30,50 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
-        -1280,
+        -1520,
         -100
       ]
     },
     {
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    keywords: ['automation engineer', 'workflow automation'],\n    location: 'Remote',\n    candidateProfile: 'Senior automation engineer with n8n, JavaScript, APIs, and data pipeline experience.',\n    minimumScore: 70,\n    maxItems: 10,\n    sheetName: 'Jobs'\n  }\n}];"
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat LinkedIn Config"
+        },
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "configKey",
+              "condition": "eq",
+              "keyValue": "default"
+            }
+          ]
+        }
       },
       "id": "10000000-0000-0000-4000-8000-000000000003",
-      "name": "Configuration",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "name": "Load LinkedIn Configuration",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
       "position": [
-        -1040,
+        -1280,
         0
       ]
     },
     {
       "parameters": {
-        "jsCode": "const config = $input.first().json;\nif (!Array.isArray(config.keywords) || config.keywords.length === 0) throw new Error('Configure at least one job keyword.');\nif (!config.candidateProfile || config.candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: {\n  actorInput: {\n    keywords: config.keywords,\n    location: config.location,\n    maxItems,\n    includeDetails: true,\n    datePosted: 'past24h',\n    sortBy: 'recent'\n  }\n} }];"
+        "jsCode": "const config = $input.first()?.json;\nif (!config) throw new Error('Add a default row to the FetchCat LinkedIn Config data table.');\nconst keywords = String(config.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);\nif (keywords.length === 0) throw new Error('Configure at least one comma-separated job keyword.');\nconst candidateProfile = String(config.candidateProfile || '').trim();\nif (candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: { config: { candidateProfile, minimumScore }, actorInput: {\n  keywords,\n  location: String(config.location || 'Remote'),\n  maxItems,\n  includeDetails: true,\n  datePosted: 'past24h',\n  sortBy: 'recent'\n} } }];"
       },
       "id": "10000000-0000-0000-4000-8000-000000000004",
       "name": "Build Actor Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -800,
+        -1040,
         0
       ]
     },
@@ -81,7 +98,7 @@
       "type": "@apify/n8n-nodes-apify.apify",
       "typeVersion": 1,
       "position": [
-        -560,
+        -800,
         0
       ]
     },
@@ -94,23 +111,51 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
+        -560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workflowSlug",
+              "condition": "eq",
+              "keyValue": "linkedin-job-match-digest"
+            },
+            {
+              "keyName": "itemKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.jobId }}"
+            }
+          ]
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000007",
+      "name": "Keep Undelivered Jobs",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
         -320,
         0
       ]
     },
     {
       "parameters": {
-        "operation": "removeItemsSeenInPreviousExecutions",
-        "logic": "removeItemsWithAlreadySeenKeyValues",
-        "dedupeValue": "={{ $json.jobId }}",
-        "options": {
-          "scope": "node",
-          "historySize": 10000
-        }
+        "jsCode": "const jobs = $input.all().map((item) => item.json);\nif (jobs.length === 0) return [];\nreturn [{ json: { jobs, jobIds: jobs.map((job) => job.jobId) } }];"
       },
-      "id": "10000000-0000-0000-4000-8000-000000000007",
-      "name": "Remove Previously Seen Jobs",
-      "type": "n8n-nodes-base.removeDuplicates",
+      "id": "10000000-0000-0000-4000-8000-000000000008",
+      "name": "Build Job Batch",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         -80,
@@ -131,15 +176,15 @@
             {
               "type": "text",
               "role": "user",
-              "content": "=Candidate profile:\n{{ $(\"Configuration\").first().json.candidateProfile }}\n\nMinimum score for qualification: {{ $(\"Configuration\").first().json.minimumScore }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}"
+              "content": "=Candidate profile:\n{{ $(\"Build Actor Input\").first().json.config.candidateProfile }}\n\nMinimum score: {{ $(\"Build Actor Input\").first().json.config.minimumScore }}\n\nEvaluate every job exactly once and preserve each jobId:\n{{ JSON.stringify($json.jobs) }}"
             }
           ]
         },
         "simplify": true,
         "builtInTools": {},
         "options": {
-          "instructions": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason written in English, regardless of the job description language. Return the strict schema.",
-          "maxTokens": 1200,
+          "instructions": "Score every job against the candidate profile. Return exactly one result for every supplied jobId and no others. Set qualified true only when score meets the supplied minimum and fit is credible. Every reason must be English. Return the strict schema.",
+          "maxTokens": 4000,
           "reasoning": {
             "reasoningOptions": {
               "effort": "low",
@@ -151,40 +196,31 @@
             "textOptions": {
               "type": "json_schema",
               "verbosity": "low",
-              "name": "linkedin_job_fit",
-              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"qualified\",\"score\",\"reason\"],\"properties\":{\"qualified\":{\"type\":\"boolean\"},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}",
-              "description": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason written in English, regardless of the job description language. Return the strict schema.",
+              "name": "linkedin_job_fit_batch",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"results\"],\"properties\":{\"results\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":10,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"jobId\",\"qualified\",\"score\",\"reason\"],\"properties\":{\"jobId\":{\"type\":\"string\",\"minLength\":1},\"qualified\":{\"type\":\"boolean\"},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}}}}",
+              "description": "Score every job against the candidate profile. Return exactly one result for every supplied jobId and no others. Set qualified true only when score meets the supplied minimum and fit is credible. Every reason must be English. Return the strict schema.",
               "strict": true
             }
           }
         }
       },
-      "id": "10000000-0000-0000-4000-8000-000000000008",
-      "name": "Score Job Fit",
+      "id": "10000000-0000-0000-4000-8000-000000000009",
+      "name": "Score Job Batch",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
         160,
-        120
+        0
       ]
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "numberInputs": 2,
-        "options": {
-          "clashHandling": {
-            "values": {
-              "resolveClash": "preferInput1"
-            }
-          }
-        }
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst batch = $(\"Build Job Batch\").first().json;\nconst parsed = parseStructured($input.first().json, ['results']);\nif (!parsed || !Array.isArray(parsed.results)) throw new Error('OpenAI returned an invalid LinkedIn batch.');\nconst expectedIds = new Set(batch.jobIds);\nconst actualIds = parsed.results.map((result) => String(result.jobId));\nif (actualIds.length !== expectedIds.size || new Set(actualIds).size !== actualIds.length || actualIds.some((value) => !expectedIds.has(value))) throw new Error('OpenAI result IDs do not exactly match the LinkedIn input batch.');\nconst minimumScore = Number($(\"Build Actor Input\").first().json.config.minimumScore);\nconst byId = new Map(batch.jobs.map((job) => [job.jobId, job]));\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedAt = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - Number(match[1]) * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  return toSheetsSerial(date);\n};\nconst qualifiedJobs = [];\nfor (const result of parsed.results) {\n  if (typeof result.qualified !== 'boolean' || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim()) throw new Error('OpenAI returned a malformed LinkedIn result.');\n  if (!result.qualified || result.score < minimumScore) continue;\n  const job = byId.get(String(result.jobId));\n  const collected = new Date(job.scrapedAt || Date.now());\n  const url = String(job.jobUrl);\n  qualifiedJobs.push({ title: job.title, company: job.companyName, location: job.location, postedAt: parsePostedAt(job.postedAtText, collected), postedRelative: job.postedAtText, jobLink: '=HYPERLINK(\"' + url.replace(/\"/g, '\"\"') + '\",\"Open job\")', url, score: result.score, reason: result.reason.trim(), collectedAt: toSheetsSerial(collected), linkedInJobId: job.jobId });\n}\nreturn [{ json: { allKeys: batch.jobIds, qualifiedJobs } }];"
       },
-      "id": "10000000-0000-0000-4000-8000-000000000009",
-      "name": "Merge Job and Score",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
+      "id": "10000000-0000-0000-4000-8000-000000000010",
+      "name": "Validate Job Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         400,
         0
@@ -192,12 +228,32 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst minimumScore = Number($(\"Configuration\").first().json.minimumScore);\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedAt = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const amount = Number(match[1]);\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - amount * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  return toSheetsSerial(date);\n};\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  const collected = new Date(item.json.scrapedAt || Date.now());\n  const url = String(item.json.jobUrl);\n  const formulaUrl = url.replace(/\"/g, '\"\"');\n  output.push({ json: {\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    postedAt: parsePostedAt(item.json.postedAtText, collected),\n    postedRelative: item.json.postedAtText,\n    jobLink: '=HYPERLINK(\"' + formulaUrl + '\",\"Open job\")',\n    url,\n    score: score.score,\n    reason: score.reason,\n    collectedAt: toSheetsSerial(collected),\n    linkedInJobId: item.json.jobId\n  } });\n}\nreturn output;"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.qualifiedJobs.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
-      "id": "10000000-0000-0000-4000-8000-000000000010",
-      "name": "Validate and Filter Scores",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "10000000-0000-0000-4000-8000-000000000011",
+      "name": "Has Qualified Jobs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
       "position": [
         640,
         0
@@ -205,7 +261,20 @@
     },
     {
       "parameters": {
-        "operation": "append",
+        "jsCode": "return $json.qualifiedJobs.map((job) => ({ json: job }));"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000012",
+      "name": "Expand Qualified Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "mode": "id",
@@ -219,7 +288,9 @@
         },
         "columns": {
           "mappingMode": "defineBelow",
-          "matchingColumns": [],
+          "matchingColumns": [
+            "linkedInJobId"
+          ],
           "value": {
             "title": "={{ $json.title }}",
             "company": "={{ $json.company }}",
@@ -321,26 +392,26 @@
           "useAppend": true
         }
       },
-      "id": "10000000-0000-0000-4000-8000-000000000011",
-      "name": "Append Qualified Jobs",
+      "id": "10000000-0000-0000-4000-8000-000000000013",
+      "name": "Upsert Qualified Jobs",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        880,
-        0
+        1120,
+        -100
       ]
     },
     {
       "parameters": {
-        "jsCode": "const jobs = $input.all().map((item) => item.json).sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | Posted ' + job.postedRelative + '\\n' + job.reason + '\\n' + job.url);\nreturn [{ json: { slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + lines.join('\\n\\n') } }];"
+        "jsCode": "const jobs = $('Validate Job Batch').first().json.qualifiedJobs.sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | Posted ' + job.postedRelative + '\\n' + job.reason + '\\n' + job.url);\nreturn [{ json: { slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + lines.join('\\n\\n') } }];"
       },
-      "id": "10000000-0000-0000-4000-8000-000000000012",
+      "id": "10000000-0000-0000-4000-8000-000000000014",
       "name": "Build Slack Digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
-        0
+        1360,
+        -100
       ]
     },
     {
@@ -361,44 +432,126 @@
           "unfurl_media": false
         }
       },
-      "id": "10000000-0000-0000-4000-8000-000000000013",
+      "id": "10000000-0000-0000-4000-8000-000000000015",
       "name": "Send Slack Digest",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
-        1360,
-        0
+        1600,
+        -100
       ]
     },
     {
       "parameters": {
-        "width": 720,
-        "height": 260,
-        "content": "## LinkedIn Job Match Digest\n\n1. Configure keywords, location, candidate profile, and score threshold.\n2. Connect Apify, OpenAI, Google Sheets, and Slack credentials.\n3. Select the `Jobs` tab and QA Slack channel.\n4. Keep the schedule unpublished until QA passes.\n\nThe Actor and AI stages are capped at 10 jobs. Previously seen `jobId` values are removed before AI scoring.",
+        "jsCode": "return $('Validate Job Batch').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'linkedin-job-match-digest', itemKey } }));"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000016",
+      "name": "Prepare Delivery Ledger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "workflowSlug": "={{ $json.workflowSlug }}",
+            "itemKey": "={{ $json.itemKey }}",
+            "destination": "Google Sheets + Slack",
+            "deliveredAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "workflowSlug",
+              "displayName": "workflowSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itemKey",
+              "displayName": "itemKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination",
+              "displayName": "destination",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000017",
+      "name": "Commit Delivered Jobs",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "width": 860,
+        "height": 270,
+        "content": "## LinkedIn Job Match Digest\n\nEdit the `default` row in `FetchCat LinkedIn Config` to change comma-separated keywords, location, candidate profile, score threshold, or item limit. Connect Apify, OpenAI, Google Sheets, and Slack credentials. Select the `Jobs` tab and destination channel. Keep the schedule unpublished until QA passes.",
         "color": 7
       },
-      "id": "10000000-0000-0000-4000-8000-000000000014",
+      "id": "10000000-0000-0000-4000-8000-000000000018",
       "name": "Setup Notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1320,
+        -1560,
         -440
       ]
     },
     {
       "parameters": {
-        "width": 720,
-        "height": 260,
-        "content": "## Fail-closed delivery\n\nOnly schema-valid scores at or above the configured threshold reach Google Sheets. Slack receives one digest containing at most five jobs. Empty and duplicate runs produce no external writes.",
+        "width": 1040,
+        "height": 270,
+        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified rows are upserted by LinkedIn job ID, then one Slack digest is sent. IDs are committed to `FetchCat Delivery Ledger` only after delivery succeeds. Empty and fully delivered runs create no destination writes.",
         "color": 7
       },
-      "id": "10000000-0000-0000-4000-8000-000000000015",
+      "id": "10000000-0000-0000-4000-8000-000000000019",
       "name": "Delivery Notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        820,
+        680,
         -440
       ]
     }
@@ -408,7 +561,7 @@
       "main": [
         [
           {
-            "node": "Configuration",
+            "node": "Load LinkedIn Configuration",
             "type": "main",
             "index": 0
           }
@@ -419,14 +572,14 @@
       "main": [
         [
           {
-            "node": "Configuration",
+            "node": "Load LinkedIn Configuration",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Configuration": {
+    "Load LinkedIn Configuration": {
       "main": [
         [
           {
@@ -463,63 +616,87 @@
       "main": [
         [
           {
-            "node": "Remove Previously Seen Jobs",
+            "node": "Keep Undelivered Jobs",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Remove Previously Seen Jobs": {
+    "Keep Undelivered Jobs": {
       "main": [
         [
           {
-            "node": "Merge Job and Score",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Score Job Fit",
+            "node": "Build Job Batch",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Score Job Fit": {
+    "Build Job Batch": {
       "main": [
         [
           {
-            "node": "Merge Job and Score",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge Job and Score": {
-      "main": [
-        [
-          {
-            "node": "Validate and Filter Scores",
+            "node": "Score Job Batch",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate and Filter Scores": {
+    "Score Job Batch": {
       "main": [
         [
           {
-            "node": "Append Qualified Jobs",
+            "node": "Validate Job Batch",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Append Qualified Jobs": {
+    "Validate Job Batch": {
+      "main": [
+        [
+          {
+            "node": "Has Qualified Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Qualified Jobs": {
+      "main": [
+        [
+          {
+            "node": "Expand Qualified Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Qualified Jobs": {
+      "main": [
+        [
+          {
+            "node": "Upsert Qualified Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Qualified Jobs": {
       "main": [
         [
           {
@@ -535,6 +712,28 @@
         [
           {
             "node": "Send Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Digest": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Commit Delivered Jobs",
             "type": "main",
             "index": 0
           }

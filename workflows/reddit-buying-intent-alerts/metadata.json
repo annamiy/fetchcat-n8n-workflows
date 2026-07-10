@@ -1,19 +1,21 @@
 {
   "slug": "reddit-buying-intent-alerts",
   "title": "Reddit Buying-Intent Alerts",
+  "workflowKind": "actor-template",
   "actorId": "DAj0KBMoCNDqMLe82",
   "actorSlug": "fetch_cat/reddit-scraper",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",
     "OpenAI",
-    "Telegram"
+    "Telegram",
+    "n8n Data Tables"
   ],
   "testLimits": {
     "actorItems": 10,
     "apifyBackedExecutions": 3,
     "budgetUsd": 3.33
   },
-  "releaseState": "development"
+  "releaseState": "qa-passed"
 }

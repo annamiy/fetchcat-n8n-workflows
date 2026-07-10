@@ -29,6 +29,7 @@ function listWorkflows() {
 }
 
 const metadata = readJson(workflowPath(slug, 'metadata.json'));
+const workflowDefinition = readJson(workflowPath(slug));
 
 if (command === 'import') {
   const prepared = path.join(root, 'dist', 'import', `${slug}.json`);
@@ -39,6 +40,13 @@ if (command === 'import') {
   docker('cp', prepared, `${container}:${containerPath}`);
   process.stdout.write(docker('exec', container, 'n8n', 'import:workflow', `--input=${containerPath}`));
   process.exit(0);
+}
+
+if (command === 'execute' && workflowDefinition.nodes.some((node) => node.type === 'n8n-nodes-base.dataTable')) {
+  throw new Error(
+    'n8n 2.26.8 disables Data Table nodes in standalone CLI executions. ' +
+    'Run this workflow through the private server editor or an inactive QA trigger instead.'
+  );
 }
 
 const matches = listWorkflows().filter((workflow) => workflow.name === metadata.title);

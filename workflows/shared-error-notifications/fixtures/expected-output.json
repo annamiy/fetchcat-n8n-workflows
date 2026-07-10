@@ -1,0 +1,7 @@
+{
+  "assertions": [
+    "One private Telegram alert is sent for the failed synthetic execution.",
+    "The alert names the workflow, execution, last node, and truncated error message.",
+    "No input payload, credential, token, cookie, or stack trace appears in the alert."
+  ]
+}

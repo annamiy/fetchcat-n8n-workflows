@@ -7,6 +7,7 @@
   "required": [
     "slug",
     "title",
+    "workflowKind",
     "actorId",
     "actorSlug",
     "version",
@@ -24,12 +25,15 @@
       "type": "string",
       "minLength": 5
     },
+    "workflowKind": {
+      "enum": ["actor-template", "support"]
+    },
     "actorId": {
-      "type": "string",
+      "type": ["string", "null"],
       "pattern": "^[a-zA-Z0-9]+$"
     },
     "actorSlug": {
-      "type": "string",
+      "type": ["string", "null"],
       "pattern": "^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$"
     },
     "version": {
@@ -41,7 +45,7 @@
     },
     "integrations": {
       "type": "array",
-      "minItems": 2,
+      "minItems": 1,
       "uniqueItems": true,
       "items": {
         "type": "string"
@@ -54,17 +58,17 @@
       "properties": {
         "actorItems": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 10
         },
         "apifyBackedExecutions": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 3
         },
         "budgetUsd": {
           "type": "number",
-          "exclusiveMinimum": 0,
+          "minimum": 0,
           "maximum": 10
         },
         "youtubeVideos": {
@@ -84,5 +88,23 @@
         "creator-public"
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "workflowKind": { "const": "actor-template" } } },
+      "then": {
+        "properties": {
+          "actorId": { "type": "string", "minLength": 1 },
+          "actorSlug": { "type": "string", "minLength": 3 },
+          "testLimits": {
+            "properties": {
+              "actorItems": { "minimum": 1 },
+              "apifyBackedExecutions": { "minimum": 1 },
+              "budgetUsd": { "exclusiveMinimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

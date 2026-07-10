@@ -107,30 +107,88 @@ function openAiParameters(prompt, schemaName, schema, instructions, maxTokens) {
   };
 }
 
+function dataTable(name) {
+  return { __rl: true, mode: 'name', value: name };
+}
+
 function mergeParameters() {
   return {
     mode: 'combine',
     combineBy: 'combineByPosition',
     numberInputs: 2,
-    options: {
-      clashHandling: {
-        values: {
-          resolveClash: 'preferInput1'
-        }
-      }
+    options: { clashHandling: { values: { resolveClash: 'preferInput1' } } }
+  };
+}
+
+function ledgerCheckParameters(workflowSlug, keyExpression) {
+  return {
+    resource: 'row',
+    operation: 'rowNotExists',
+    dataTableId: dataTable('FetchCat Delivery Ledger'),
+    matchType: 'allConditions',
+    filters: {
+      conditions: [
+        { keyName: 'workflowSlug', condition: 'eq', keyValue: workflowSlug },
+        { keyName: 'itemKey', condition: 'eq', keyValue: keyExpression }
+      ]
     }
   };
 }
 
-function dedupeParameters(expression) {
+function ledgerInsertParameters(destination) {
+  const fields = ['workflowSlug', 'itemKey', 'destination', 'deliveredAt'];
   return {
-    operation: 'removeItemsSeenInPreviousExecutions',
-    logic: 'removeItemsWithAlreadySeenKeyValues',
-    dedupeValue: expression,
-    options: {
-      scope: 'node',
-      historySize: 10000
+    resource: 'row',
+    operation: 'insert',
+    dataTableId: dataTable('FetchCat Delivery Ledger'),
+    columns: {
+      mappingMode: 'defineBelow',
+      matchingColumns: [],
+      value: {
+        workflowSlug: '={{ $json.workflowSlug }}',
+        itemKey: '={{ $json.itemKey }}',
+        destination,
+        deliveredAt: '={{ $now.toISO() }}'
+      },
+      schema: fields.map((field) => ({
+        id: field,
+        displayName: field,
+        required: false,
+        defaultMatch: false,
+        display: true,
+        type: field === 'deliveredAt' ? 'dateTime' : 'string',
+        canBeUsedToMatch: true
+      })),
+      attemptToConvertTypes: false,
+      convertFieldsToString: false
     }
+  };
+}
+
+function configGetParameters(tableName) {
+  return {
+    resource: 'row',
+    operation: 'get',
+    dataTableId: dataTable(tableName),
+    returnAll: false,
+    limit: 1,
+    filters: { conditions: [{ keyName: 'configKey', condition: 'eq', keyValue: 'default' }] }
+  };
+}
+
+function hasItemsParameters(arrayExpression) {
+  return {
+    conditions: {
+      options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+      conditions: [{
+        id: '00000000-0000-4000-8000-000000000001',
+        leftValue: arrayExpression,
+        rightValue: 0,
+        operator: { type: 'number', operation: 'gt' }
+      }],
+      combinator: 'and'
+    },
+    options: {}
   };
 }
 
@@ -167,53 +225,57 @@ function parseStructured(root, requiredKeys) {
 const linkedInSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['qualified', 'score', 'reason'],
+  required: ['results'],
   properties: {
-    qualified: { type: 'boolean' },
-    score: { type: 'integer', minimum: 0, maximum: 100 },
-    reason: { type: 'string', minLength: 1, maxLength: 500 }
+    results: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 10,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['jobId', 'qualified', 'score', 'reason'],
+        properties: {
+          jobId: { type: 'string', minLength: 1 },
+          qualified: { type: 'boolean' },
+          score: { type: 'integer', minimum: 0, maximum: 100 },
+          reason: { type: 'string', minLength: 1, maxLength: 500 }
+        }
+      }
+    }
   }
 };
 
 const linkedInNodes = [
-  node('10000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1280, 80], {}),
-  node('10000000-', 2, 'Daily Schedule', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1280, -100], {
+  node('10000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1520, 80], {}),
+  node('10000000-', 2, 'Daily Schedule', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1520, -100], {
     rule: { interval: [{ field: 'days', daysInterval: 1, triggerAtHour: 8, triggerAtMinute: 0 }] }
   }),
-  node('10000000-', 3, 'Configuration', 'n8n-nodes-base.code', 2, [-1040, 0], {
-    jsCode: String.raw`return [{
-  json: {
-    keywords: ['automation engineer', 'workflow automation'],
-    location: 'Remote',
-    candidateProfile: 'Senior automation engineer with n8n, JavaScript, APIs, and data pipeline experience.',
-    minimumScore: 70,
-    maxItems: 10,
-    sheetName: 'Jobs'
-  }
-}];`
-  }),
-  node('10000000-', 4, 'Build Actor Input', 'n8n-nodes-base.code', 2, [-800, 0], {
-    jsCode: String.raw`const config = $input.first().json;
-if (!Array.isArray(config.keywords) || config.keywords.length === 0) throw new Error('Configure at least one job keyword.');
-if (!config.candidateProfile || config.candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');
+  node('10000000-', 3, 'Load LinkedIn Configuration', 'n8n-nodes-base.dataTable', 1.1, [-1280, 0], configGetParameters('FetchCat LinkedIn Config')),
+  node('10000000-', 4, 'Build Actor Input', 'n8n-nodes-base.code', 2, [-1040, 0], {
+    jsCode: String.raw`const config = $input.first()?.json;
+if (!config) throw new Error('Add a default row to the FetchCat LinkedIn Config data table.');
+const keywords = String(config.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);
+if (keywords.length === 0) throw new Error('Configure at least one comma-separated job keyword.');
+const candidateProfile = String(config.candidateProfile || '').trim();
+if (candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');
+const minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));
 const maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));
-return [{ json: {
-  actorInput: {
-    keywords: config.keywords,
-    location: config.location,
-    maxItems,
-    includeDetails: true,
-    datePosted: 'past24h',
-    sortBy: 'recent'
-  }
-} }];`
+return [{ json: { config: { candidateProfile, minimumScore }, actorInput: {
+  keywords,
+  location: String(config.location || 'Remote'),
+  maxItems,
+  includeDetails: true,
+  datePosted: 'past24h',
+  sortBy: 'recent'
+} } }];`
   }),
-  node('10000000-', 5, 'Fetch LinkedIn Jobs', '@apify/n8n-nodes-apify.apify', 1, [-560, 0], actorParameters(
+  node('10000000-', 5, 'Fetch LinkedIn Jobs', '@apify/n8n-nodes-apify.apify', 1, [-800, 0], actorParameters(
     '0XhGPLTjZjicBXYV5',
     'LinkedIn Jobs Scraper',
     '={{ JSON.stringify($json.actorInput) }}'
   )),
-  node('10000000-', 6, 'Normalize and Cap Jobs', 'n8n-nodes-base.code', 2, [-320, 0], {
+  node('10000000-', 6, 'Normalize and Cap Jobs', 'n8n-nodes-base.code', 2, [-560, 0], {
     jsCode: String.raw`const normalized = [];
 for (const item of $input.all().slice(0, 10)) {
   const job = item.json;
@@ -236,25 +298,33 @@ for (const item of $input.all().slice(0, 10)) {
 }
 return normalized;`
   }),
-  node('10000000-', 7, 'Remove Previously Seen Jobs', 'n8n-nodes-base.removeDuplicates', 2, [-80, 0], dedupeParameters('={{ $json.jobId }}')),
-  node('10000000-', 8, 'Score Job Fit', '@n8n/n8n-nodes-langchain.openAi', 2.3, [160, 120], openAiParameters(
-    '=Candidate profile:\n{{ $("Configuration").first().json.candidateProfile }}\n\nMinimum score for qualification: {{ $("Configuration").first().json.minimumScore }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}',
-    'linkedin_job_fit',
-    linkedInSchema,
-    'Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason written in English, regardless of the job description language. Return the strict schema.',
-    1200
-  )),
-  node('10000000-', 9, 'Merge Job and Score', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
-  node('10000000-', 10, 'Validate and Filter Scores', 'n8n-nodes-base.code', 2, [640, 0], {
-    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedAt = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const amount = Number(match[1]);\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - amount * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  return toSheetsSerial(date);\n};\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  const collected = new Date(item.json.scrapedAt || Date.now());\n  const url = String(item.json.jobUrl);\n  const formulaUrl = url.replace(/"/g, '""');\n  output.push({ json: {\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    postedAt: parsePostedAt(item.json.postedAtText, collected),\n    postedRelative: item.json.postedAtText,\n    jobLink: '=HYPERLINK("' + formulaUrl + '","Open job")',\n    url,\n    score: score.score,\n    reason: score.reason,\n    collectedAt: toSheetsSerial(collected),\n    linkedInJobId: item.json.jobId\n  } });\n}\nreturn output;`
+  node('10000000-', 7, 'Keep Undelivered Jobs', 'n8n-nodes-base.dataTable', 1.1, [-320, 0], ledgerCheckParameters('linkedin-job-match-digest', '={{ $json.jobId }}')),
+  node('10000000-', 8, 'Build Job Batch', 'n8n-nodes-base.code', 2, [-80, 0], {
+    jsCode: String.raw`const jobs = $input.all().map((item) => item.json);
+if (jobs.length === 0) return [];
+return [{ json: { jobs, jobIds: jobs.map((job) => job.jobId) } }];`
   }),
-  node('10000000-', 11, 'Append Qualified Jobs', 'n8n-nodes-base.googleSheets', 4.7, [880, 0], {
-    operation: 'append',
+  node('10000000-', 9, 'Score Job Batch', '@n8n/n8n-nodes-langchain.openAi', 2.3, [160, 0], openAiParameters(
+    '=Candidate profile:\n{{ $("Build Actor Input").first().json.config.candidateProfile }}\n\nMinimum score: {{ $("Build Actor Input").first().json.config.minimumScore }}\n\nEvaluate every job exactly once and preserve each jobId:\n{{ JSON.stringify($json.jobs) }}',
+    'linkedin_job_fit_batch',
+    linkedInSchema,
+    'Score every job against the candidate profile. Return exactly one result for every supplied jobId and no others. Set qualified true only when score meets the supplied minimum and fit is credible. Every reason must be English. Return the strict schema.',
+    4000
+  )),
+  node('10000000-', 10, 'Validate Job Batch', 'n8n-nodes-base.code', 2, [400, 0], {
+    jsCode: `${parseStructured}\nconst batch = $("Build Job Batch").first().json;\nconst parsed = parseStructured($input.first().json, ['results']);\nif (!parsed || !Array.isArray(parsed.results)) throw new Error('OpenAI returned an invalid LinkedIn batch.');\nconst expectedIds = new Set(batch.jobIds);\nconst actualIds = parsed.results.map((result) => String(result.jobId));\nif (actualIds.length !== expectedIds.size || new Set(actualIds).size !== actualIds.length || actualIds.some((value) => !expectedIds.has(value))) throw new Error('OpenAI result IDs do not exactly match the LinkedIn input batch.');\nconst minimumScore = Number($("Build Actor Input").first().json.config.minimumScore);\nconst byId = new Map(batch.jobs.map((job) => [job.jobId, job]));\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedAt = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - Number(match[1]) * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  return toSheetsSerial(date);\n};\nconst qualifiedJobs = [];\nfor (const result of parsed.results) {\n  if (typeof result.qualified !== 'boolean' || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim()) throw new Error('OpenAI returned a malformed LinkedIn result.');\n  if (!result.qualified || result.score < minimumScore) continue;\n  const job = byId.get(String(result.jobId));\n  const collected = new Date(job.scrapedAt || Date.now());\n  const url = String(job.jobUrl);\n  qualifiedJobs.push({ title: job.title, company: job.companyName, location: job.location, postedAt: parsePostedAt(job.postedAtText, collected), postedRelative: job.postedAtText, jobLink: '=HYPERLINK("' + url.replace(/"/g, '""') + '","Open job")', url, score: result.score, reason: result.reason.trim(), collectedAt: toSheetsSerial(collected), linkedInJobId: job.jobId });\n}\nreturn [{ json: { allKeys: batch.jobIds, qualifiedJobs } }];`
+  }),
+  node('10000000-', 11, 'Has Qualified Jobs', 'n8n-nodes-base.if', 2.2, [640, 0], hasItemsParameters('={{ $json.qualifiedJobs.length }}')),
+  node('10000000-', 12, 'Expand Qualified Jobs', 'n8n-nodes-base.code', 2, [880, -100], {
+    jsCode: 'return $json.qualifiedJobs.map((job) => ({ json: job }));'
+  }),
+  node('10000000-', 13, 'Upsert Qualified Jobs', 'n8n-nodes-base.googleSheets', 4.7, [1120, -100], {
+    operation: 'appendOrUpdate',
     documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
     sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Jobs' },
     columns: {
       mappingMode: 'defineBelow',
-      matchingColumns: [],
+      matchingColumns: ['linkedInJobId'],
       value: {
         title: '={{ $json.title }}',
         company: '={{ $json.company }}',
@@ -280,13 +350,13 @@ return normalized;`
     },
     options: { useAppend: true }
   }),
-  node('10000000-', 12, 'Build Slack Digest', 'n8n-nodes-base.code', 2, [1120, 0], {
-    jsCode: String.raw`const jobs = $input.all().map((item) => item.json).sort((a, b) => b.score - a.score).slice(0, 5);
+  node('10000000-', 14, 'Build Slack Digest', 'n8n-nodes-base.code', 2, [1360, -100], {
+    jsCode: String.raw`const jobs = $('Validate Job Batch').first().json.qualifiedJobs.sort((a, b) => b.score - a.score).slice(0, 5);
 if (jobs.length === 0) return [];
 const lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\n' + job.location + ' | Posted ' + job.postedRelative + '\n' + job.reason + '\n' + job.url);
 return [{ json: { slackMessage: '*LinkedIn Job Match Digest*\n\n' + lines.join('\n\n') } }];`
   }),
-  node('10000000-', 13, 'Send Slack Digest', 'n8n-nodes-base.slack', 2.5, [1360, 0], {
+  node('10000000-', 15, 'Send Slack Digest', 'n8n-nodes-base.slack', 2.5, [1600, -100], {
     resource: 'message',
     operation: 'post',
     select: 'channel',
@@ -295,27 +365,35 @@ return [{ json: { slackMessage: '*LinkedIn Job Match Digest*\n\n' + lines.join('
     text: '={{ $json.slackMessage }}',
     otherOptions: { includeLinkToWorkflow: false, unfurl_links: false, unfurl_media: false }
   }),
-  sticky('10000000-', 14, 'Setup Notes', [-1320, -440], 720, 260, '## LinkedIn Job Match Digest\n\n1. Configure keywords, location, candidate profile, and score threshold.\n2. Connect Apify, OpenAI, Google Sheets, and Slack credentials.\n3. Select the `Jobs` tab and QA Slack channel.\n4. Keep the schedule unpublished until QA passes.\n\nThe Actor and AI stages are capped at 10 jobs. Previously seen `jobId` values are removed before AI scoring.'),
-  sticky('10000000-', 15, 'Delivery Notes', [820, -440], 720, 260, '## Fail-closed delivery\n\nOnly schema-valid scores at or above the configured threshold reach Google Sheets. Slack receives one digest containing at most five jobs. Empty and duplicate runs produce no external writes.')
+  node('10000000-', 16, 'Prepare Delivery Ledger', 'n8n-nodes-base.code', 2, [1840, 40], {
+    jsCode: String.raw`return $('Validate Job Batch').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'linkedin-job-match-digest', itemKey } }));`
+  }),
+  node('10000000-', 17, 'Commit Delivered Jobs', 'n8n-nodes-base.dataTable', 1.1, [2080, 40], ledgerInsertParameters('Google Sheets + Slack')),
+  sticky('10000000-', 18, 'Setup Notes', [-1560, -440], 860, 270, '## LinkedIn Job Match Digest\n\nEdit the `default` row in `FetchCat LinkedIn Config` to change comma-separated keywords, location, candidate profile, score threshold, or item limit. Connect Apify, OpenAI, Google Sheets, and Slack credentials. Select the `Jobs` tab and destination channel. Keep the schedule unpublished until QA passes.'),
+  sticky('10000000-', 19, 'Delivery Notes', [680, -440], 1040, 270, '## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified rows are upserted by LinkedIn job ID, then one Slack digest is sent. IDs are committed to `FetchCat Delivery Ledger` only after delivery succeeds. Empty and fully delivered runs create no destination writes.')
 ];
 
 const linkedInWorkflow = workflow(
   'LinkedIn Job Match Digest',
   linkedInNodes,
   connectionMap([
-    ['Manual Trigger', 'Configuration'],
-    ['Daily Schedule', 'Configuration'],
-    ['Configuration', 'Build Actor Input'],
+    ['Manual Trigger', 'Load LinkedIn Configuration'],
+    ['Daily Schedule', 'Load LinkedIn Configuration'],
+    ['Load LinkedIn Configuration', 'Build Actor Input'],
     ['Build Actor Input', 'Fetch LinkedIn Jobs'],
     ['Fetch LinkedIn Jobs', 'Normalize and Cap Jobs'],
-    ['Normalize and Cap Jobs', 'Remove Previously Seen Jobs'],
-    ['Remove Previously Seen Jobs', 'Merge Job and Score', 0],
-    ['Remove Previously Seen Jobs', 'Score Job Fit'],
-    ['Score Job Fit', 'Merge Job and Score', 1],
-    ['Merge Job and Score', 'Validate and Filter Scores'],
-    ['Validate and Filter Scores', 'Append Qualified Jobs'],
-    ['Append Qualified Jobs', 'Build Slack Digest'],
-    ['Build Slack Digest', 'Send Slack Digest']
+    ['Normalize and Cap Jobs', 'Keep Undelivered Jobs'],
+    ['Keep Undelivered Jobs', 'Build Job Batch'],
+    ['Build Job Batch', 'Score Job Batch'],
+    ['Score Job Batch', 'Validate Job Batch'],
+    ['Validate Job Batch', 'Has Qualified Jobs'],
+    ['Has Qualified Jobs', 'Expand Qualified Jobs'],
+    ['Expand Qualified Jobs', 'Upsert Qualified Jobs'],
+    ['Upsert Qualified Jobs', 'Build Slack Digest'],
+    ['Build Slack Digest', 'Send Slack Digest'],
+    ['Send Slack Digest', 'Prepare Delivery Ledger'],
+    ['Has Qualified Jobs', 'Prepare Delivery Ledger', 0, 1],
+    ['Prepare Delivery Ledger', 'Commit Delivered Jobs']
   ])
 );
 
@@ -449,7 +527,7 @@ return [{ json: {
   transcriptTruncated: timestampedTranscript.length > 60000
 } }];`
   }),
-  node('20000000-', 15, 'Remove Duplicate Requests', 'n8n-nodes-base.removeDuplicates', 2, [40, 0], dedupeParameters('={{ $json.dedupeKey }}')),
+  node('20000000-', 15, 'Keep Undelivered Requests', 'n8n-nodes-base.dataTable', 1.1, [40, 0], ledgerCheckParameters('youtube-research-brief-to-notion', '={{ $json.dedupeKey }}')),
   node('20000000-', 7, 'Generate Research Brief', '@n8n/n8n-nodes-langchain.openAi', 2.3, [280, 120], openAiParameters(
     '=Research goal:\n{{ $json.researchGoal }}\n\nVideo title: {{ $json.title }}\nChannel: {{ $json.channelName }}\n\nTranscript:\n{{ $json.transcript }}',
     'youtube_research_brief',
@@ -478,14 +556,18 @@ return [{ json: {
     },
     options: {}
   }),
-  node('20000000-', 11, 'Return Notion URL', 'n8n-nodes-base.code', 2, [1240, 0], {
-    jsCode: String.raw`const page = $input.first().json;
+  node('20000000-', 16, 'Prepare Delivery Ledger', 'n8n-nodes-base.code', 2, [1240, 0], {
+    jsCode: String.raw`return [{ json: { workflowSlug: 'youtube-research-brief-to-notion', itemKey: $('Validate and Cap Transcript').first().json.dedupeKey } }];`
+  }),
+  node('20000000-', 17, 'Commit Delivered Brief', 'n8n-nodes-base.dataTable', 1.1, [1480, 0], ledgerInsertParameters('Notion')),
+  node('20000000-', 11, 'Return Notion URL', 'n8n-nodes-base.code', 2, [1720, 0], {
+    jsCode: String.raw`const page = $('Create Notion Brief').first().json;
 if (!page.url || !String(page.url).startsWith('https://')) throw new Error('Notion did not return a page URL.');
 return [{ json: { url: page.url, formSubmittedText: 'Research brief created: ' + page.url } }];`
   }),
   sticky('20000000-', 12, 'Form Setup Notes', [-1200, -440], 760, 250, '## YouTube Research Brief\n\nConnect Apify, OpenAI, and Notion credentials, then select the `FetchCat n8n QA Briefs` database. The form accepts one public HTTPS YouTube URL, language code, and research goal. Keep the workflow unpublished during QA.'),
-  sticky('20000000-', 13, 'QA Notes', [-420, -440], 900, 250, '## Cost and failure controls\n\nThe Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion. Transcript input is capped at 60,000 characters. Confirm the captioned public video in Manual QA Input before CLI execution.'),
-  sticky('20000000-', 14, 'Output Notes', [500, -440], 960, 250, '## Notion output\n\nExact video and research-goal reruns are removed before OpenAI and Notion. OpenAI must satisfy a strict JSON schema. The resulting page contains a summary, key ideas, action items, and timestamped moments. Form submissions redirect to the created Notion page.')
+  sticky('20000000-', 13, 'QA Notes', [-420, -440], 900, 250, '## Cost and failure controls\n\nThe Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion. Transcript input is capped at 60,000 characters. Confirm the captioned public video in Manual QA Input before server-side QA execution.'),
+  sticky('20000000-', 14, 'Output Notes', [500, -440], 1080, 250, '## Notion output\n\nThe delivery ledger is checked before OpenAI. A request is committed only after Notion creates the page successfully, so failed destination writes remain retryable. OpenAI must satisfy a strict schema. The page contains real headings, key ideas, action items, and timestamped moments.')
 ];
 
 const youtubeWorkflow = workflow(
@@ -497,47 +579,53 @@ const youtubeWorkflow = workflow(
     ['Manual QA Input', 'Validate Form Input'],
     ['Validate Form Input', 'Fetch YouTube Transcript'],
     ['Fetch YouTube Transcript', 'Validate and Cap Transcript'],
-    ['Validate and Cap Transcript', 'Remove Duplicate Requests'],
-    ['Remove Duplicate Requests', 'Merge Transcript and Brief', 0],
-    ['Remove Duplicate Requests', 'Generate Research Brief'],
+    ['Validate and Cap Transcript', 'Keep Undelivered Requests'],
+    ['Keep Undelivered Requests', 'Merge Transcript and Brief', 0],
+    ['Keep Undelivered Requests', 'Generate Research Brief'],
     ['Generate Research Brief', 'Merge Transcript and Brief', 1],
     ['Merge Transcript and Brief', 'Validate and Format Brief'],
     ['Validate and Format Brief', 'Create Notion Brief'],
-    ['Create Notion Brief', 'Return Notion URL']
+    ['Create Notion Brief', 'Prepare Delivery Ledger'],
+    ['Prepare Delivery Ledger', 'Commit Delivered Brief'],
+    ['Commit Delivered Brief', 'Return Notion URL']
   ])
 );
 
 const redditSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['qualified', 'buyingIntent', 'score', 'reason', 'summary'],
+  required: ['results'],
   properties: {
-    qualified: { type: 'boolean' },
-    buyingIntent: { type: 'string', enum: ['high', 'medium', 'low', 'none'] },
-    score: { type: 'integer', minimum: 0, maximum: 100 },
-    reason: { type: 'string', minLength: 1, maxLength: 500 },
-    summary: { type: 'string', minLength: 1, maxLength: 500 }
+    results: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 10,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['redditId', 'qualified', 'buyingIntent', 'score', 'reason', 'summary'],
+        properties: {
+          redditId: { type: 'string', minLength: 1 },
+          qualified: { type: 'boolean' },
+          buyingIntent: { type: 'string', enum: ['high', 'medium', 'low', 'none'] },
+          score: { type: 'integer', minimum: 0, maximum: 100 },
+          reason: { type: 'string', minLength: 1, maxLength: 500 },
+          summary: { type: 'string', minLength: 1, maxLength: 500 }
+        }
+      }
+    }
   }
 };
 
 const redditNodes = [
-  node('30000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1280, 80], {}),
-  node('30000000-', 2, 'Every Two Hours', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1280, -100], {
+  node('30000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1520, 80], {}),
+  node('30000000-', 2, 'Every Two Hours', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1520, -100], {
     rule: { interval: [{ field: 'hours', hoursInterval: 2, triggerAtMinute: 0 }] }
   }),
-  node('30000000-', 3, 'Configuration', 'n8n-nodes-base.code', 2, [-1040, 0], {
-    jsCode: String.raw`return [{ json: {
-  searchQuery: 'web scraping',
-  subreddit: '',
-  sort: 'relevance',
-  timeFilter: 'week',
-  productContext: 'Managed web-scraping Actors and n8n automation services for business research, monitoring, and lead generation.',
-  minimumScore: 70,
-  maxItems: 10
-} }];`
-  }),
-  node('30000000-', 4, 'Build Actor Input', 'n8n-nodes-base.code', 2, [-800, 0], {
-    jsCode: String.raw`const config = $input.first().json;
+  node('30000000-', 3, 'Load Reddit Configuration', 'n8n-nodes-base.dataTable', 1.1, [-1280, 0], configGetParameters('FetchCat Reddit Config')),
+  node('30000000-', 4, 'Build Actor Input', 'n8n-nodes-base.code', 2, [-1040, 0], {
+    jsCode: String.raw`const config = $input.first()?.json;
+if (!config) throw new Error('Add a default row to the FetchCat Reddit Config data table.');
 if (!config.searchQuery || String(config.searchQuery).length < 3) throw new Error('Configure a Reddit search query.');
 if (!config.productContext || String(config.productContext).length < 20) throw new Error('Product context must be at least 20 characters.');
 const allowedSorts = new Set(['hot', 'new', 'top', 'rising', 'relevance']);
@@ -545,7 +633,8 @@ const allowedTimeFilters = new Set(['hour', 'day', 'week', 'month', 'year', 'all
 const sort = allowedSorts.has(config.sort) ? config.sort : 'relevance';
 const timeFilter = allowedTimeFilters.has(config.timeFilter) ? config.timeFilter : 'week';
 const maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));
-return [{ json: { actorInput: {
+const minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));
+return [{ json: { config: { productContext: String(config.productContext), minimumScore }, actorInput: {
   searchQuery: String(config.searchQuery),
   searchSubreddit: String(config.subreddit || ''),
   sort,
@@ -554,12 +643,12 @@ return [{ json: { actorInput: {
   includeComments: false
 } } }];`
   }),
-  node('30000000-', 5, 'Fetch Reddit Posts', '@apify/n8n-nodes-apify.apify', 1, [-560, 0], actorParameters(
+  node('30000000-', 5, 'Fetch Reddit Posts', '@apify/n8n-nodes-apify.apify', 1, [-800, 0], actorParameters(
     'DAj0KBMoCNDqMLe82',
     'Reddit Scraper',
     '={{ JSON.stringify($json.actorInput) }}'
   )),
-  node('30000000-', 6, 'Normalize and Cap Posts', 'n8n-nodes-base.code', 2, [-320, 0], {
+  node('30000000-', 6, 'Normalize and Cap Posts', 'n8n-nodes-base.code', 2, [-560, 0], {
     jsCode: String.raw`const normalized = [];
 for (const item of $input.all()) {
   const post = item.json;
@@ -580,21 +669,26 @@ for (const item of $input.all()) {
 }
 return normalized;`
   }),
-  node('30000000-', 7, 'Remove Previously Seen Posts', 'n8n-nodes-base.removeDuplicates', 2, [-80, 0], dedupeParameters('={{ $json.redditId }}')),
-  node('30000000-', 8, 'Classify Buying Intent', '@n8n/n8n-nodes-langchain.openAi', 2.3, [160, 120], openAiParameters(
-    '=Product context:\n{{ $("Configuration").first().json.productContext }}\n\nMinimum score for qualification: {{ $("Configuration").first().json.minimumScore }}\n\nClassify this Reddit post:\n{{ JSON.stringify($json) }}',
-    'reddit_buying_intent',
-    redditSchema,
-    'Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Set qualified to true exactly when buying intent is high or medium and score meets the supplied minimum. Always provide non-empty reason and summary fields. Return the strict schema.',
-    1500
-  )),
-  node('30000000-', 9, 'Merge Post and Classification', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
-  node('30000000-', 10, 'Validate and Filter Intent', 'n8n-nodes-base.code', 2, [640, 0], {
-    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst intents = new Set(['high', 'medium', 'low', 'none']);\nconst output = [];\nfor (const item of $input.all()) {\n  const result = parseStructured(item.json, ['qualified', 'buyingIntent', 'score', 'reason', 'summary']);\n  if (!result || typeof result.qualified !== 'boolean' || !intents.has(result.buyingIntent) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim() || typeof result.summary !== 'string' || !result.summary.trim()) continue;\n  if (!result.qualified || !['high', 'medium'].includes(result.buyingIntent) || result.score < minimumScore) continue;\n  output.push({ json: {\n    redditId: item.json.redditId,\n    subreddit: item.json.subreddit,\n    title: item.json.title,\n    url: item.json.url,\n    createdAt: item.json.createdAt,\n    redditScore: item.json.score,\n    commentCount: item.json.commentCount,\n    intent: result.buyingIntent,\n    intentScore: result.score,\n    reason: result.reason,\n    summary: result.summary\n  } });\n}\nreturn output;`
+  node('30000000-', 7, 'Keep Undelivered Posts', 'n8n-nodes-base.dataTable', 1.1, [-320, 0], ledgerCheckParameters('reddit-buying-intent-alerts', '={{ $json.redditId }}')),
+  node('30000000-', 8, 'Build Reddit Batch', 'n8n-nodes-base.code', 2, [-80, 0], {
+    jsCode: String.raw`const posts = $input.all().map((item) => item.json);
+if (posts.length === 0) return [];
+return [{ json: { posts, redditIds: posts.map((post) => post.redditId) } }];`
   }),
-  node('30000000-', 11, 'Build Telegram Digest', 'n8n-nodes-base.code', 2, [880, 0], {
+  node('30000000-', 9, 'Classify Reddit Batch', '@n8n/n8n-nodes-langchain.openAi', 2.3, [160, 0], openAiParameters(
+    '=Product context:\n{{ $("Build Actor Input").first().json.config.productContext }}\n\nMinimum score: {{ $("Build Actor Input").first().json.config.minimumScore }}\n\nClassify every post exactly once and preserve each redditId:\n{{ JSON.stringify($json.posts) }}',
+    'reddit_buying_intent_batch',
+    redditSchema,
+    'Classify explicit buying intent and relevance. Return exactly one result for every supplied redditId and no others. Do not infer sensitive traits. Qualified means high or medium intent and score at or above the supplied minimum. Return the strict schema.',
+    4000
+  )),
+  node('30000000-', 10, 'Validate Reddit Batch', 'n8n-nodes-base.code', 2, [400, 0], {
+    jsCode: `${parseStructured}\nconst batch = $("Build Reddit Batch").first().json;\nconst parsed = parseStructured($input.first().json, ['results']);\nif (!parsed || !Array.isArray(parsed.results)) throw new Error('OpenAI returned an invalid Reddit batch.');\nconst expectedIds = new Set(batch.redditIds);\nconst actualIds = parsed.results.map((result) => String(result.redditId));\nif (actualIds.length !== expectedIds.size || new Set(actualIds).size !== actualIds.length || actualIds.some((value) => !expectedIds.has(value))) throw new Error('OpenAI result IDs do not exactly match the Reddit input batch.');\nconst minimumScore = Number($("Build Actor Input").first().json.config.minimumScore);\nconst intents = new Set(['high', 'medium', 'low', 'none']);\nconst byId = new Map(batch.posts.map((post) => [post.redditId, post]));\nconst qualifiedPosts = [];\nfor (const result of parsed.results) {\n  if (typeof result.qualified !== 'boolean' || !intents.has(result.buyingIntent) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim() || typeof result.summary !== 'string' || !result.summary.trim()) throw new Error('OpenAI returned a malformed Reddit result.');\n  if (!result.qualified || !['high', 'medium'].includes(result.buyingIntent) || result.score < minimumScore) continue;\n  const post = byId.get(String(result.redditId));\n  qualifiedPosts.push({ redditId: post.redditId, subreddit: post.subreddit, title: post.title, url: post.url, createdAt: post.createdAt, redditScore: post.score, commentCount: post.commentCount, intent: result.buyingIntent, intentScore: result.score, reason: result.reason.trim(), summary: result.summary.trim() });\n}\nreturn [{ json: { allKeys: batch.redditIds, qualifiedPosts } }];`
+  }),
+  node('30000000-', 11, 'Has Qualified Posts', 'n8n-nodes-base.if', 2.2, [640, 0], hasItemsParameters('={{ $json.qualifiedPosts.length }}')),
+  node('30000000-', 12, 'Build Telegram Digest', 'n8n-nodes-base.code', 2, [880, -100], {
     jsCode: String.raw`const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const posts = $input.all().map((item) => item.json).sort((a, b) => b.intentScore - a.intentScore).slice(0, 5);
+const posts = $json.qualifiedPosts.sort((a, b) => b.intentScore - a.intentScore).slice(0, 5);
 if (posts.length === 0) return [];
 const lines = posts.map((post, index) => {
   const community = post.subreddit ? 'r/' + post.subreddit : 'Reddit';
@@ -604,7 +698,7 @@ const lines = posts.map((post, index) => {
 });
 return [{ json: { telegramMessage: '<b>Reddit Buying-Intent Alerts</b>\n\n' + lines.join('\n\n') } }];`
   }),
-  node('30000000-', 12, 'Send Telegram Digest', 'n8n-nodes-base.telegram', 1.2, [1120, 0], {
+  node('30000000-', 13, 'Send Telegram Digest', 'n8n-nodes-base.telegram', 1.2, [1120, -100], {
     resource: 'message',
     operation: 'sendMessage',
     chatId: '-1000000000000',
@@ -612,26 +706,72 @@ return [{ json: { telegramMessage: '<b>Reddit Buying-Intent Alerts</b>\n\n' + li
     replyMarkup: 'none',
     additionalFields: { appendAttribution: false, disable_notification: false, parse_mode: 'HTML' }
   }),
-  sticky('30000000-', 13, 'Setup Notes', [-1320, -440], 760, 260, '## Reddit Buying-Intent Alerts\n\nConfigure the search query, optional subreddit, sort, time window, product context, and score threshold. Global relevance search is the safest starting point for intent discovery. Connect Apify, OpenAI, and Telegram credentials, then select the dedicated QA group. Keep the two-hour schedule unpublished until QA passes.'),
-  sticky('30000000-', 14, 'Safety Notes', [500, -440], 820, 260, '## Monitoring only\n\nComments are disabled and the workflow never replies to or contacts authors. It caps Actor output at 10 posts, deduplicates Reddit IDs before AI, validates strict classifications, and sends one digest containing at most five posts. Empty and duplicate runs send nothing.')
+  node('30000000-', 14, 'Prepare Delivery Ledger', 'n8n-nodes-base.code', 2, [1360, 40], {
+    jsCode: String.raw`return $('Validate Reddit Batch').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'reddit-buying-intent-alerts', itemKey } }));`
+  }),
+  node('30000000-', 15, 'Commit Delivered Posts', 'n8n-nodes-base.dataTable', 1.1, [1600, 40], ledgerInsertParameters('Telegram')),
+  sticky('30000000-', 16, 'Setup Notes', [-1560, -440], 900, 270, '## Reddit Buying-Intent Alerts\n\nEdit the `default` row in `FetchCat Reddit Config` to change search query, optional subreddit, sort, time window, product context, score threshold, or item limit. Connect Apify, OpenAI, and Telegram credentials, then select the destination group. Keep the schedule unpublished until QA passes.'),
+  sticky('30000000-', 17, 'Safety Notes', [500, -440], 1040, 270, '## Monitoring and delivery\n\nComments are disabled and the workflow never contacts authors. One strict AI call classifies the batch. A Telegram digest contains at most five posts. IDs are written to `FetchCat Delivery Ledger` only after delivery succeeds; empty and fully delivered runs send nothing.')
 ];
 
 const redditWorkflow = workflow(
   'Reddit Buying-Intent Alerts',
   redditNodes,
   connectionMap([
-    ['Manual Trigger', 'Configuration'],
-    ['Every Two Hours', 'Configuration'],
-    ['Configuration', 'Build Actor Input'],
+    ['Manual Trigger', 'Load Reddit Configuration'],
+    ['Every Two Hours', 'Load Reddit Configuration'],
+    ['Load Reddit Configuration', 'Build Actor Input'],
     ['Build Actor Input', 'Fetch Reddit Posts'],
     ['Fetch Reddit Posts', 'Normalize and Cap Posts'],
-    ['Normalize and Cap Posts', 'Remove Previously Seen Posts'],
-    ['Remove Previously Seen Posts', 'Merge Post and Classification', 0],
-    ['Remove Previously Seen Posts', 'Classify Buying Intent'],
-    ['Classify Buying Intent', 'Merge Post and Classification', 1],
-    ['Merge Post and Classification', 'Validate and Filter Intent'],
-    ['Validate and Filter Intent', 'Build Telegram Digest'],
-    ['Build Telegram Digest', 'Send Telegram Digest']
+    ['Normalize and Cap Posts', 'Keep Undelivered Posts'],
+    ['Keep Undelivered Posts', 'Build Reddit Batch'],
+    ['Build Reddit Batch', 'Classify Reddit Batch'],
+    ['Classify Reddit Batch', 'Validate Reddit Batch'],
+    ['Validate Reddit Batch', 'Has Qualified Posts'],
+    ['Has Qualified Posts', 'Build Telegram Digest'],
+    ['Build Telegram Digest', 'Send Telegram Digest'],
+    ['Send Telegram Digest', 'Prepare Delivery Ledger'],
+    ['Has Qualified Posts', 'Prepare Delivery Ledger', 0, 1],
+    ['Prepare Delivery Ledger', 'Commit Delivered Posts']
+  ])
+);
+
+const errorNodes = [
+  node('40000000-', 1, 'Workflow Error Trigger', 'n8n-nodes-base.errorTrigger', 1, [-440, 0], {}),
+  node('40000000-', 2, 'Format Private Alert', 'n8n-nodes-base.code', 2, [-200, 0], {
+    jsCode: String.raw`const event = $input.first().json;
+const execution = event.execution || {};
+const workflow = event.workflow || {};
+const escapeHtml = (value) => String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const message = String(execution.error?.message || event.error?.message || 'Unknown workflow error').slice(0, 1500);
+const parts = [
+  '<b>FetchCat n8n workflow failed</b>',
+  '<b>Workflow:</b> ' + escapeHtml(workflow.name || 'Unknown'),
+  '<b>Execution:</b> ' + escapeHtml(execution.id || 'Unavailable'),
+  '<b>Last node:</b> ' + escapeHtml(execution.lastNodeExecuted || 'Unavailable'),
+  '<b>Error:</b> ' + escapeHtml(message)
+];
+if (execution.url && String(execution.url).startsWith('https://')) parts.push('<a href="' + escapeHtml(execution.url) + '">Open failed execution</a>');
+return [{ json: { telegramMessage: parts.join('\n') } }];`
+  }),
+  node('40000000-', 3, 'Send Private Error Alert', 'n8n-nodes-base.telegram', 1.2, [40, 0], {
+    resource: 'message',
+    operation: 'sendMessage',
+    chatId: '-1000000000000',
+    text: '={{ $json.telegramMessage }}',
+    replyMarkup: 'none',
+    additionalFields: { appendAttribution: false, disable_notification: false, parse_mode: 'HTML' }
+  }),
+  sticky('40000000-', 4, 'Setup Notes', [-480, -340], 700, 220, '## Shared private error notifications\n\nConnect the dedicated Telegram credential and QA group. In each monitored workflow, select this workflow under Settings > Error workflow. After a synthetic failure test, activate this Error Trigger workflow; monitored Actor workflows and schedules remain inactive.'),
+  sticky('40000000-', 5, 'Privacy Notes', [240, -340], 700, 220, '## Minimal operational data\n\nAlerts contain workflow name, execution ID, last node, a truncated error message, and the private execution link. Input items, credentials, tokens, cookies, and stack traces are never included.')
+];
+
+const errorWorkflow = workflow(
+  'FetchCat Private Workflow Error Alerts',
+  errorNodes,
+  connectionMap([
+    ['Workflow Error Trigger', 'Format Private Alert'],
+    ['Format Private Alert', 'Send Private Error Alert']
   ])
 );
 
@@ -642,13 +782,14 @@ const definitions = [
     metadata: {
       slug: 'linkedin-job-match-digest',
       title: 'LinkedIn Job Match Digest',
+      workflowKind: 'actor-template',
       actorId: '0XhGPLTjZjicBXYV5',
       actorSlug: 'fetch_cat/linkedin-jobs-scraper',
-      version: '1.0.0',
+      version: '2.0.0',
       minimumN8nVersion: '2.26.8',
-      integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Slack'],
+      integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Slack', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.34 },
-      releaseState: 'development'
+      releaseState: 'qa-passed'
     }
   },
   {
@@ -657,13 +798,14 @@ const definitions = [
     metadata: {
       slug: 'youtube-research-brief-to-notion',
       title: 'YouTube Research Brief to Notion',
+      workflowKind: 'actor-template',
       actorId: 'H7e6sHWbYadmHLoNu',
       actorSlug: 'fetch_cat/youtube-transcript-scraper',
-      version: '1.0.0',
+      version: '2.0.0',
       minimumN8nVersion: '2.26.8',
-      integrations: ['Apify', 'OpenAI', 'Notion'],
+      integrations: ['Apify', 'OpenAI', 'Notion', 'n8n Data Tables'],
       testLimits: { actorItems: 1, apifyBackedExecutions: 3, budgetUsd: 3.33, youtubeVideos: 1 },
-      releaseState: 'development'
+      releaseState: 'qa-passed'
     }
   },
   {
@@ -672,13 +814,30 @@ const definitions = [
     metadata: {
       slug: 'reddit-buying-intent-alerts',
       title: 'Reddit Buying-Intent Alerts',
+      workflowKind: 'actor-template',
       actorId: 'DAj0KBMoCNDqMLe82',
       actorSlug: 'fetch_cat/reddit-scraper',
+      version: '2.0.0',
+      minimumN8nVersion: '2.26.8',
+      integrations: ['Apify', 'OpenAI', 'Telegram', 'n8n Data Tables'],
+      testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.33 },
+      releaseState: 'qa-passed'
+    }
+  },
+  {
+    slug: 'shared-error-notifications',
+    workflow: errorWorkflow,
+    metadata: {
+      slug: 'shared-error-notifications',
+      title: 'FetchCat Private Workflow Error Alerts',
+      workflowKind: 'support',
+      actorId: null,
+      actorSlug: null,
       version: '1.0.0',
       minimumN8nVersion: '2.26.8',
-      integrations: ['Apify', 'OpenAI', 'Telegram'],
-      testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.33 },
-      releaseState: 'development'
+      integrations: ['Telegram'],
+      testLimits: { actorItems: 0, apifyBackedExecutions: 0, budgetUsd: 0 },
+      releaseState: 'qa-passed'
     }
   }
 ];

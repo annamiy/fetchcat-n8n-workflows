@@ -32,12 +32,13 @@ issue. Work read-only except for comments and assignment on that same issue.
    failure modes, and cost complaints. Prefer recent, directly relevant posts.
 6. Define the differentiation in one sentence. Generic "AI-powered" language
    is not differentiation.
-7. Estimate Actor items, AI calls/tokens, external writes, happy/duplicate/
+7. Estimate Actor items, batched AI calls/tokens, external writes, happy/duplicate/
    negative test runs, and worst-case test spend. Respect
    `N8N_TEST_BUDGET_USD` and the repository metadata limits.
 8. Check feasibility against the Actor schema, n8n nodes available on
-   `N8N_API_URL`, credential needs, deduplication strategy, and fail-closed
-   behavior.
+   `N8N_API_URL`, credential needs, a nontechnical configuration surface,
+   post-delivery Data Table ledger semantics, shared error notification, and
+   fail-closed behavior. Explain when an AI batch is impossible.
 
 ## Decision Format
 
@@ -63,4 +64,3 @@ would justify reconsideration.
 
 For `GO`, assign the same issue to the existing Developer. For `DROP`, leave a
 final decision comment and do not create downstream work.
-

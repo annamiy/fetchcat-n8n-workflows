@@ -59,6 +59,7 @@ for (const slug of workflowSlugs()) {
 
   if (workflow.active !== false) fail(slug, 'workflow must be inactive');
   if (workflow.id || workflow.versionId) fail(slug, 'workflow contains an instance identifier');
+  if (workflow.settings?.errorWorkflow) fail(slug, 'workflow contains an instance-local error workflow ID');
   if (workflow.credentials) fail(slug, 'workflow contains top-level credentials');
   if (Object.keys(workflow.pinData ?? {}).length > 0) fail(slug, 'workflow contains pinned data');
   if (!Array.isArray(workflow.nodes) || workflow.nodes.length < 5) fail(slug, 'workflow graph is too small');
@@ -86,10 +87,23 @@ for (const slug of workflowSlugs()) {
   const serialized = JSON.stringify(workflow);
   if (serialized.includes('"active":true')) fail(slug, 'contains an active nested object');
   if (serialized.includes('"credentials":')) fail(slug, 'contains a credential key');
-  if (!serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
-  if (!readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
+  if (!['actor-template', 'support'].includes(metadata.workflowKind)) fail(slug, 'invalid workflow kind');
+  if (metadata.workflowKind === 'actor-template') {
+    if (!metadata.actorId || !serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
+    if (!metadata.actorSlug || !readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
+    if (!serialized.includes('n8n-nodes-base.dataTable')) fail(slug, 'does not use a durable n8n Data Table ledger');
+    if (serialized.includes('n8n-nodes-base.removeDuplicates')) fail(slug, 'uses pre-delivery Remove Duplicates state');
+  } else {
+    if (metadata.actorId !== null || metadata.actorSlug !== null) fail(slug, 'support workflow must not declare an Actor');
+    if (!serialized.includes('n8n-nodes-base.errorTrigger')) fail(slug, 'support workflow must contain an Error Trigger');
+  }
   if (metadata.integrations.includes('OpenAI') && !serialized.includes('gpt-5.4-mini')) {
     fail(slug, 'does not pin gpt-5.4-mini');
+  }
+  if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {
+    const openAiNodes = workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi');
+    if (openAiNodes.length !== 1) fail(slug, 'must use exactly one OpenAI batch node');
+    if (!serialized.includes('FetchCat Delivery Ledger')) fail(slug, 'does not reference the shared delivery ledger');
   }
 
   if (metadata.slug !== slug) fail(slug, 'metadata slug does not match directory');
@@ -98,6 +112,7 @@ for (const slug of workflowSlugs()) {
   if (metadata.minimumN8nVersion !== '2.26.8') fail(slug, 'minimum n8n version must be 2.26.8');
   if (!releaseStates.has(metadata.releaseState)) fail(slug, 'invalid release state');
   if (metadata.testLimits?.actorItems > 10) fail(slug, 'Actor test item limit exceeds 10');
+  if (metadata.workflowKind === 'actor-template' && metadata.testLimits?.actorItems < 1) fail(slug, 'Actor workflow must test at least one item');
   if (metadata.testLimits?.apifyBackedExecutions > 3) fail(slug, 'Apify-backed test execution limit exceeds 3');
   if (metadata.testLimits?.budgetUsd > 10) fail(slug, 'test budget exceeds $10');
 
