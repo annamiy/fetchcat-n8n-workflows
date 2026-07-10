@@ -252,7 +252,7 @@ return normalized;`
   node('10000000-', 11, 'Append Qualified Jobs', 'n8n-nodes-base.googleSheets', 4.7, [880, 0], {
     operation: 'append',
     documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
-    sheetName: { __rl: true, mode: 'id', value: 'gid=0', cachedResultName: 'Jobs' },
+    sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Jobs' },
     columns: {
       mappingMode: 'defineBelow',
       matchingColumns: [],
