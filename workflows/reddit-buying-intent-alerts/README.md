@@ -16,7 +16,8 @@ never comments, replies, messages authors, or performs outreach.
    connect the bot credential in n8n.
 4. Select that group's chat ID in `Send Telegram Digest`.
 5. Edit the `Configuration` node with the search query, optional subreddit,
-   product context, and minimum score.
+   sort, time window, product context, and minimum score. Start with global
+   relevance search unless the subreddit has reliable search results.
 6. Keep the schedule unpublished until QA passes.
 
 ## Behavior
@@ -30,11 +31,14 @@ flowchart LR
   F --> G[Send one Telegram digest]
 ```
 
-- Actor results are newest first, from the past day, with comments disabled.
+- Actor search sort and time window are configurable; defaults are global
+  relevance over the past week, with comments disabled.
 - No more than 10 posts reach OpenAI.
 - Up to 10,000 Reddit IDs are retained across prior executions.
 - Only `high` or `medium` buying intent above the threshold can pass.
 - Invalid structured-output items are discarded before delivery.
+- Alerts include subreddit, post age, Reddit score, comment count, summary,
+  qualification reason, and a direct post link.
 - Duplicate, empty, and below-threshold runs send no Telegram message.
 
 ## QA

@@ -504,9 +504,11 @@ const redditNodes = [
   }),
   node('30000000-', 3, 'Configuration', 'n8n-nodes-base.code', 2, [-1040, 0], {
     jsCode: String.raw`return [{ json: {
-  searchQuery: 'looking for OR recommend OR alternative',
-  subreddit: 'smallbusiness',
-  productContext: 'Automation and web-scraping services for business research and lead generation.',
+  searchQuery: 'web scraping',
+  subreddit: '',
+  sort: 'relevance',
+  timeFilter: 'week',
+  productContext: 'Managed web-scraping Actors and n8n automation services for business research, monitoring, and lead generation.',
   minimumScore: 70,
   maxItems: 10
 } }];`
@@ -515,12 +517,16 @@ const redditNodes = [
     jsCode: String.raw`const config = $input.first().json;
 if (!config.searchQuery || String(config.searchQuery).length < 3) throw new Error('Configure a Reddit search query.');
 if (!config.productContext || String(config.productContext).length < 20) throw new Error('Product context must be at least 20 characters.');
+const allowedSorts = new Set(['hot', 'new', 'top', 'rising', 'relevance']);
+const allowedTimeFilters = new Set(['hour', 'day', 'week', 'month', 'year', 'all']);
+const sort = allowedSorts.has(config.sort) ? config.sort : 'relevance';
+const timeFilter = allowedTimeFilters.has(config.timeFilter) ? config.timeFilter : 'week';
 const maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));
 return [{ json: { actorInput: {
   searchQuery: String(config.searchQuery),
   searchSubreddit: String(config.subreddit || ''),
-  sort: 'new',
-  timeFilter: 'day',
+  sort,
+  timeFilter,
   maxPostsPerSource: maxItems,
   includeComments: false
 } } }];`
@@ -561,13 +567,18 @@ return normalized;`
   )),
   node('30000000-', 9, 'Merge Post and Classification', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
   node('30000000-', 10, 'Validate and Filter Intent', 'n8n-nodes-base.code', 2, [640, 0], {
-    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst intents = new Set(['high', 'medium', 'low', 'none']);\nconst output = [];\nfor (const item of $input.all()) {\n  const result = parseStructured(item.json, ['qualified', 'buyingIntent', 'score', 'reason', 'summary']);\n  if (!result || typeof result.qualified !== 'boolean' || !intents.has(result.buyingIntent) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim() || typeof result.summary !== 'string' || !result.summary.trim()) continue;\n  if (!result.qualified || !['high', 'medium'].includes(result.buyingIntent) || result.score < minimumScore) continue;\n  output.push({ json: {\n    redditId: item.json.redditId,\n    subreddit: item.json.subreddit,\n    title: item.json.title,\n    url: item.json.url,\n    intent: result.buyingIntent,\n    intentScore: result.score,\n    reason: result.reason,\n    summary: result.summary\n  } });\n}\nreturn output;`
+    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst intents = new Set(['high', 'medium', 'low', 'none']);\nconst output = [];\nfor (const item of $input.all()) {\n  const result = parseStructured(item.json, ['qualified', 'buyingIntent', 'score', 'reason', 'summary']);\n  if (!result || typeof result.qualified !== 'boolean' || !intents.has(result.buyingIntent) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim() || typeof result.summary !== 'string' || !result.summary.trim()) continue;\n  if (!result.qualified || !['high', 'medium'].includes(result.buyingIntent) || result.score < minimumScore) continue;\n  output.push({ json: {\n    redditId: item.json.redditId,\n    subreddit: item.json.subreddit,\n    title: item.json.title,\n    url: item.json.url,\n    createdAt: item.json.createdAt,\n    redditScore: item.json.score,\n    commentCount: item.json.commentCount,\n    intent: result.buyingIntent,\n    intentScore: result.score,\n    reason: result.reason,\n    summary: result.summary\n  } });\n}\nreturn output;`
   }),
   node('30000000-', 11, 'Build Telegram Digest', 'n8n-nodes-base.code', 2, [880, 0], {
     jsCode: String.raw`const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const posts = $input.all().map((item) => item.json).sort((a, b) => b.intentScore - a.intentScore).slice(0, 5);
 if (posts.length === 0) return [];
-const lines = posts.map((post, index) => (index + 1) + '. <b>' + escapeHtml(post.title) + '</b> [' + post.intent + ', ' + post.intentScore + '/100]\n' + escapeHtml(post.summary) + '\n' + escapeHtml(post.reason) + '\n' + escapeHtml(post.url));
+const lines = posts.map((post, index) => {
+  const community = post.subreddit ? 'r/' + post.subreddit : 'Reddit';
+  const engagement = Number(post.redditScore || 0) + ' points | ' + Number(post.commentCount || 0) + ' comments';
+  const created = post.createdAt ? ' | ' + escapeHtml(post.createdAt) : '';
+  return (index + 1) + '. <b>' + escapeHtml(post.title) + '</b> [' + post.intent + ', ' + post.intentScore + '/100]\n' + escapeHtml(community) + ' | ' + engagement + created + '\n' + escapeHtml(post.summary) + '\nWhy it matters: ' + escapeHtml(post.reason) + '\n<a href="' + escapeHtml(post.url) + '">Open Reddit post</a>';
+});
 return [{ json: { telegramMessage: '<b>Reddit Buying-Intent Alerts</b>\n\n' + lines.join('\n\n') } }];`
   }),
   node('30000000-', 12, 'Send Telegram Digest', 'n8n-nodes-base.telegram', 1.2, [1120, 0], {
@@ -578,7 +589,7 @@ return [{ json: { telegramMessage: '<b>Reddit Buying-Intent Alerts</b>\n\n' + li
     replyMarkup: 'none',
     additionalFields: { appendAttribution: false, disable_notification: false, parse_mode: 'HTML' }
   }),
-  sticky('30000000-', 13, 'Setup Notes', [-1320, -440], 760, 260, '## Reddit Buying-Intent Alerts\n\nConfigure the search query, optional subreddit, product context, and score threshold. Connect Apify, OpenAI, and Telegram credentials, then select the dedicated QA group. Keep the two-hour schedule unpublished until QA passes.'),
+  sticky('30000000-', 13, 'Setup Notes', [-1320, -440], 760, 260, '## Reddit Buying-Intent Alerts\n\nConfigure the search query, optional subreddit, sort, time window, product context, and score threshold. Global relevance search is the safest starting point for intent discovery. Connect Apify, OpenAI, and Telegram credentials, then select the dedicated QA group. Keep the two-hour schedule unpublished until QA passes.'),
   sticky('30000000-', 14, 'Safety Notes', [500, -440], 820, 260, '## Monitoring only\n\nComments are disabled and the workflow never replies to or contacts authors. It caps Actor output at 10 posts, deduplicates Reddit IDs before AI, validates strict classifications, and sends one digest containing at most five posts. Empty and duplicate runs send nothing.')
 ];
 
