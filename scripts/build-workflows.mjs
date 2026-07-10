@@ -119,7 +119,7 @@ function mergeParameters() {
     options: {
       clashHandling: {
         values: {
-          resolveClash: 'addSuffix'
+          resolveClash: 'preferInput1'
         }
       }
     }
@@ -243,7 +243,7 @@ return normalized;`
     'linkedin_job_fit',
     linkedInSchema,
     'Score the job against the candidate profile. Mark qualified only for a credible fit. Return the strict schema.',
-    500
+    1200
   )),
   node('10000000-', 9, 'Merge Job and Score', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
   node('10000000-', 10, 'Validate and Filter Scores', 'n8n-nodes-base.code', 2, [640, 0], {
@@ -436,7 +436,7 @@ return [{ json: {
     'youtube_research_brief',
     youtubeSchema,
     'Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.',
-    1800
+    3000
   )),
   node('20000000-', 8, 'Merge Transcript and Brief', 'n8n-nodes-base.merge', 3.2, [520, 0], mergeParameters()),
   node('20000000-', 9, 'Validate and Format Brief', 'n8n-nodes-base.code', 2, [760, 0], {
@@ -559,7 +559,7 @@ return normalized;`
     'reddit_buying_intent',
     redditSchema,
     'Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Mark qualified only when outreach-free monitoring would be useful. Return the strict schema.',
-    650
+    1500
   )),
   node('30000000-', 9, 'Merge Post and Classification', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
   node('30000000-', 10, 'Validate and Filter Intent', 'n8n-nodes-base.code', 2, [640, 0], {
@@ -610,7 +610,8 @@ const definitions = [
     metadata: {
       slug: 'linkedin-job-match-digest',
       title: 'LinkedIn Job Match Digest',
-      actorId: 'fetch_cat/linkedin-jobs-scraper',
+      actorId: '0XhGPLTjZjicBXYV5',
+      actorSlug: 'fetch_cat/linkedin-jobs-scraper',
       version: '1.0.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Slack'],
@@ -624,7 +625,8 @@ const definitions = [
     metadata: {
       slug: 'youtube-research-brief-to-notion',
       title: 'YouTube Research Brief to Notion',
-      actorId: 'fetch_cat/youtube-transcript-scraper',
+      actorId: 'H7e6sHWbYadmHLoNu',
+      actorSlug: 'fetch_cat/youtube-transcript-scraper',
       version: '1.0.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Notion'],
@@ -638,7 +640,8 @@ const definitions = [
     metadata: {
       slug: 'reddit-buying-intent-alerts',
       title: 'Reddit Buying-Intent Alerts',
-      actorId: 'fetch_cat/reddit-scraper',
+      actorId: 'DAj0KBMoCNDqMLe82',
+      actorSlug: 'fetch_cat/reddit-scraper',
       version: '1.0.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Telegram'],

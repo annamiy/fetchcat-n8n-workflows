@@ -138,7 +138,7 @@
         "builtInTools": {},
         "options": {
           "instructions": "Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Mark qualified only when outreach-free monitoring would be useful. Return the strict schema.",
-          "maxTokens": 650,
+          "maxTokens": 1500,
           "reasoning": {
             "reasoningOptions": [
               {
@@ -179,7 +179,7 @@
         "options": {
           "clashHandling": {
             "values": {
-              "resolveClash": "addSuffix"
+              "resolveClash": "preferInput1"
             }
           }
         }

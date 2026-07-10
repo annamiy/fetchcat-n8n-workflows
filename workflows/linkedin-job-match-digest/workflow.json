@@ -139,7 +139,7 @@
         "builtInTools": {},
         "options": {
           "instructions": "Score the job against the candidate profile. Mark qualified only for a credible fit. Return the strict schema.",
-          "maxTokens": 500,
+          "maxTokens": 1200,
           "reasoning": {
             "reasoningOptions": [
               {
@@ -180,7 +180,7 @@
         "options": {
           "clashHandling": {
             "values": {
-              "resolveClash": "addSuffix"
+              "resolveClash": "preferInput1"
             }
           }
         }

@@ -172,7 +172,7 @@
         "builtInTools": {},
         "options": {
           "instructions": "Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.",
-          "maxTokens": 1800,
+          "maxTokens": 3000,
           "reasoning": {
             "reasoningOptions": [
               {
@@ -213,7 +213,7 @@
         "options": {
           "clashHandling": {
             "values": {
-              "resolveClash": "addSuffix"
+              "resolveClash": "preferInput1"
             }
           }
         }
