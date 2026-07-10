@@ -87,25 +87,21 @@ function openAiParameters(prompt, schemaName, schema, instructions, maxTokens) {
       instructions,
       maxTokens,
       reasoning: {
-        reasoningOptions: [
-          {
-            effort: 'low',
-            summary: 'none'
-          }
-        ]
+        reasoningOptions: {
+          effort: 'low',
+          summary: 'none'
+        }
       },
       store: false,
       textFormat: {
-        textOptions: [
-          {
-            type: 'json_schema',
-            verbosity: 'low',
-            name: schemaName,
-            schema: JSON.stringify(schema),
-            description: instructions,
-            strict: true
-          }
-        ]
+        textOptions: {
+          type: 'json_schema',
+          verbosity: 'low',
+          name: schemaName,
+          schema: JSON.stringify(schema),
+          description: instructions,
+          strict: true
+        }
       }
     }
   };

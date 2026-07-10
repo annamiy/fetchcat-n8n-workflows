@@ -182,12 +182,12 @@
           "store": false,
           "textFormat": {
             "textOptions": {
-                "type": "json_schema",
-                "verbosity": "low",
-                "name": "youtube_research_brief",
-                "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"summary\",\"keyIdeas\",\"actionItems\",\"timestampedMoments\"],\"properties\":{\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":4000},\"keyIdeas\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"actionItems\":{\"type\":\"array\",\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"timestampedMoments\":{\"type\":\"array\",\"maxItems\":10,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"timestamp\",\"title\",\"insight\"],\"properties\":{\"timestamp\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":20},\"title\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":200},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}}}}",
-                "description": "Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.",
-                "strict": true
+              "type": "json_schema",
+              "verbosity": "low",
+              "name": "youtube_research_brief",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"summary\",\"keyIdeas\",\"actionItems\",\"timestampedMoments\"],\"properties\":{\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":4000},\"keyIdeas\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"actionItems\":{\"type\":\"array\",\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"timestampedMoments\":{\"type\":\"array\",\"maxItems\":10,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"timestamp\",\"title\",\"insight\"],\"properties\":{\"timestamp\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":20},\"title\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":200},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}}}}",
+              "description": "Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.",
+              "strict": true
             }
           }
         }

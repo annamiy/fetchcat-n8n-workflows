@@ -148,12 +148,12 @@
           "store": false,
           "textFormat": {
             "textOptions": {
-                "type": "json_schema",
-                "verbosity": "low",
-                "name": "reddit_buying_intent",
-                "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"qualified\",\"buyingIntent\",\"score\",\"reason\",\"summary\"],\"properties\":{\"qualified\":{\"type\":\"boolean\"},\"buyingIntent\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\",\"none\"]},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}",
-                "description": "Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Set qualified to true exactly when buying intent is high or medium and score meets the supplied minimum. Always provide non-empty reason and summary fields. Return the strict schema.",
-                "strict": true
+              "type": "json_schema",
+              "verbosity": "low",
+              "name": "reddit_buying_intent",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"qualified\",\"buyingIntent\",\"score\",\"reason\",\"summary\"],\"properties\":{\"qualified\":{\"type\":\"boolean\"},\"buyingIntent\":{\"type\":\"string\",\"enum\":[\"high\",\"medium\",\"low\",\"none\"]},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}",
+              "description": "Classify explicit buying intent and relevance to the product context. Do not infer sensitive traits. Set qualified to true exactly when buying intent is high or medium and score meets the supplied minimum. Always provide non-empty reason and summary fields. Return the strict schema.",
+              "strict": true
             }
           }
         }
