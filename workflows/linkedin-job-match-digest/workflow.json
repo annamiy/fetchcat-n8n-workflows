@@ -277,24 +277,44 @@
     },
     {
       "parameters": {
-        "resource": "Actors",
-        "operation": "Run actor and get dataset",
-        "actorSource": "store",
-        "actorId": {
-          "__rl": true,
-          "mode": "list",
-          "value": "0XhGPLTjZjicBXYV5",
-          "cachedResultName": "LinkedIn Jobs Scraper"
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/0XhGPLTjZjicBXYV5/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clean",
+              "value": "true"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "timeout",
+              "value": "300"
+            }
+          ]
         },
-        "customBody": "={{ JSON.stringify($json.actorInput) }}",
-        "timeout": 300,
-        "memory": 1024,
-        "build": "latest"
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.actorInput) }}",
+        "options": {
+          "timeout": 310000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
       "id": "10000000-0000-0000-4000-8000-000000000005",
-      "name": "Fetch LinkedIn Jobs",
-      "type": "@apify/n8n-nodes-apify.apify",
-      "typeVersion": 1,
+      "name": "Fetch LinkedIn Jobs from Apify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
       "position": [
         160,
         0
@@ -994,17 +1014,33 @@
     },
     {
       "parameters": {
-        "width": 920,
-        "height": 270,
-        "content": "## LinkedIn Job Match Digest\n\nUse the setup form once to save keywords, location, candidate profile, threshold, and item limit. Normal runs also create the ledger and configuration tables automatically with safe defaults. Connect Apify, OpenAI, Google Sheets, and Slack, then select the `Jobs` tab and destination channel.",
-        "color": 7
+        "width": 1200,
+        "height": 440,
+        "content": "## Score LinkedIn jobs to Google Sheets and Slack\n\nFind newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, save qualified matches to Google Sheets, and send the five strongest results in one Slack digest. This template runs on both n8n Cloud and self-hosted n8n using only built-in n8n nodes plus the OpenAI node.\n\n### How it works\n\nThe workflow creates its configuration and delivery-ledger Data Tables automatically, then calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours. It rejects invalid records, skips LinkedIn job IDs already delivered, validates the complete AI response, and writes only qualified matches. IDs enter the ledger after Google Sheets and Slack succeed, so destination outages remain retryable.\n\n### Setup\n\nCreate an HTTP Header Auth credential named for Apify with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`. Connect OpenAI, Google Sheets, and Slack; select the destination sheet, tab, and channel; then run the setup form once to save keywords, location, candidate profile, score threshold, and item limit.\n\n### Customization\n\nAdjust the schedule, score threshold, search terms, or maximum items through the setup form. Keep the maximum at 10 to preserve the included cost controls.",
+        "color": 1
       },
       "id": "10000000-0000-0000-4000-8000-000000000018",
-      "name": "Setup Notes",
+      "name": "Workflow Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         -1560,
+        -980
+      ]
+    },
+    {
+      "parameters": {
+        "width": 1100,
+        "height": 270,
+        "content": "## Setup and configuration\n\nUse the setup form once to save keywords, location, candidate profile, threshold, and item limit. Connect an Apify HTTP Header Auth credential, OpenAI, Google Sheets, and Slack, then select the `Jobs` tab and destination channel.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000019",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
         -440
       ]
     },
@@ -1012,10 +1048,10 @@
       "parameters": {
         "width": 1040,
         "height": 270,
-        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified rows are upserted by LinkedIn job ID, then one Slack digest is sent. IDs are committed to `FetchCat Delivery Ledger` only after delivery succeeds. Empty and fully delivered runs create no destination writes.",
+        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified rows are upserted by LinkedIn job ID, then one Slack digest is sent. IDs are committed only after delivery succeeds, so empty, duplicate, and failed-delivery runs remain safe.",
         "color": 7
       },
-      "id": "10000000-0000-0000-4000-8000-000000000019",
+      "id": "10000000-0000-0000-4000-8000-000000000030",
       "name": "Delivery Notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -1107,14 +1143,14 @@
       "main": [
         [
           {
-            "node": "Fetch LinkedIn Jobs",
+            "node": "Fetch LinkedIn Jobs from Apify",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Fetch LinkedIn Jobs": {
+    "Fetch LinkedIn Jobs from Apify": {
       "main": [
         [
           {

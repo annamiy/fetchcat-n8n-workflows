@@ -124,6 +124,36 @@ for (const slug of workflowSlugs()) {
     }
     if (!fs.existsSync(path.join(dir, 'assets/setup-form.png'))) fail(slug, 'missing publication asset assets/setup-form.png');
   }
+  if (slug === 'linkedin-job-match-digest') {
+    const overviewStickies = workflow.nodes.filter((entry) =>
+      entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 1
+    );
+    if (overviewStickies.length !== 1) fail(slug, 'must contain exactly one yellow overview sticky');
+    if (overviewStickies.length === 1) {
+      const content = overviewStickies[0].parameters.content ?? '';
+      const words = content.trim().split(/\s+/).filter(Boolean).length;
+      if (words < 100 || words > 300) fail(slug, 'yellow overview sticky must contain 100 to 300 words');
+      if (!content.includes('### How it works') || !content.includes('### Setup')) {
+        fail(slug, 'yellow overview sticky must contain How it works and Setup sections');
+      }
+    }
+    const sectionStickies = workflow.nodes.filter((entry) =>
+      entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 7
+    );
+    if (sectionStickies.length < 1) fail(slug, 'must contain white section stickies');
+    if (sectionStickies.some((entry) => (entry.parameters.content ?? '').trim().split(/\s+/).filter(Boolean).length >= 50)) {
+      fail(slug, 'white section stickies must stay under 50 words');
+    }
+    if (!workflow.nodes.some((entry) => entry.name === 'Fetch LinkedIn Jobs from Apify' && entry.type === 'n8n-nodes-base.httpRequest')) {
+      fail(slug, 'must use the Cloud-compatible HTTP Request node for Apify');
+    }
+    if (workflow.nodes.some((entry) => entry.type === '@apify/n8n-nodes-apify.apify')) {
+      fail(slug, 'must not require a community node');
+    }
+    const creatorDraft = fs.readFileSync(path.join(dir, 'creator-draft.md'), 'utf8');
+    if (!creatorDraft.startsWith('![LinkedIn Job Match Digest workflow]')) fail(slug, 'Creator description must start with the workflow image');
+    if (!creatorDraft.includes('n8n Cloud or self-hosted n8n')) fail(slug, 'Creator description must document Cloud and self-hosted compatibility');
+  }
   if (slug === 'youtube-research-brief-to-notion') {
     if (names.has('Manual QA Trigger') || names.has('Manual QA Input')) fail(slug, 'contains a QA-only public execution path');
     if (!fs.existsSync(path.join(dir, 'assets/form-preview.png'))) fail(slug, 'missing publication asset assets/form-preview.png');

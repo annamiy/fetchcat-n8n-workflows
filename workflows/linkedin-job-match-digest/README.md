@@ -10,24 +10,31 @@ inactive on import.
 
 ## Setup
 
-1. Install `@apify/n8n-nodes-apify@0.6.10` and import `workflow.json`.
-2. Add Apify and OpenAI credentials to the processing nodes.
-3. Create a spreadsheet with a `Jobs`
+1. Import `workflow.json` into n8n Cloud or self-hosted n8n.
+2. Create an HTTP Header Auth credential for Apify. Set the header name to
+   `Authorization` and the value to `Bearer YOUR_APIFY_TOKEN`, then select it in
+   `Fetch LinkedIn Jobs from Apify`.
+3. Add an OpenAI credential to the scoring node.
+4. Create a spreadsheet with a `Jobs`
    tab and these headers: `title`, `company`, `location`, `postedAt`,
    `jobLink`, `score`, `reason`, `collectedAt`, `linkedInJobId`. Format
    both `postedAt` and `collectedAt` as Date time in Google Sheets.
-4. Add Google Sheets credentials and select that spreadsheet and tab in
+5. Add Google Sheets credentials and select that spreadsheet and tab in
    `Upsert Qualified Jobs`.
-5. Create or select a Slack channel, connect Slack, and
+6. Create or select a Slack channel, connect Slack, and
    select it in `Send Slack Digest`.
-6. Run `LinkedIn Setup Form` once and save the search and candidate profile.
+7. Run `LinkedIn Setup Form` once and save the search and candidate profile.
    The workflow creates both required Data Tables automatically. If the form is
    skipped, the first normal run creates safe default configuration.
-7. Optionally import `../shared-error-notifications/workflow.json` and select it as this
+8. Optionally import `../shared-error-notifications/workflow.json` and select it as this
    workflow's error workflow.
 
 The generated `FetchCat LinkedIn Config` row can also be edited directly in
 n8n Data Tables after setup.
+
+The submitted workflow uses only Cloud-compatible n8n nodes. On a self-hosted
+instance, you may optionally replace the HTTP Request node with
+`@apify/n8n-nodes-apify`, but this is not required.
 
 No credential ID is stored in this repository. Selecting credentials changes
 only the private instance copy.
