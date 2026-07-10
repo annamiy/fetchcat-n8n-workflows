@@ -346,6 +346,14 @@ const youtubeSchema = {
 };
 
 const youtubeNodes = [
+  node('20000000-', 2, 'Manual QA Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1160, 120], {}),
+  node('20000000-', 3, 'Manual QA Input', 'n8n-nodes-base.code', 2, [-920, 120], {
+    jsCode: String.raw`return [{ json: {
+  youtubeUrl: 'https://www.youtube.com/watch?v=aircAruvnKk',
+  language: 'en',
+  researchGoal: 'Summarize the central argument and extract practical next steps.'
+} }];`
+  }),
   node('20000000-', 1, 'YouTube Research Form', 'n8n-nodes-base.formTrigger', 2.6, [-1160, -80], {
     authentication: 'none',
     formTitle: 'YouTube Research Brief',
@@ -372,23 +380,15 @@ const youtubeNodes = [
       }
     }
   }),
-  node('20000000-', 2, 'Manual QA Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1160, 120], {}),
-  node('20000000-', 3, 'Manual QA Input', 'n8n-nodes-base.code', 2, [-920, 120], {
-    jsCode: String.raw`return [{ json: {
-  youtubeUrl: 'https://www.youtube.com/watch?v=aircAruvnKk',
-  language: 'en',
-  researchGoal: 'Summarize the central argument and extract practical next steps.'
-} }];`
-  }),
   node('20000000-', 4, 'Validate Form Input', 'n8n-nodes-base.code', 2, [-680, 0], {
     jsCode: String.raw`const input = $input.first().json;
 const youtubeUrl = String(input.youtubeUrl || input['YouTube URL'] || '').trim();
 const language = String(input.language || input.Language || 'en').trim().toLowerCase();
 const researchGoal = String(input.researchGoal || input['Research goal'] || '').trim();
-let parsed;
-try { parsed = new URL(youtubeUrl); } catch { throw new Error('Enter a valid public YouTube URL.'); }
+const urlMatch = youtubeUrl.match(/^https:\/\/([^/?#]+)(?:[/?#]|$)/i);
+if (!urlMatch) throw new Error('Enter a valid public YouTube URL.');
 const allowedHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be']);
-if (parsed.protocol !== 'https:' || !allowedHosts.has(parsed.hostname)) throw new Error('Only public HTTPS YouTube URLs are accepted.');
+if (!allowedHosts.has(urlMatch[1].toLowerCase())) throw new Error('Only public HTTPS YouTube URLs are accepted.');
 if (!/^[a-z]{2,3}(?:-[a-z]{2})?$/.test(language)) throw new Error('Language must be a short code such as en or pt-br.');
 if (researchGoal.length < 10 || researchGoal.length > 1000) throw new Error('Research goal must be 10 to 1000 characters.');
 return [{ json: {

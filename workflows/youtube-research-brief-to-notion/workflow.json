@@ -2,6 +2,30 @@
   "name": "YouTube Research Brief to Notion",
   "nodes": [
     {
+      "parameters": {},
+      "id": "20000000-0000-0000-4000-8000-000000000002",
+      "name": "Manual QA Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1160,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  youtubeUrl: 'https://www.youtube.com/watch?v=aircAruvnKk',\n  language: 'en',\n  researchGoal: 'Summarize the central argument and extract practical next steps.'\n} }];"
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000003",
+      "name": "Manual QA Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -920,
+        120
+      ]
+    },
+    {
       "parameters": {
         "authentication": "none",
         "formTitle": "YouTube Research Brief",
@@ -57,32 +81,8 @@
       ]
     },
     {
-      "parameters": {},
-      "id": "20000000-0000-0000-4000-8000-000000000002",
-      "name": "Manual QA Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -1160,
-        120
-      ]
-    },
-    {
       "parameters": {
-        "jsCode": "return [{ json: {\n  youtubeUrl: 'https://www.youtube.com/watch?v=aircAruvnKk',\n  language: 'en',\n  researchGoal: 'Summarize the central argument and extract practical next steps.'\n} }];"
-      },
-      "id": "20000000-0000-0000-4000-8000-000000000003",
-      "name": "Manual QA Input",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -920,
-        120
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst youtubeUrl = String(input.youtubeUrl || input['YouTube URL'] || '').trim();\nconst language = String(input.language || input.Language || 'en').trim().toLowerCase();\nconst researchGoal = String(input.researchGoal || input['Research goal'] || '').trim();\nlet parsed;\ntry { parsed = new URL(youtubeUrl); } catch { throw new Error('Enter a valid public YouTube URL.'); }\nconst allowedHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be']);\nif (parsed.protocol !== 'https:' || !allowedHosts.has(parsed.hostname)) throw new Error('Only public HTTPS YouTube URLs are accepted.');\nif (!/^[a-z]{2,3}(?:-[a-z]{2})?$/.test(language)) throw new Error('Language must be a short code such as en or pt-br.');\nif (researchGoal.length < 10 || researchGoal.length > 1000) throw new Error('Research goal must be 10 to 1000 characters.');\nreturn [{ json: {\n  youtubeUrl,\n  language,\n  researchGoal,\n  actorInput: {\n    videoUrls: [youtubeUrl],\n    language,\n    includeTimestamps: true,\n    includeMetadata: true,\n    maxVideos: 1\n  }\n} }];"
+        "jsCode": "const input = $input.first().json;\nconst youtubeUrl = String(input.youtubeUrl || input['YouTube URL'] || '').trim();\nconst language = String(input.language || input.Language || 'en').trim().toLowerCase();\nconst researchGoal = String(input.researchGoal || input['Research goal'] || '').trim();\nconst urlMatch = youtubeUrl.match(/^https:\\/\\/([^/?#]+)(?:[/?#]|$)/i);\nif (!urlMatch) throw new Error('Enter a valid public YouTube URL.');\nconst allowedHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be']);\nif (!allowedHosts.has(urlMatch[1].toLowerCase())) throw new Error('Only public HTTPS YouTube URLs are accepted.');\nif (!/^[a-z]{2,3}(?:-[a-z]{2})?$/.test(language)) throw new Error('Language must be a short code such as en or pt-br.');\nif (researchGoal.length < 10 || researchGoal.length > 1000) throw new Error('Research goal must be 10 to 1000 characters.');\nreturn [{ json: {\n  youtubeUrl,\n  language,\n  researchGoal,\n  actorInput: {\n    videoUrls: [youtubeUrl],\n    language,\n    includeTimestamps: true,\n    includeMetadata: true,\n    maxVideos: 1\n  }\n} }];"
       },
       "id": "20000000-0000-0000-4000-8000-000000000004",
       "name": "Validate Form Input",
