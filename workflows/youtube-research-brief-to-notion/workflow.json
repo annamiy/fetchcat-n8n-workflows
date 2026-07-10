@@ -225,7 +225,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody } }];"
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nconst notionChunks = [];\nfor (const paragraph of notionBody.split('\\n\\n')) {\n  let remaining = paragraph;\n  while (remaining.length > 1900) {\n    let splitAt = remaining.lastIndexOf('\\n', 1900);\n    if (splitAt < 1000) splitAt = remaining.lastIndexOf(' ', 1900);\n    if (splitAt < 1000) splitAt = 1900;\n    notionChunks.push(remaining.slice(0, splitAt).trim());\n    remaining = remaining.slice(splitAt).trim();\n  }\n  if (remaining) notionChunks.push(remaining);\n}\nif (notionChunks.length > 10) throw new Error('Formatted Notion brief requires too many blocks.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody, notionChunks } }];"
       },
       "id": "20000000-0000-0000-4000-8000-000000000009",
       "name": "Validate and Format Brief",
@@ -256,7 +256,52 @@
             {
               "type": "paragraph",
               "richText": false,
-              "textContent": "={{ $json.notionBody }}"
+              "textContent": "={{ $json.notionChunks[0] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[1] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[2] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[3] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[4] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[5] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[6] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[7] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[8] || '' }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.notionChunks[9] || '' }}"
             }
           ]
         },

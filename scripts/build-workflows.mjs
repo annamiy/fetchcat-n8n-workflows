@@ -436,7 +436,7 @@ return [{ json: {
   )),
   node('20000000-', 8, 'Merge Transcript and Brief', 'n8n-nodes-base.merge', 3.2, [520, 0], mergeParameters()),
   node('20000000-', 9, 'Validate and Format Brief', 'n8n-nodes-base.code', 2, [760, 0], {
-    jsCode: `${parseStructured}\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody } }];`
+    jsCode: `${parseStructured}\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nconst notionChunks = [];\nfor (const paragraph of notionBody.split('\\n\\n')) {\n  let remaining = paragraph;\n  while (remaining.length > 1900) {\n    let splitAt = remaining.lastIndexOf('\\n', 1900);\n    if (splitAt < 1000) splitAt = remaining.lastIndexOf(' ', 1900);\n    if (splitAt < 1000) splitAt = 1900;\n    notionChunks.push(remaining.slice(0, splitAt).trim());\n    remaining = remaining.slice(splitAt).trim();\n  }\n  if (remaining) notionChunks.push(remaining);\n}\nif (notionChunks.length > 10) throw new Error('Formatted Notion brief requires too many blocks.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody, notionChunks } }];`
   }),
   node('20000000-', 10, 'Create Notion Brief', 'n8n-nodes-base.notion', 2.2, [1000, 0], {
     authentication: 'apiKey',
@@ -447,9 +447,11 @@ return [{ json: {
     simple: true,
     propertiesUi: { propertyValues: [] },
     blockUi: {
-      blockValues: [
-        { type: 'paragraph', richText: false, textContent: '={{ $json.notionBody }}' }
-      ]
+      blockValues: Array.from({ length: 10 }, (_, index) => ({
+        type: 'paragraph',
+        richText: false,
+        textContent: `={{ $json.notionChunks[${index}] || '' }}`
+      }))
     },
     options: {}
   }),
