@@ -29,25 +29,30 @@ assertions, and green static validation.
 2. Run `npm run check` and a secret scan.
 3. Import the workflow inactive. Confirm API read and update access without
    publishing it.
-4. Attach existing encrypted n8n credentials to the private instance copy.
-5. Run one happy path in the server execution context. Use
+4. In a disposable clean-project test, confirm the workflow creates every
+   required Data Table, saves setup-form defaults, and can repeat setup without
+   duplicate configuration rows. Remove the disposable resources afterward.
+5. Attach existing encrypted n8n credentials to the private instance copy.
+6. Run one happy path in the server execution context. Use
    `npm run execute -- <slug>` only when the graph has no Data Table node. Record execution ID,
    Actor run ID, item count, AI schema result, destination write count, and
    estimated spend in a private Paperclip artifact.
-6. Run the exact duplicate path immediately. Confirm zero duplicate rows,
+7. Run the exact duplicate path immediately. Confirm zero duplicate rows,
    pages, Slack messages, or Telegram messages as required by the workflow
    contract.
-7. Run one empty or error path. Confirm malformed/missing input fails closed and
+8. Run one empty or error path. Confirm malformed/missing input fails closed and
    creates no external writes.
-8. Run or inspect the missing-credential path and confirm the error is explicit
+9. Run or inspect the missing-credential path and confirm the error is explicit
    and secret-free.
-9. Use `agent-browser` to inspect the n8n execution, exact QA destination, and
-   output count. Capture credential-free screenshots in the repository and keep
-   private identifiers in Paperclip artifacts only.
-10. Export, sanitize, validate, reimport, and execute the sanitized copy in the
+10. Use `agent-browser` to inspect the n8n execution, exact QA destination, and
+    output count. Capture credential-free workflow, setup/form, and synthetic
+    output screenshots in the repository; keep real identifiers and output in
+    Paperclip artifacts only.
+11. Confirm public JSON has no fixture/manual-QA branch, then export, sanitize,
+    validate, reimport, and execute the sanitized copy in the
     appropriate server context. Confirm
     node parameters survive the round trip and the reimport stays unpublished.
-11. Run the n8n security audit and confirm total spend remains within the issue
+12. Run the n8n security audit and confirm total spend remains within the issue
     and repository limits.
 
 ## Handoff

@@ -22,8 +22,8 @@ inactive. Creator Portal packages remain drafts until a separate approval is giv
 - `@apify/n8n-nodes-apify` `0.6.10`
 - Node.js 20 or newer for repository tooling
 - Credentials for the integrations named by each workflow
-- n8n Data Tables named `FetchCat Delivery Ledger`, `FetchCat LinkedIn Config`,
-  and `FetchCat Reddit Config`
+- Permission to create n8n Data Tables. The templates create their ledger and
+  configuration tables automatically on first use.
 
 The reference Docker Compose deployment is under [`infra/`](infra/). Runtime
 secrets belong in n8n's encrypted credential store and must never be added to a

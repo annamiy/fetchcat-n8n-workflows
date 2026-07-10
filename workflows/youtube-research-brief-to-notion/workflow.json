@@ -2,30 +2,6 @@
   "name": "YouTube Research Brief to Notion",
   "nodes": [
     {
-      "parameters": {},
-      "id": "20000000-0000-0000-4000-8000-000000000002",
-      "name": "Manual QA Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        -1160,
-        120
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{ json: {\n  youtubeUrl: 'https://www.youtube.com/watch?v=aircAruvnKk',\n  language: 'en',\n  researchGoal: 'Summarize the central argument and extract practical next steps.'\n} }];"
-      },
-      "id": "20000000-0000-0000-4000-8000-000000000003",
-      "name": "Manual QA Input",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -920,
-        120
-      ]
-    },
-    {
       "parameters": {
         "authentication": "none",
         "formTitle": "YouTube Research Brief",
@@ -62,13 +38,7 @@
           "path": "youtube-research-brief",
           "buttonLabel": "Create brief",
           "ignoreBots": true,
-          "useWorkflowTimezone": true,
-          "respondWithOptions": {
-            "values": {
-              "respondWith": "redirect",
-              "redirectUrl": "={{ $(\"Create Notion Brief\").first().json.url }}"
-            }
-          }
+          "useWorkflowTimezone": true
         }
       },
       "id": "20000000-0000-0000-4000-8000-000000000001",
@@ -77,7 +47,7 @@
       "typeVersion": 2.6,
       "position": [
         -1160,
-        -80
+        0
       ]
     },
     {
@@ -88,6 +58,44 @@
       "name": "Validate Form Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
+      "position": [
+        -920,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Delivery Ledger",
+        "columns": {
+          "column": [
+            {
+              "name": "workflowSlug",
+              "type": "string"
+            },
+            {
+              "name": "itemKey",
+              "type": "string"
+            },
+            {
+              "name": "destination",
+              "type": "string"
+            },
+            {
+              "name": "deliveredAt",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000018",
+      "name": "Ensure Delivery Ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
       "position": [
         -680,
         0
@@ -104,7 +112,7 @@
           "value": "H7e6sHWbYadmHLoNu",
           "cachedResultName": "YouTube Transcript Scraper"
         },
-        "customBody": "={{ JSON.stringify($json.actorInput) }}",
+        "customBody": "={{ JSON.stringify($(\"Validate Form Input\").first().json.actorInput) }}",
         "timeout": 300,
         "memory": 1024,
         "build": "latest"
@@ -493,6 +501,24 @@
     },
     {
       "parameters": {
+        "operation": "completion",
+        "respondWith": "redirect",
+        "redirectUrl": "={{ $json.url }}",
+        "options": {
+          "formTitle": "Research brief ready"
+        }
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000019",
+      "name": "Open Notion Brief",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1960,
+        0
+      ]
+    },
+    {
+      "parameters": {
         "width": 760,
         "height": 250,
         "content": "## YouTube Research Brief\n\nConnect Apify, OpenAI, and Notion credentials, then select the `FetchCat n8n QA Briefs` database. The form accepts one public HTTPS YouTube URL, language code, and research goal. Keep the workflow unpublished during QA.",
@@ -511,11 +537,11 @@
       "parameters": {
         "width": 900,
         "height": 250,
-        "content": "## Cost and failure controls\n\nThe Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion. Transcript input is capped at 60,000 characters. Confirm the captioned public video in Manual QA Input before server-side QA execution.",
+        "content": "## Cost and failure controls\n\nThe delivery ledger is created automatically. The Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion, and transcript input is capped at 60,000 characters.",
         "color": 7
       },
       "id": "20000000-0000-0000-4000-8000-000000000013",
-      "name": "QA Notes",
+      "name": "Safety Notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
@@ -552,29 +578,18 @@
         ]
       ]
     },
-    "Manual QA Trigger": {
-      "main": [
-        [
-          {
-            "node": "Manual QA Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Manual QA Input": {
-      "main": [
-        [
-          {
-            "node": "Validate Form Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Validate Form Input": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Delivery Ledger": {
       "main": [
         [
           {
@@ -683,6 +698,17 @@
         [
           {
             "node": "Return Notion URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Notion URL": {
+      "main": [
+        [
+          {
+            "node": "Open Notion Brief",
             "type": "main",
             "index": 0
           }

@@ -34,14 +34,19 @@ decision with a unique slug and cost envelope.
    executable graph, not only in documentation.
 6. Check a durable Data Table ledger before AI and external writes. Commit IDs
    only after destination success so failed delivery remains retryable.
-7. Validate structured AI output and stop external writes when it is malformed.
-8. Ensure empty and duplicate paths create no destination writes.
-9. Add `workflow.json`, `metadata.json`, setup README, synthetic fixtures,
-   expected assertions, and useful n8n sticky notes.
-10. Run `npm run check`, import through `npm run import -- <slug>`, confirm it is
+7. Create required Data Tables idempotently inside the graph. Put editable
+   settings in a setup form or another documented nontechnical surface; do not
+   require users to edit Code nodes.
+8. Validate structured AI output and stop external writes when it is malformed.
+9. Ensure empty and duplicate paths create no destination writes. Remove any
+   internal fixture, manual QA-input, or test-only branch before public export.
+10. Add `workflow.json`, `metadata.json`, setup README, `creator-draft.md`,
+    synthetic fixtures, expected assertions, useful n8n sticky notes, and the
+    required credential-free workflow, form/setup, and output screenshots.
+11. Run `npm run check`, import through `npm run import -- <slug>`, confirm it is
     unpublished, and run credential-negative testing in the server context when
     the graph uses Data Tables.
-11. Export and sanitize once to confirm the graph round-trips without node
+12. Export and sanitize once to confirm the graph round-trips without node
     parameter mutation.
 
 ## Handoff

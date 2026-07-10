@@ -6,22 +6,16 @@ video. OpenAI turns the capped transcript into a strict research brief, and the
 workflow creates a page in a dedicated Notion database before redirecting the
 form response to that page.
 
-A separate manual QA path allows supported `n8n execute --id` testing while the
-form and workflow remain unpublished.
-
 ## Setup
 
 1. Install `@apify/n8n-nodes-apify@0.6.10` and import `workflow.json`.
 2. Add Apify and OpenAI credentials to the processing nodes.
 3. Create a Notion database named `FetchCat n8n QA Briefs`, share it with the
    selected Notion integration, and select it in `Create Notion Brief`.
-4. Create `FetchCat Delivery Ledger` with `workflowSlug`, `itemKey`, and
-   `destination` string columns plus a `deliveredAt` date/time column.
-5. Import `../shared-error-notifications/workflow.json` and select it as this
+4. The workflow creates `FetchCat Delivery Ledger` automatically on first use.
+5. Optionally import `../shared-error-notifications/workflow.json` and select it as this
    workflow's error workflow.
-6. Confirm or replace the captioned public video in `Manual QA Input` before a
-   CLI execution.
-7. Keep the workflow unpublished. Use the form's test URL for form-specific QA.
+6. Keep the workflow unpublished during QA and use the form's test URL.
 
 The form accepts only HTTPS URLs on YouTube hosts. Language must be a short code,
 and the research goal must contain 10 to 1,000 characters.
@@ -30,8 +24,9 @@ and the research goal must contain 10 to 1,000 characters.
 
 ```mermaid
 flowchart LR
-  F[Form or manual QA input] --> V[Validate URL and goal]
-  V --> A[Run transcript Actor]
+  F[Research form] --> V[Validate URL and goal]
+  V --> I[Create or reuse delivery ledger]
+  I --> A[Run transcript Actor]
   A --> C[Require captions and cap text]
   C --> D[Keep request absent from delivery ledger]
   D --> O[Strict AI research brief]

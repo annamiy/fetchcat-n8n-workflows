@@ -11,24 +11,23 @@ inactive on import.
 ## Setup
 
 1. Install `@apify/n8n-nodes-apify@0.6.10` and import `workflow.json`.
-2. Create `FetchCat Delivery Ledger` and `FetchCat LinkedIn Config` using the
-   table schemas below, then add one config row whose `configKey` is `default`.
-3. Add Apify and OpenAI credentials to the processing nodes.
-4. Create a spreadsheet named `FetchCat n8n QA - LinkedIn Jobs` with a `Jobs`
+2. Add Apify and OpenAI credentials to the processing nodes.
+3. Create a spreadsheet with a `Jobs`
    tab and these headers: `title`, `company`, `location`, `postedAt`,
    `jobLink`, `score`, `reason`, `collectedAt`, `linkedInJobId`. Format
    both `postedAt` and `collectedAt` as Date time in Google Sheets.
-5. Add Google Sheets credentials and select that spreadsheet and tab in
+4. Add Google Sheets credentials and select that spreadsheet and tab in
    `Upsert Qualified Jobs`.
-6. Create or select the `fetchcat-n8n-qa` Slack channel, connect Slack, and
+5. Create or select a Slack channel, connect Slack, and
    select it in `Send Slack Digest`.
-7. Import `../shared-error-notifications/workflow.json` and select it as this
+6. Run `LinkedIn Setup Form` once and save the search and candidate profile.
+   The workflow creates both required Data Tables automatically. If the form is
+   skipped, the first normal run creates safe default configuration.
+7. Optionally import `../shared-error-notifications/workflow.json` and select it as this
    workflow's error workflow.
 
-LinkedIn config columns: `configKey` (string), `keywords` (comma-separated
-string), `location` (string), `candidateProfile` (string), `minimumScore`
-(number), and `maxItems` (number). Ledger columns: `workflowSlug` (string),
-`itemKey` (string), `destination` (string), and `deliveredAt` (date/time).
+The generated `FetchCat LinkedIn Config` row can also be edited directly in
+n8n Data Tables after setup.
 
 No credential ID is stored in this repository. Selecting credentials changes
 only the private instance copy.
@@ -37,7 +36,8 @@ only the private instance copy.
 
 ```mermaid
 flowchart LR
-  T[Manual or daily trigger] --> A[Run LinkedIn Actor]
+  T[Manual or daily trigger] --> I[Create or reuse tables]
+  I --> A[Run LinkedIn Actor]
   A --> D[Keep IDs absent from delivery ledger]
   D --> O[One strict AI batch score]
   O --> F[Validate and filter]

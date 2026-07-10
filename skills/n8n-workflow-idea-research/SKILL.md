@@ -37,8 +37,9 @@ issue. Work read-only except for comments and assignment on that same issue.
    `N8N_TEST_BUDGET_USD` and the repository metadata limits.
 8. Check feasibility against the Actor schema, n8n nodes available on
    `N8N_API_URL`, credential needs, a nontechnical configuration surface,
-   post-delivery Data Table ledger semantics, shared error notification, and
-   fail-closed behavior. Explain when an AI batch is impossible.
+   automatic first-run resource creation, post-delivery Data Table ledger
+   semantics, shared error notification, and fail-closed behavior. State which
+   settings belong in a setup form and explain when an AI batch is impossible.
 
 ## Decision Format
 

@@ -26,7 +26,9 @@ exact full commit SHA.
 2. Re-run repository CI checks and secret scanning on the exact commit.
 3. Review the public README, setup steps, costs, limitations, sticky notes,
    Data Table schemas, companion error-workflow instructions, synthetic
-   fixtures, and credential-free screenshots as a new user would.
+   fixtures, automatic first-run setup, `creator-draft.md`, and credential-free
+   screenshots as a new user would. Confirm the draft copy, categories,
+   requirements, privacy note, and asset filenames match the exact workflow.
 4. Merge the approved public repository PR and record the merge SHA on the same
    issue.
 5. Run `npm run package -- <slug>` and verify the package contains only the

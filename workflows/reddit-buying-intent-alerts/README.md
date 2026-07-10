@@ -11,25 +11,26 @@ never comments, replies, messages authors, or performs outreach.
 ## Setup
 
 1. Install `@apify/n8n-nodes-apify@0.6.10` and import `workflow.json`.
-2. Create `FetchCat Delivery Ledger` and `FetchCat Reddit Config` using the
-   schemas below, then add one config row whose `configKey` is `default`.
-3. Add Apify and OpenAI credentials to the processing nodes.
-4. Create a Telegram group named `FetchCat n8n QA`, add a dedicated bot, and
+2. Add Apify and OpenAI credentials to the processing nodes.
+3. Create a Telegram group, add a dedicated bot, and
    connect the bot credential in n8n.
-5. Select that group's chat ID in `Send Telegram Digest`.
-6. Import `../shared-error-notifications/workflow.json` and select it as this
+4. Select that group's chat ID in `Send Telegram Digest`.
+5. Run `Reddit Setup Form` once and save the search and product context. The
+   workflow creates both required Data Tables automatically. If the form is
+   skipped, the first normal run creates safe defaults.
+6. Optionally import `../shared-error-notifications/workflow.json` and select it as this
    workflow's error workflow. Keep the schedule unpublished until QA passes.
 
-Reddit config columns: `configKey`, `searchQuery`, `subreddit`, `sort`,
-`timeFilter`, and `productContext` as strings; `minimumScore` and `maxItems` as
-numbers. Ledger columns: `workflowSlug`, `itemKey`, and `destination` as
-strings, plus `deliveredAt` as date/time. Start with global relevance search.
+The generated `FetchCat Reddit Config` row can also be edited directly in n8n
+Data Tables. Start with global relevance search unless a specific subreddit is
+known to return useful results.
 
 ## Behavior
 
 ```mermaid
 flowchart LR
-  T[Manual or two-hour trigger] --> A[Run Reddit Actor]
+  T[Manual or two-hour trigger] --> I[Create or reuse tables]
+  I --> A[Run Reddit Actor]
   A --> D[Keep IDs absent from delivery ledger]
   D --> O[One strict AI batch classification]
   O --> F[Validate and filter]

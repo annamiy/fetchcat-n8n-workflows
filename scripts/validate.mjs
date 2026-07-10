@@ -89,9 +89,24 @@ for (const slug of workflowSlugs()) {
   if (serialized.includes('"credentials":')) fail(slug, 'contains a credential key');
   if (!['actor-template', 'support'].includes(metadata.workflowKind)) fail(slug, 'invalid workflow kind');
   if (metadata.workflowKind === 'actor-template') {
+    const publicationFiles = [
+      'creator-draft.md',
+      'assets/workflow-overview.png',
+      'assets/output-preview.png'
+    ];
+    for (const relative of publicationFiles) {
+      if (!fs.existsSync(path.join(dir, relative))) fail(slug, `missing publication asset ${relative}`);
+    }
     if (!metadata.actorId || !serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
     if (!metadata.actorSlug || !readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
     if (!serialized.includes('n8n-nodes-base.dataTable')) fail(slug, 'does not use a durable n8n Data Table ledger');
+    const tableCreateNodes = workflow.nodes.filter((entry) =>
+      entry.type === 'n8n-nodes-base.dataTable'
+      && entry.parameters?.resource === 'table'
+      && entry.parameters?.operation === 'create'
+      && entry.parameters?.options?.createIfNotExists === true
+    );
+    if (tableCreateNodes.length < 1) fail(slug, 'does not create required Data Tables idempotently');
     if (serialized.includes('n8n-nodes-base.removeDuplicates')) fail(slug, 'uses pre-delivery Remove Duplicates state');
   } else {
     if (metadata.actorId !== null || metadata.actorSlug !== null) fail(slug, 'support workflow must not declare an Actor');
@@ -104,6 +119,14 @@ for (const slug of workflowSlugs()) {
     const openAiNodes = workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi');
     if (openAiNodes.length !== 1) fail(slug, 'must use exactly one OpenAI batch node');
     if (!serialized.includes('FetchCat Delivery Ledger')) fail(slug, 'does not reference the shared delivery ledger');
+    if (!workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.formTrigger' && /Setup Form$/.test(entry.name))) {
+      fail(slug, 'does not provide a nontechnical setup form');
+    }
+    if (!fs.existsSync(path.join(dir, 'assets/setup-form.png'))) fail(slug, 'missing publication asset assets/setup-form.png');
+  }
+  if (slug === 'youtube-research-brief-to-notion') {
+    if (names.has('Manual QA Trigger') || names.has('Manual QA Input')) fail(slug, 'contains a QA-only public execution path');
+    if (!fs.existsSync(path.join(dir, 'assets/form-preview.png'))) fail(slug, 'missing publication asset assets/form-preview.png');
   }
 
   if (metadata.slug !== slug) fail(slug, 'metadata slug does not match directory');
