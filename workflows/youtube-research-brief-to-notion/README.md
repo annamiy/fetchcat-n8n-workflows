@@ -36,10 +36,13 @@ flowchart LR
 
 - The Actor receives one URL and `maxVideos: 1`.
 - Missing or unavailable captions stop the workflow before OpenAI and Notion.
-- Transcript input is capped at 60,000 characters before AI processing.
+- Timestamped caption segments are preserved as `[mm:ss]` transcript lines and
+  capped at 60,000 characters before AI processing.
 - Exact video and research-goal reruns are deduplicated before OpenAI and Notion.
-- Output must contain `summary`, `keyIdeas`, `actionItems`, and validated
-  `timestampedMoments`.
+- Output must contain `summary`, `keyIdeas`, `actionItems`, and at least three
+  `timestampedMoments` copied from timestamps present in the transcript.
+- Notion renders Research goal, Summary, Key ideas, Action items, and
+  Timestamped moments as real headings with paragraph and list blocks.
 - Notion writes only to the selected database. The returned page URL must use
   HTTPS or the workflow fails.
 

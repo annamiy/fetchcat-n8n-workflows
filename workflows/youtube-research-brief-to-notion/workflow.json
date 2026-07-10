@@ -120,7 +120,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all();\nif (rows.length !== 1) throw new Error('Expected one transcript result, received ' + rows.length + '.');\nconst data = rows[0].json;\nif (data.captionsAvailable === false || data.error) throw new Error('Captions are unavailable: ' + (data.error || 'no captions found'));\nconst transcript = String(data.transcriptText || '').trim();\nif (transcript.length < 20) throw new Error('Captions are unavailable or empty for this video.');\nconst researchGoal = $('Validate Form Input').first().json.researchGoal;\nreturn [{ json: {\n  videoId: String(data.videoId || ''),\n  videoUrl: String(data.videoUrl || $('Validate Form Input').first().json.youtubeUrl),\n  title: String(data.title || 'YouTube Research Brief'),\n  channelName: String(data.channelName || ''),\n  language: String(data.language || $('Validate Form Input').first().json.language),\n  duration: data.duration || null,\n  researchGoal,\n  dedupeKey: String(data.videoId || $('Validate Form Input').first().json.youtubeUrl) + '|' + researchGoal.trim().toLowerCase(),\n  transcript: transcript.slice(0, 60000),\n  transcriptTruncated: transcript.length > 60000\n} }];"
+        "jsCode": "const rows = $input.all();\nif (rows.length !== 1) throw new Error('Expected one transcript result, received ' + rows.length + '.');\nconst data = rows[0].json;\nif (data.captionsAvailable === false || data.error) throw new Error('Captions are unavailable: ' + (data.error || 'no captions found'));\nconst transcript = String(data.transcriptText || '').trim();\nif (transcript.length < 20) throw new Error('Captions are unavailable or empty for this video.');\nconst segments = Array.isArray(data.segments) ? data.segments.filter((segment) => Number.isFinite(Number(segment.start)) && String(segment.text || '').trim()) : [];\nif (segments.length < 3) throw new Error('Timestamped caption segments are unavailable for this video.');\nconst formatTimestamp = (seconds) => {\n  const total = Math.max(0, Math.floor(Number(seconds)));\n  const hours = Math.floor(total / 3600);\n  const minutes = Math.floor((total % 3600) / 60);\n  const remaining = total % 60;\n  return (hours ? String(hours).padStart(2, '0') + ':' : '') + String(minutes).padStart(2, '0') + ':' + String(remaining).padStart(2, '0');\n};\nconst timestampedTranscript = segments.map((segment) => '[' + formatTimestamp(segment.start) + '] ' + String(segment.text).trim()).join('\\n');\nconst researchGoal = $('Validate Form Input').first().json.researchGoal;\nreturn [{ json: {\n  videoId: String(data.videoId || ''),\n  videoUrl: String(data.videoUrl || $('Validate Form Input').first().json.youtubeUrl),\n  title: String(data.title || 'YouTube Research Brief'),\n  channelName: String(data.channelName || ''),\n  language: String(data.language || $('Validate Form Input').first().json.language),\n  duration: data.duration || null,\n  researchGoal,\n  dedupeKey: String(data.videoId || $('Validate Form Input').first().json.youtubeUrl) + '|' + researchGoal.trim().toLowerCase(),\n  transcript: timestampedTranscript.slice(0, 60000),\n  transcriptTruncated: timestampedTranscript.length > 60000\n} }];"
       },
       "id": "20000000-0000-0000-4000-8000-000000000006",
       "name": "Validate and Cap Transcript",
@@ -171,7 +171,7 @@
         "simplify": true,
         "builtInTools": {},
         "options": {
-          "instructions": "Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.",
+          "instructions": "Create a concise research brief grounded only in the timestamped transcript. Return at least three useful timestamped moments and copy each timestamp exactly from a transcript line. Return the strict schema.",
           "maxTokens": 3000,
           "reasoning": {
             "reasoningOptions": {
@@ -185,8 +185,8 @@
               "type": "json_schema",
               "verbosity": "low",
               "name": "youtube_research_brief",
-              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"summary\",\"keyIdeas\",\"actionItems\",\"timestampedMoments\"],\"properties\":{\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":4000},\"keyIdeas\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"actionItems\":{\"type\":\"array\",\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}},\"timestampedMoments\":{\"type\":\"array\",\"maxItems\":10,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"timestamp\",\"title\",\"insight\"],\"properties\":{\"timestamp\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":20},\"title\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":200},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}}}}",
-              "description": "Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"summary\",\"keyIdeas\",\"actionItems\",\"timestampedMoments\"],\"properties\":{\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":1800},\"keyIdeas\":{\"type\":\"array\",\"minItems\":5,\"maxItems\":5,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":300}},\"actionItems\":{\"type\":\"array\",\"minItems\":5,\"maxItems\":5,\"items\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":300}},\"timestampedMoments\":{\"type\":\"array\",\"minItems\":5,\"maxItems\":5,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"timestamp\",\"title\",\"insight\"],\"properties\":{\"timestamp\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":20},\"title\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":200},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}}}}",
+              "description": "Create a concise research brief grounded only in the timestamped transcript. Return at least three useful timestamped moments and copy each timestamp exactly from a transcript line. Return the strict schema.",
               "strict": true
             }
           }
@@ -225,7 +225,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nconst notionChunks = [];\nfor (const paragraph of notionBody.split('\\n\\n')) {\n  let remaining = paragraph;\n  while (remaining.length > 1900) {\n    let splitAt = remaining.lastIndexOf('\\n', 1900);\n    if (splitAt < 1000) splitAt = remaining.lastIndexOf(' ', 1900);\n    if (splitAt < 1000) splitAt = 1900;\n    notionChunks.push(remaining.slice(0, splitAt).trim());\n    remaining = remaining.slice(splitAt).trim();\n  }\n  if (remaining) notionChunks.push(remaining);\n}\nif (notionChunks.length > 10) throw new Error('Formatted Notion brief requires too many blocks.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody, notionChunks } }];"
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments) || brief.timestampedMoments.length < 3) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n  const timestamp = moment.timestamp.trim().replace(/^\\[/, '').replace(/\\]$/, '');\n  if (!item.transcript.includes('[' + timestamp + ']')) throw new Error('OpenAI returned a timestamp that is not present in the transcript: ' + moment.timestamp);\n  moment.timestamp = timestamp;\n}\nconst splitText = (value) => {\n  const chunks = [];\n  let remaining = String(value || '').trim();\n  while (remaining.length > 1900) {\n    let splitAt = remaining.lastIndexOf(' ', 1900);\n    if (splitAt < 1000) splitAt = 1900;\n    chunks.push(remaining.slice(0, splitAt).trim());\n    remaining = remaining.slice(splitAt).trim();\n  }\n  if (remaining) chunks.push(remaining);\n  return chunks;\n};\nconst notionBlocks = [];\nconst heading = (text) => notionBlocks.push({ type: 'heading_2', richText: false, textContent: text });\nconst paragraphs = (text) => splitText(text).forEach((chunk) => notionBlocks.push({ type: 'paragraph', richText: false, textContent: chunk }));\nnotionBlocks.push({ type: 'paragraph', richText: false, textContent: 'Source: ' + item.videoUrl });\nheading('Research goal');\nparagraphs(item.researchGoal);\nheading('Summary');\nparagraphs(brief.summary);\nheading('Key ideas');\nbrief.keyIdeas.forEach((idea) => notionBlocks.push({ type: 'bulleted_list_item', richText: false, textContent: idea }));\nheading('Action items');\nif (brief.actionItems.length) brief.actionItems.forEach((action) => notionBlocks.push({ type: 'bulleted_list_item', richText: false, textContent: action }));\nelse paragraphs('No action items identified.');\nheading('Timestamped moments');\nbrief.timestampedMoments.slice(0, 5).forEach((moment) => notionBlocks.push({ type: 'bulleted_list_item', richText: false, textContent: moment.timestamp + ' - ' + moment.title + ': ' + moment.insight }));\nif (notionBlocks.length > 100) throw new Error('Formatted Notion brief requires too many blocks.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBlocks } }];"
       },
       "id": "20000000-0000-0000-4000-8000-000000000009",
       "name": "Validate and Format Brief",
@@ -256,52 +256,117 @@
             {
               "type": "paragraph",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[0] || '' }}"
+              "textContent": "={{ $json.notionBlocks[0].textContent }}"
+            },
+            {
+              "type": "heading_2",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[1].textContent }}"
             },
             {
               "type": "paragraph",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[1] || '' }}"
+              "textContent": "={{ $json.notionBlocks[2].textContent }}"
+            },
+            {
+              "type": "heading_2",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[3].textContent }}"
             },
             {
               "type": "paragraph",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[2] || '' }}"
+              "textContent": "={{ $json.notionBlocks[4].textContent }}"
             },
             {
-              "type": "paragraph",
+              "type": "heading_2",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[3] || '' }}"
+              "textContent": "={{ $json.notionBlocks[5].textContent }}"
             },
             {
-              "type": "paragraph",
+              "type": "bulleted_list_item",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[4] || '' }}"
+              "textContent": "={{ $json.notionBlocks[6].textContent }}"
             },
             {
-              "type": "paragraph",
+              "type": "bulleted_list_item",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[5] || '' }}"
+              "textContent": "={{ $json.notionBlocks[7].textContent }}"
             },
             {
-              "type": "paragraph",
+              "type": "bulleted_list_item",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[6] || '' }}"
+              "textContent": "={{ $json.notionBlocks[8].textContent }}"
             },
             {
-              "type": "paragraph",
+              "type": "bulleted_list_item",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[7] || '' }}"
+              "textContent": "={{ $json.notionBlocks[9].textContent }}"
             },
             {
-              "type": "paragraph",
+              "type": "bulleted_list_item",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[8] || '' }}"
+              "textContent": "={{ $json.notionBlocks[10].textContent }}"
             },
             {
-              "type": "paragraph",
+              "type": "heading_2",
               "richText": false,
-              "textContent": "={{ $json.notionChunks[9] || '' }}"
+              "textContent": "={{ $json.notionBlocks[11].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[12].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[13].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[14].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[15].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[16].textContent }}"
+            },
+            {
+              "type": "heading_2",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[17].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[18].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[19].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[20].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[21].textContent }}"
+            },
+            {
+              "type": "bulleted_list_item",
+              "richText": false,
+              "textContent": "={{ $json.notionBlocks[22].textContent }}"
             }
           ]
         },

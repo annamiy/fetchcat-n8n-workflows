@@ -324,12 +324,13 @@ const youtubeSchema = {
   additionalProperties: false,
   required: ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments'],
   properties: {
-    summary: { type: 'string', minLength: 1, maxLength: 4000 },
-    keyIdeas: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string', minLength: 1, maxLength: 500 } },
-    actionItems: { type: 'array', maxItems: 8, items: { type: 'string', minLength: 1, maxLength: 500 } },
+    summary: { type: 'string', minLength: 1, maxLength: 1800 },
+    keyIdeas: { type: 'array', minItems: 5, maxItems: 5, items: { type: 'string', minLength: 1, maxLength: 300 } },
+    actionItems: { type: 'array', minItems: 5, maxItems: 5, items: { type: 'string', minLength: 1, maxLength: 300 } },
     timestampedMoments: {
       type: 'array',
-      maxItems: 10,
+      minItems: 5,
+      maxItems: 5,
       items: {
         type: 'object',
         additionalProperties: false,
@@ -343,6 +344,15 @@ const youtubeSchema = {
     }
   }
 };
+
+const youtubeNotionBlockTypes = [
+  'paragraph',
+  'heading_2', 'paragraph',
+  'heading_2', 'paragraph',
+  'heading_2', ...Array(5).fill('bulleted_list_item'),
+  'heading_2', ...Array(5).fill('bulleted_list_item'),
+  'heading_2', ...Array(5).fill('bulleted_list_item')
+];
 
 const youtubeNodes = [
   node('20000000-', 2, 'Manual QA Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1160, 120], {}),
@@ -415,6 +425,16 @@ const data = rows[0].json;
 if (data.captionsAvailable === false || data.error) throw new Error('Captions are unavailable: ' + (data.error || 'no captions found'));
 const transcript = String(data.transcriptText || '').trim();
 if (transcript.length < 20) throw new Error('Captions are unavailable or empty for this video.');
+const segments = Array.isArray(data.segments) ? data.segments.filter((segment) => Number.isFinite(Number(segment.start)) && String(segment.text || '').trim()) : [];
+if (segments.length < 3) throw new Error('Timestamped caption segments are unavailable for this video.');
+const formatTimestamp = (seconds) => {
+  const total = Math.max(0, Math.floor(Number(seconds)));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remaining = total % 60;
+  return (hours ? String(hours).padStart(2, '0') + ':' : '') + String(minutes).padStart(2, '0') + ':' + String(remaining).padStart(2, '0');
+};
+const timestampedTranscript = segments.map((segment) => '[' + formatTimestamp(segment.start) + '] ' + String(segment.text).trim()).join('\n');
 const researchGoal = $('Validate Form Input').first().json.researchGoal;
 return [{ json: {
   videoId: String(data.videoId || ''),
@@ -425,8 +445,8 @@ return [{ json: {
   duration: data.duration || null,
   researchGoal,
   dedupeKey: String(data.videoId || $('Validate Form Input').first().json.youtubeUrl) + '|' + researchGoal.trim().toLowerCase(),
-  transcript: transcript.slice(0, 60000),
-  transcriptTruncated: transcript.length > 60000
+  transcript: timestampedTranscript.slice(0, 60000),
+  transcriptTruncated: timestampedTranscript.length > 60000
 } }];`
   }),
   node('20000000-', 15, 'Remove Duplicate Requests', 'n8n-nodes-base.removeDuplicates', 2, [40, 0], dedupeParameters('={{ $json.dedupeKey }}')),
@@ -434,12 +454,12 @@ return [{ json: {
     '=Research goal:\n{{ $json.researchGoal }}\n\nVideo title: {{ $json.title }}\nChannel: {{ $json.channelName }}\n\nTranscript:\n{{ $json.transcript }}',
     'youtube_research_brief',
     youtubeSchema,
-    'Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.',
+    'Create a concise research brief grounded only in the timestamped transcript. Return at least three useful timestamped moments and copy each timestamp exactly from a transcript line. Return the strict schema.',
     3000
   )),
   node('20000000-', 8, 'Merge Transcript and Brief', 'n8n-nodes-base.merge', 3.2, [520, 0], mergeParameters()),
   node('20000000-', 9, 'Validate and Format Brief', 'n8n-nodes-base.code', 2, [760, 0], {
-    jsCode: `${parseStructured}\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nconst notionChunks = [];\nfor (const paragraph of notionBody.split('\\n\\n')) {\n  let remaining = paragraph;\n  while (remaining.length > 1900) {\n    let splitAt = remaining.lastIndexOf('\\n', 1900);\n    if (splitAt < 1000) splitAt = remaining.lastIndexOf(' ', 1900);\n    if (splitAt < 1000) splitAt = 1900;\n    notionChunks.push(remaining.slice(0, splitAt).trim());\n    remaining = remaining.slice(splitAt).trim();\n  }\n  if (remaining) notionChunks.push(remaining);\n}\nif (notionChunks.length > 10) throw new Error('Formatted Notion brief requires too many blocks.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody, notionChunks } }];`
+    jsCode: `${parseStructured}\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments) || brief.timestampedMoments.length < 3) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n  const timestamp = moment.timestamp.trim().replace(/^\\[/, '').replace(/\\]$/, '');\n  if (!item.transcript.includes('[' + timestamp + ']')) throw new Error('OpenAI returned a timestamp that is not present in the transcript: ' + moment.timestamp);\n  moment.timestamp = timestamp;\n}\nconst splitText = (value) => {\n  const chunks = [];\n  let remaining = String(value || '').trim();\n  while (remaining.length > 1900) {\n    let splitAt = remaining.lastIndexOf(' ', 1900);\n    if (splitAt < 1000) splitAt = 1900;\n    chunks.push(remaining.slice(0, splitAt).trim());\n    remaining = remaining.slice(splitAt).trim();\n  }\n  if (remaining) chunks.push(remaining);\n  return chunks;\n};\nconst notionBlocks = [];\nconst heading = (text) => notionBlocks.push({ type: 'heading_2', richText: false, textContent: text });\nconst paragraphs = (text) => splitText(text).forEach((chunk) => notionBlocks.push({ type: 'paragraph', richText: false, textContent: chunk }));\nnotionBlocks.push({ type: 'paragraph', richText: false, textContent: 'Source: ' + item.videoUrl });\nheading('Research goal');\nparagraphs(item.researchGoal);\nheading('Summary');\nparagraphs(brief.summary);\nheading('Key ideas');\nbrief.keyIdeas.forEach((idea) => notionBlocks.push({ type: 'bulleted_list_item', richText: false, textContent: idea }));\nheading('Action items');\nif (brief.actionItems.length) brief.actionItems.forEach((action) => notionBlocks.push({ type: 'bulleted_list_item', richText: false, textContent: action }));\nelse paragraphs('No action items identified.');\nheading('Timestamped moments');\nbrief.timestampedMoments.slice(0, 5).forEach((moment) => notionBlocks.push({ type: 'bulleted_list_item', richText: false, textContent: moment.timestamp + ' - ' + moment.title + ': ' + moment.insight }));\nif (notionBlocks.length > 100) throw new Error('Formatted Notion brief requires too many blocks.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBlocks } }];`
   }),
   node('20000000-', 10, 'Create Notion Brief', 'n8n-nodes-base.notion', 2.2, [1000, 0], {
     authentication: 'apiKey',
@@ -450,10 +470,10 @@ return [{ json: {
     simple: true,
     propertiesUi: { propertyValues: [] },
     blockUi: {
-      blockValues: Array.from({ length: 10 }, (_, index) => ({
-        type: 'paragraph',
+      blockValues: youtubeNotionBlockTypes.map((type, index) => ({
+        type,
         richText: false,
-        textContent: `={{ $json.notionChunks[${index}] || '' }}`
+        textContent: `={{ $json.notionBlocks[${index}].textContent }}`
       }))
     },
     options: {}
