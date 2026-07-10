@@ -13,8 +13,9 @@ inactive on import.
 1. Install `@apify/n8n-nodes-apify@0.6.10` and import `workflow.json`.
 2. Add Apify and OpenAI credentials to the two processing nodes.
 3. Create a spreadsheet named `FetchCat n8n QA - LinkedIn Jobs` with a `Jobs`
-   tab and these headers: `jobId`, `title`, `company`, `location`, `posted`,
-   `url`, `score`, `reason`, `scrapedAt`.
+   tab and these headers: `title`, `company`, `location`, `postedDate`,
+   `jobLink`, `score`, `reason`, `collectedAt`, `linkedInJobId`. Format
+   `postedDate` as Date and `collectedAt` as Date time in Google Sheets.
 4. Add Google Sheets credentials and select that spreadsheet and tab in
    `Append Qualified Jobs`.
 5. Create or select the `fetchcat-n8n-qa` Slack channel, connect Slack, and
@@ -39,8 +40,14 @@ flowchart LR
 
 - Actor input is fixed to `past24h`, newest first, and at most 10 jobs.
 - Descriptions are capped before they reach OpenAI.
+- Known LinkedIn navigation labels are discarded before scoring.
 - `Remove Duplicates` retains up to 10,000 `jobId` values across executions.
 - Invalid AI items are discarded before Google Sheets or Slack.
+- Posted-relative text is converted to a sortable Sheets date using the Actor's
+  collection timestamp. Collection time is stored as a true date-time value.
+- `jobLink` displays a compact `Open job` hyperlink. `linkedInJobId` is the
+  stable LinkedIn job ID used for cross-execution deduplication.
+- Fit reasons are always returned in English, even for non-English listings.
 - A duplicate, empty, or below-threshold run creates no rows and sends no Slack
   message.
 

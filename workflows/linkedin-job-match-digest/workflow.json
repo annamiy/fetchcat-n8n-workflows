@@ -87,7 +87,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const normalized = [];\nfor (const item of $input.all().slice(0, 10)) {\n  const job = item.json;\n  if (!job.jobId || !job.title || !job.jobUrl) continue;\n  normalized.push({ json: {\n    jobId: String(job.jobId),\n    title: String(job.title),\n    companyName: String(job.companyName || 'Unknown company'),\n    location: String(job.location || 'Not specified'),\n    postedAtText: String(job.postedAtText || ''),\n    jobUrl: String(job.jobUrl),\n    description: String(job.description || '').slice(0, 12000),\n    employmentType: String(job.employmentType || ''),\n    seniorityLevel: String(job.seniorityLevel || ''),\n    applicantsText: String(job.applicantsText || '')\n  } });\n}\nreturn normalized;"
+        "jsCode": "const normalized = [];\nfor (const item of $input.all().slice(0, 10)) {\n  const job = item.json;\n  const title = String(job.title || '').trim();\n  const invalidTitles = new Set(['delete account', 'sign in', 'join now', 'linkedin']);\n  if (!job.jobId || !title || !job.jobUrl || invalidTitles.has(title.toLowerCase())) continue;\n  normalized.push({ json: {\n    jobId: String(job.jobId),\n    title,\n    companyName: String(job.companyName || 'Unknown company'),\n    location: String(job.location || 'Not specified'),\n    postedAtText: String(job.postedAtText || ''),\n    scrapedAt: String(job.scrapedAt || ''),\n    jobUrl: String(job.jobUrl),\n    description: String(job.description || '').slice(0, 12000),\n    employmentType: String(job.employmentType || ''),\n    seniorityLevel: String(job.seniorityLevel || ''),\n    applicantsText: String(job.applicantsText || '')\n  } });\n}\nreturn normalized;"
       },
       "id": "10000000-0000-0000-4000-8000-000000000006",
       "name": "Normalize and Cap Jobs",
@@ -138,7 +138,7 @@
         "simplify": true,
         "builtInTools": {},
         "options": {
-          "instructions": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason. Return the strict schema.",
+          "instructions": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason written in English, regardless of the job description language. Return the strict schema.",
           "maxTokens": 1200,
           "reasoning": {
             "reasoningOptions": {
@@ -153,7 +153,7 @@
               "verbosity": "low",
               "name": "linkedin_job_fit",
               "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"qualified\",\"score\",\"reason\"],\"properties\":{\"qualified\":{\"type\":\"boolean\"},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}",
-              "description": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason. Return the strict schema.",
+              "description": "Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason written in English, regardless of the job description language. Return the strict schema.",
               "strict": true
             }
           }
@@ -192,7 +192,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst minimumScore = Number($(\"Configuration\").first().json.minimumScore);\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  output.push({ json: {\n    jobId: item.json.jobId,\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    posted: item.json.postedAtText,\n    url: item.json.jobUrl,\n    score: score.score,\n    reason: score.reason,\n    scrapedAt: new Date().toISOString()\n  } });\n}\nreturn output;"
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst minimumScore = Number($(\"Configuration\").first().json.minimumScore);\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedDate = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const amount = Number(match[1]);\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - amount * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  date.setUTCHours(0, 0, 0, 0);\n  return toSheetsSerial(date);\n};\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  const collected = new Date(item.json.scrapedAt || Date.now());\n  const url = String(item.json.jobUrl);\n  const formulaUrl = url.replace(/\"/g, '\"\"');\n  output.push({ json: {\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    postedDate: parsePostedDate(item.json.postedAtText, collected),\n    postedRelative: item.json.postedAtText,\n    jobLink: '=HYPERLINK(\"' + formulaUrl + '\",\"Open job\")',\n    url,\n    score: score.score,\n    reason: score.reason,\n    collectedAt: toSheetsSerial(collected),\n    linkedInJobId: item.json.jobId\n  } });\n}\nreturn output;"
       },
       "id": "10000000-0000-0000-4000-8000-000000000010",
       "name": "Validate and Filter Scores",
@@ -221,26 +221,17 @@
           "mappingMode": "defineBelow",
           "matchingColumns": [],
           "value": {
-            "jobId": "={{ $json.jobId }}",
             "title": "={{ $json.title }}",
             "company": "={{ $json.company }}",
             "location": "={{ $json.location }}",
-            "posted": "={{ $json.posted }}",
-            "url": "={{ $json.url }}",
+            "postedDate": "={{ $json.postedDate }}",
+            "jobLink": "={{ $json.jobLink }}",
             "score": "={{ $json.score }}",
             "reason": "={{ $json.reason }}",
-            "scrapedAt": "={{ $json.scrapedAt }}"
+            "collectedAt": "={{ $json.collectedAt }}",
+            "linkedInJobId": "={{ $json.linkedInJobId }}"
           },
           "schema": [
-            {
-              "id": "jobId",
-              "displayName": "jobId",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
             {
               "id": "title",
               "displayName": "title",
@@ -269,17 +260,17 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "posted",
-              "displayName": "posted",
+              "id": "postedDate",
+              "displayName": "postedDate",
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "string",
+              "type": "number",
               "canBeUsedToMatch": true
             },
             {
-              "id": "url",
-              "displayName": "url",
+              "id": "jobLink",
+              "displayName": "jobLink",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -305,8 +296,17 @@
               "canBeUsedToMatch": true
             },
             {
-              "id": "scrapedAt",
-              "displayName": "scrapedAt",
+              "id": "collectedAt",
+              "displayName": "collectedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "linkedInJobId",
+              "displayName": "linkedInJobId",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -332,7 +332,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const jobs = $input.all().map((item) => item.json).sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | ' + job.reason + '\\n' + job.url);\nreturn [{ json: { slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + lines.join('\\n\\n') } }];"
+        "jsCode": "const jobs = $input.all().map((item) => item.json).sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | Posted ' + job.postedRelative + '\\n' + job.reason + '\\n' + job.url);\nreturn [{ json: { slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + lines.join('\\n\\n') } }];"
       },
       "id": "10000000-0000-0000-4000-8000-000000000012",
       "name": "Build Slack Digest",

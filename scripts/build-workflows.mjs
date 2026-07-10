@@ -217,13 +217,16 @@ return [{ json: {
     jsCode: String.raw`const normalized = [];
 for (const item of $input.all().slice(0, 10)) {
   const job = item.json;
-  if (!job.jobId || !job.title || !job.jobUrl) continue;
+  const title = String(job.title || '').trim();
+  const invalidTitles = new Set(['delete account', 'sign in', 'join now', 'linkedin']);
+  if (!job.jobId || !title || !job.jobUrl || invalidTitles.has(title.toLowerCase())) continue;
   normalized.push({ json: {
     jobId: String(job.jobId),
-    title: String(job.title),
+    title,
     companyName: String(job.companyName || 'Unknown company'),
     location: String(job.location || 'Not specified'),
     postedAtText: String(job.postedAtText || ''),
+    scrapedAt: String(job.scrapedAt || ''),
     jobUrl: String(job.jobUrl),
     description: String(job.description || '').slice(0, 12000),
     employmentType: String(job.employmentType || ''),
@@ -238,12 +241,12 @@ return normalized;`
     '=Candidate profile:\n{{ $("Configuration").first().json.candidateProfile }}\n\nMinimum score for qualification: {{ $("Configuration").first().json.minimumScore }}\n\nEvaluate this job:\n{{ JSON.stringify($json) }}',
     'linkedin_job_fit',
     linkedInSchema,
-    'Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason. Return the strict schema.',
+    'Score the job against the candidate profile. Set qualified to true exactly when score meets or exceeds the supplied minimum and the fit is credible. Always provide a non-empty reason written in English, regardless of the job description language. Return the strict schema.',
     1200
   )),
   node('10000000-', 9, 'Merge Job and Score', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
   node('10000000-', 10, 'Validate and Filter Scores', 'n8n-nodes-base.code', 2, [640, 0], {
-    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  output.push({ json: {\n    jobId: item.json.jobId,\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    posted: item.json.postedAtText,\n    url: item.json.jobUrl,\n    score: score.score,\n    reason: score.reason,\n    scrapedAt: new Date().toISOString()\n  } });\n}\nreturn output;`
+    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedDate = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const amount = Number(match[1]);\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - amount * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  date.setUTCHours(0, 0, 0, 0);\n  return toSheetsSerial(date);\n};\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  const collected = new Date(item.json.scrapedAt || Date.now());\n  const url = String(item.json.jobUrl);\n  const formulaUrl = url.replace(/"/g, '""');\n  output.push({ json: {\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    postedDate: parsePostedDate(item.json.postedAtText, collected),\n    postedRelative: item.json.postedAtText,\n    jobLink: '=HYPERLINK("' + formulaUrl + '","Open job")',\n    url,\n    score: score.score,\n    reason: score.reason,\n    collectedAt: toSheetsSerial(collected),\n    linkedInJobId: item.json.jobId\n  } });\n}\nreturn output;`
   }),
   node('10000000-', 11, 'Append Qualified Jobs', 'n8n-nodes-base.googleSheets', 4.7, [880, 0], {
     operation: 'append',
@@ -253,23 +256,23 @@ return normalized;`
       mappingMode: 'defineBelow',
       matchingColumns: [],
       value: {
-        jobId: '={{ $json.jobId }}',
         title: '={{ $json.title }}',
         company: '={{ $json.company }}',
         location: '={{ $json.location }}',
-        posted: '={{ $json.posted }}',
-        url: '={{ $json.url }}',
+        postedDate: '={{ $json.postedDate }}',
+        jobLink: '={{ $json.jobLink }}',
         score: '={{ $json.score }}',
         reason: '={{ $json.reason }}',
-        scrapedAt: '={{ $json.scrapedAt }}'
+        collectedAt: '={{ $json.collectedAt }}',
+        linkedInJobId: '={{ $json.linkedInJobId }}'
       },
-      schema: ['jobId', 'title', 'company', 'location', 'posted', 'url', 'score', 'reason', 'scrapedAt'].map((field) => ({
+      schema: ['title', 'company', 'location', 'postedDate', 'jobLink', 'score', 'reason', 'collectedAt', 'linkedInJobId'].map((field) => ({
         id: field,
         displayName: field,
         required: false,
         defaultMatch: false,
         display: true,
-        type: field === 'score' ? 'number' : 'string',
+        type: ['postedDate', 'score', 'collectedAt'].includes(field) ? 'number' : 'string',
         canBeUsedToMatch: true
       })),
       attemptToConvertTypes: false,
@@ -280,7 +283,7 @@ return normalized;`
   node('10000000-', 12, 'Build Slack Digest', 'n8n-nodes-base.code', 2, [1120, 0], {
     jsCode: String.raw`const jobs = $input.all().map((item) => item.json).sort((a, b) => b.score - a.score).slice(0, 5);
 if (jobs.length === 0) return [];
-const lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\n' + job.location + ' | ' + job.reason + '\n' + job.url);
+const lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\n' + job.location + ' | Posted ' + job.postedRelative + '\n' + job.reason + '\n' + job.url);
 return [{ json: { slackMessage: '*LinkedIn Job Match Digest*\n\n' + lines.join('\n\n') } }];`
   }),
   node('10000000-', 13, 'Send Slack Digest', 'n8n-nodes-base.slack', 2.5, [1360, 0], {
