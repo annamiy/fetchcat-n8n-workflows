@@ -246,7 +246,7 @@ return normalized;`
   )),
   node('10000000-', 9, 'Merge Job and Score', 'n8n-nodes-base.merge', 3.2, [400, 0], mergeParameters()),
   node('10000000-', 10, 'Validate and Filter Scores', 'n8n-nodes-base.code', 2, [640, 0], {
-    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedDate = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const amount = Number(match[1]);\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - amount * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  date.setUTCHours(0, 0, 0, 0);\n  return toSheetsSerial(date);\n};\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  const collected = new Date(item.json.scrapedAt || Date.now());\n  const url = String(item.json.jobUrl);\n  const formulaUrl = url.replace(/"/g, '""');\n  output.push({ json: {\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    postedDate: parsePostedDate(item.json.postedAtText, collected),\n    postedRelative: item.json.postedAtText,\n    jobLink: '=HYPERLINK("' + formulaUrl + '","Open job")',\n    url,\n    score: score.score,\n    reason: score.reason,\n    collectedAt: toSheetsSerial(collected),\n    linkedInJobId: item.json.jobId\n  } });\n}\nreturn output;`
+    jsCode: `${parseStructured}\nconst minimumScore = Number($("Configuration").first().json.minimumScore);\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedAt = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const amount = Number(match[1]);\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - amount * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  return toSheetsSerial(date);\n};\nconst output = [];\nfor (const item of $input.all()) {\n  const score = parseStructured(item.json, ['qualified', 'score', 'reason']);\n  if (!score || typeof score.qualified !== 'boolean' || !Number.isInteger(score.score) || score.score < 0 || score.score > 100 || typeof score.reason !== 'string' || !score.reason.trim()) continue;\n  if (!score.qualified || score.score < minimumScore) continue;\n  const collected = new Date(item.json.scrapedAt || Date.now());\n  const url = String(item.json.jobUrl);\n  const formulaUrl = url.replace(/"/g, '""');\n  output.push({ json: {\n    title: item.json.title,\n    company: item.json.companyName,\n    location: item.json.location,\n    postedAt: parsePostedAt(item.json.postedAtText, collected),\n    postedRelative: item.json.postedAtText,\n    jobLink: '=HYPERLINK("' + formulaUrl + '","Open job")',\n    url,\n    score: score.score,\n    reason: score.reason,\n    collectedAt: toSheetsSerial(collected),\n    linkedInJobId: item.json.jobId\n  } });\n}\nreturn output;`
   }),
   node('10000000-', 11, 'Append Qualified Jobs', 'n8n-nodes-base.googleSheets', 4.7, [880, 0], {
     operation: 'append',
@@ -259,20 +259,20 @@ return normalized;`
         title: '={{ $json.title }}',
         company: '={{ $json.company }}',
         location: '={{ $json.location }}',
-        postedDate: '={{ $json.postedDate }}',
+        postedAt: '={{ $json.postedAt }}',
         jobLink: '={{ $json.jobLink }}',
         score: '={{ $json.score }}',
         reason: '={{ $json.reason }}',
         collectedAt: '={{ $json.collectedAt }}',
         linkedInJobId: '={{ $json.linkedInJobId }}'
       },
-      schema: ['title', 'company', 'location', 'postedDate', 'jobLink', 'score', 'reason', 'collectedAt', 'linkedInJobId'].map((field) => ({
+      schema: ['title', 'company', 'location', 'postedAt', 'jobLink', 'score', 'reason', 'collectedAt', 'linkedInJobId'].map((field) => ({
         id: field,
         displayName: field,
         required: false,
         defaultMatch: false,
         display: true,
-        type: ['postedDate', 'score', 'collectedAt'].includes(field) ? 'number' : 'string',
+        type: ['postedAt', 'score', 'collectedAt'].includes(field) ? 'number' : 'string',
         canBeUsedToMatch: true
       })),
       attemptToConvertTypes: false,
