@@ -33,13 +33,21 @@ export function sanitizeWorkflow(workflow) {
   const topLevelKeys = [
     'id',
     'versionId',
+    'versionCounter',
+    'versionMetadata',
     'shared',
     'tags',
     'triggerCount',
     'createdAt',
     'updatedAt',
     'activeVersionId',
-    'activeVersion'
+    'activeVersion',
+    'description',
+    'isArchived',
+    'meta',
+    'nodeGroups',
+    'sourceWorkflowId',
+    'staticData'
   ];
   for (const key of topLevelKeys) delete copy[key];
 

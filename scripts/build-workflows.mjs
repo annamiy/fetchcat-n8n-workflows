@@ -425,22 +425,24 @@ return [{ json: {
   language: String(data.language || $('Validate Form Input').first().json.language),
   duration: data.duration || null,
   researchGoal,
+  dedupeKey: String(data.videoId || $('Validate Form Input').first().json.youtubeUrl) + '|' + researchGoal.trim().toLowerCase(),
   transcript: transcript.slice(0, 60000),
   transcriptTruncated: transcript.length > 60000
 } }];`
   }),
-  node('20000000-', 7, 'Generate Research Brief', '@n8n/n8n-nodes-langchain.openAi', 2.3, [40, 120], openAiParameters(
+  node('20000000-', 15, 'Remove Duplicate Requests', 'n8n-nodes-base.removeDuplicates', 2, [40, 0], dedupeParameters('={{ $json.dedupeKey }}')),
+  node('20000000-', 7, 'Generate Research Brief', '@n8n/n8n-nodes-langchain.openAi', 2.3, [280, 120], openAiParameters(
     '=Research goal:\n{{ $json.researchGoal }}\n\nVideo title: {{ $json.title }}\nChannel: {{ $json.channelName }}\n\nTranscript:\n{{ $json.transcript }}',
     'youtube_research_brief',
     youtubeSchema,
     'Create a concise research brief grounded only in the transcript. Use timestamps only when supported by the transcript. Return the strict schema.',
     1800
   )),
-  node('20000000-', 8, 'Merge Transcript and Brief', 'n8n-nodes-base.merge', 3.2, [280, 0], mergeParameters()),
-  node('20000000-', 9, 'Validate and Format Brief', 'n8n-nodes-base.code', 2, [520, 0], {
+  node('20000000-', 8, 'Merge Transcript and Brief', 'n8n-nodes-base.merge', 3.2, [520, 0], mergeParameters()),
+  node('20000000-', 9, 'Validate and Format Brief', 'n8n-nodes-base.code', 2, [760, 0], {
     jsCode: `${parseStructured}\nconst item = $input.first().json;\nconst brief = parseStructured(item, ['summary', 'keyIdeas', 'actionItems', 'timestampedMoments']);\nif (!brief || typeof brief.summary !== 'string' || !Array.isArray(brief.keyIdeas) || !Array.isArray(brief.actionItems) || !Array.isArray(brief.timestampedMoments)) {\n  throw new Error('OpenAI returned an invalid research brief.');\n}\nfor (const moment of brief.timestampedMoments) {\n  if (!moment || typeof moment.timestamp !== 'string' || typeof moment.title !== 'string' || typeof moment.insight !== 'string') throw new Error('OpenAI returned an invalid timestamped moment.');\n}\nconst section = (heading, values) => values.length ? heading + '\\n' + values.map((value) => '- ' + value).join('\\n') : heading + '\\n- None';\nconst moments = brief.timestampedMoments.map((moment) => moment.timestamp + ' - ' + moment.title + ': ' + moment.insight);\nconst notionBody = [\n  item.videoUrl,\n  'Research goal: ' + item.researchGoal,\n  'Summary\\n' + brief.summary,\n  section('Key ideas', brief.keyIdeas),\n  section('Action items', brief.actionItems),\n  section('Timestamped moments', moments),\n  item.transcriptTruncated ? 'Note: Transcript input was capped at 60,000 characters.' : ''\n].filter(Boolean).join('\\n\\n');\nif (notionBody.length > 19000) throw new Error('Formatted Notion brief is too long.');\nreturn [{ json: { title: item.title, videoUrl: item.videoUrl, notionBody } }];`
   }),
-  node('20000000-', 10, 'Create Notion Brief', 'n8n-nodes-base.notion', 2.2, [760, 0], {
+  node('20000000-', 10, 'Create Notion Brief', 'n8n-nodes-base.notion', 2.2, [1000, 0], {
     authentication: 'apiKey',
     resource: 'databasePage',
     operation: 'create',
@@ -455,14 +457,14 @@ return [{ json: {
     },
     options: {}
   }),
-  node('20000000-', 11, 'Return Notion URL', 'n8n-nodes-base.code', 2, [1000, 0], {
+  node('20000000-', 11, 'Return Notion URL', 'n8n-nodes-base.code', 2, [1240, 0], {
     jsCode: String.raw`const page = $input.first().json;
 if (!page.url || !String(page.url).startsWith('https://')) throw new Error('Notion did not return a page URL.');
 return [{ json: { url: page.url, formSubmittedText: 'Research brief created: ' + page.url } }];`
   }),
   sticky('20000000-', 12, 'Form Setup Notes', [-1200, -440], 760, 250, '## YouTube Research Brief\n\nConnect Apify, OpenAI, and Notion credentials, then select the `FetchCat n8n QA Briefs` database. The form accepts one public HTTPS YouTube URL, language code, and research goal. Keep the workflow unpublished during QA.'),
   sticky('20000000-', 13, 'QA Notes', [-420, -440], 900, 250, '## Cost and failure controls\n\nThe Actor receives exactly one video. Empty or unavailable captions stop the workflow before OpenAI and Notion. Transcript input is capped at 60,000 characters. Confirm the captioned public video in Manual QA Input before CLI execution.'),
-  sticky('20000000-', 14, 'Output Notes', [500, -440], 720, 250, '## Notion output\n\nOpenAI must satisfy a strict JSON schema. The resulting page contains a summary, key ideas, action items, and timestamped moments. Form submissions redirect to the created Notion page.')
+  sticky('20000000-', 14, 'Output Notes', [500, -440], 960, 250, '## Notion output\n\nExact video and research-goal reruns are removed before OpenAI and Notion. OpenAI must satisfy a strict JSON schema. The resulting page contains a summary, key ideas, action items, and timestamped moments. Form submissions redirect to the created Notion page.')
 ];
 
 const youtubeWorkflow = workflow(
@@ -474,8 +476,9 @@ const youtubeWorkflow = workflow(
     ['Manual QA Input', 'Validate Form Input'],
     ['Validate Form Input', 'Fetch YouTube Transcript'],
     ['Fetch YouTube Transcript', 'Validate and Cap Transcript'],
-    ['Validate and Cap Transcript', 'Merge Transcript and Brief', 0],
-    ['Validate and Cap Transcript', 'Generate Research Brief'],
+    ['Validate and Cap Transcript', 'Remove Duplicate Requests'],
+    ['Remove Duplicate Requests', 'Merge Transcript and Brief', 0],
+    ['Remove Duplicate Requests', 'Generate Research Brief'],
     ['Generate Research Brief', 'Merge Transcript and Brief', 1],
     ['Merge Transcript and Brief', 'Validate and Format Brief'],
     ['Validate and Format Brief', 'Create Notion Brief'],

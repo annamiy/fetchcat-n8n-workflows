@@ -37,6 +37,7 @@ flowchart LR
 - The Actor receives one URL and `maxVideos: 1`.
 - Missing or unavailable captions stop the workflow before OpenAI and Notion.
 - Transcript input is capped at 60,000 characters before AI processing.
+- Exact video and research-goal reruns are deduplicated before OpenAI and Notion.
 - Output must contain `summary`, `keyIdeas`, `actionItems`, and validated
   `timestampedMoments`.
 - Notion writes only to the selected database. The returned page URL must use
@@ -44,11 +45,10 @@ flowchart LR
 
 ## QA
 
-Run one captioned video, one duplicate execution, and one unavailable-caption
-or invalid-input case. The duplicate may create a second brief because this is
-an on-demand research workflow; it must never create more than one page per
-execution. The negative case must create no Notion page and must not call
-OpenAI when captions are absent.
+Run one captioned video, one exact duplicate execution, and one
+unavailable-caption or invalid-input case. The duplicate must create no second
+page and must not call OpenAI. The negative case must create no Notion page and
+must not call OpenAI when captions are absent.
 
 After QA, export, sanitize, reimport, and execute the sanitized graph. Store
 execution IDs and private output evidence outside this repository.

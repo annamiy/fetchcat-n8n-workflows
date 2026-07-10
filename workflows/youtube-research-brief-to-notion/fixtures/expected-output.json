@@ -6,7 +6,7 @@
     "The AI result satisfies the strict summary, keyIdeas, actionItems, and timestampedMoments schema.",
     "Exactly one page is created in the selected Notion QA database.",
     "The final result contains the HTTPS URL returned by Notion.",
+    "An exact video and research-goal rerun creates no OpenAI request and no second Notion page.",
     "Unavailable captions create no OpenAI request and no Notion page."
   ]
 }
-

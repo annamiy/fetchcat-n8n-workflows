@@ -120,7 +120,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all();\nif (rows.length !== 1) throw new Error('Expected one transcript result, received ' + rows.length + '.');\nconst data = rows[0].json;\nif (data.captionsAvailable === false || data.error) throw new Error('Captions are unavailable: ' + (data.error || 'no captions found'));\nconst transcript = String(data.transcriptText || '').trim();\nif (transcript.length < 20) throw new Error('Captions are unavailable or empty for this video.');\nconst researchGoal = $('Validate Form Input').first().json.researchGoal;\nreturn [{ json: {\n  videoId: String(data.videoId || ''),\n  videoUrl: String(data.videoUrl || $('Validate Form Input').first().json.youtubeUrl),\n  title: String(data.title || 'YouTube Research Brief'),\n  channelName: String(data.channelName || ''),\n  language: String(data.language || $('Validate Form Input').first().json.language),\n  duration: data.duration || null,\n  researchGoal,\n  transcript: transcript.slice(0, 60000),\n  transcriptTruncated: transcript.length > 60000\n} }];"
+        "jsCode": "const rows = $input.all();\nif (rows.length !== 1) throw new Error('Expected one transcript result, received ' + rows.length + '.');\nconst data = rows[0].json;\nif (data.captionsAvailable === false || data.error) throw new Error('Captions are unavailable: ' + (data.error || 'no captions found'));\nconst transcript = String(data.transcriptText || '').trim();\nif (transcript.length < 20) throw new Error('Captions are unavailable or empty for this video.');\nconst researchGoal = $('Validate Form Input').first().json.researchGoal;\nreturn [{ json: {\n  videoId: String(data.videoId || ''),\n  videoUrl: String(data.videoUrl || $('Validate Form Input').first().json.youtubeUrl),\n  title: String(data.title || 'YouTube Research Brief'),\n  channelName: String(data.channelName || ''),\n  language: String(data.language || $('Validate Form Input').first().json.language),\n  duration: data.duration || null,\n  researchGoal,\n  dedupeKey: String(data.videoId || $('Validate Form Input').first().json.youtubeUrl) + '|' + researchGoal.trim().toLowerCase(),\n  transcript: transcript.slice(0, 60000),\n  transcriptTruncated: transcript.length > 60000\n} }];"
       },
       "id": "20000000-0000-0000-4000-8000-000000000006",
       "name": "Validate and Cap Transcript",
@@ -128,6 +128,25 @@
       "typeVersion": 2,
       "position": [
         -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "logic": "removeItemsWithAlreadySeenKeyValues",
+        "dedupeValue": "={{ $json.dedupeKey }}",
+        "options": {
+          "scope": "node",
+          "historySize": 10000
+        }
+      },
+      "id": "20000000-0000-0000-4000-8000-000000000015",
+      "name": "Remove Duplicate Requests",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        40,
         0
       ]
     },
@@ -182,7 +201,7 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
-        40,
+        280,
         120
       ]
     },
@@ -204,7 +223,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        280,
+        520,
         0
       ]
     },
@@ -217,7 +236,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        520,
+        760,
         0
       ]
     },
@@ -252,7 +271,7 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        760,
+        1000,
         0
       ]
     },
@@ -265,7 +284,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1000,
+        1240,
         0
       ]
     },
@@ -303,9 +322,9 @@
     },
     {
       "parameters": {
-        "width": 720,
+        "width": 960,
         "height": 250,
-        "content": "## Notion output\n\nOpenAI must satisfy a strict JSON schema. The resulting page contains a summary, key ideas, action items, and timestamped moments. Form submissions redirect to the created Notion page.",
+        "content": "## Notion output\n\nExact video and research-goal reruns are removed before OpenAI and Notion. OpenAI must satisfy a strict JSON schema. The resulting page contains a summary, key ideas, action items, and timestamped moments. Form submissions redirect to the created Notion page.",
         "color": 7
       },
       "id": "20000000-0000-0000-4000-8000-000000000014",
@@ -375,6 +394,17 @@
       ]
     },
     "Validate and Cap Transcript": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicate Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicate Requests": {
       "main": [
         [
           {
