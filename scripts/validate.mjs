@@ -119,10 +119,12 @@ for (const slug of workflowSlugs()) {
     const openAiNodes = workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi');
     if (openAiNodes.length !== 1) fail(slug, 'must use exactly one OpenAI batch node');
     if (!serialized.includes('FetchCat Delivery Ledger')) fail(slug, 'does not reference the shared delivery ledger');
-    if (!workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.formTrigger' && /Setup Form$/.test(entry.name))) {
-      fail(slug, 'does not provide a nontechnical setup form');
+    if (slug === 'reddit-buying-intent-alerts') {
+      if (!workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.formTrigger' && /Setup Form$/.test(entry.name))) {
+        fail(slug, 'does not provide a nontechnical setup form');
+      }
+      if (!fs.existsSync(path.join(dir, 'assets/setup-form.png'))) fail(slug, 'missing publication asset assets/setup-form.png');
     }
-    if (!fs.existsSync(path.join(dir, 'assets/setup-form.png'))) fail(slug, 'missing publication asset assets/setup-form.png');
   }
   if (slug === 'linkedin-job-match-digest') {
     const overviewStickies = workflow.nodes.filter((entry) =>
@@ -149,6 +151,16 @@ for (const slug of workflowSlugs()) {
     }
     if (workflow.nodes.some((entry) => entry.type === '@apify/n8n-nodes-apify.apify')) {
       fail(slug, 'must not require a community node');
+    }
+    if (!workflow.nodes.some((entry) => entry.name === 'Edit Search Settings' && entry.type === 'n8n-nodes-base.set')) {
+      fail(slug, 'must expose user configuration in Edit Search Settings');
+    }
+    if (workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.formTrigger')) {
+      fail(slug, 'must not contain a setup form');
+    }
+    if (serialized.includes('FetchCat LinkedIn Config')) fail(slug, 'must not require a LinkedIn configuration table');
+    for (const destinationNode of ['Send Slack Digest', 'Send Gmail Digest', 'Send Telegram Digest', 'Upsert Qualified Jobs', 'Create Notion Job Page']) {
+      if (!names.has(destinationNode)) fail(slug, `missing selectable destination node ${destinationNode}`);
     }
     const creatorDraft = fs.readFileSync(path.join(dir, 'creator-draft.md'), 'utf8');
     if (!creatorDraft.startsWith('![LinkedIn Job Match Digest workflow]')) fail(slug, 'Creator description must start with the workflow image');

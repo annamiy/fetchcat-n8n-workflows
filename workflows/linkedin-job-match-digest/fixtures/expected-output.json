@@ -2,10 +2,10 @@
   "description": "Assertions for a controlled score where only synthetic-job-001 qualifies.",
   "assertions": [
     "At most 10 Actor items reach one OpenAI batch request.",
-    "Only schema-valid scores at or above the configured threshold reach Google Sheets.",
-    "The qualified row contains linkedInJobId synthetic-job-001 and all nine documented columns.",
-    "Slack receives one digest with no more than five jobs.",
-    "An immediate delivered-item rerun creates no rows and sends no Slack message.",
+    "Only schema-valid scores at or above the configured threshold reach the selected destination.",
+    "Exactly one Slack, Gmail, Telegram, Google Sheets, or Notion branch executes.",
+    "Alert destinations receive one digest with no more than five jobs; storage destinations receive one record per qualified job.",
+    "An immediate delivered-item rerun creates no destination writes.",
     "A destination failure does not commit job IDs to the delivery ledger."
   ]
 }

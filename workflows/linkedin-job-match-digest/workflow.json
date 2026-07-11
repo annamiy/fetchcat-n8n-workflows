@@ -19,7 +19,7 @@
             {
               "field": "days",
               "daysInterval": 1,
-              "triggerAtHour": 8,
+              "triggerAtHour": 12,
               "triggerAtMinute": 0
             }
           ]
@@ -74,45 +74,66 @@
     },
     {
       "parameters": {
-        "resource": "table",
-        "operation": "create",
-        "tableName": "FetchCat LinkedIn Config",
-        "columns": {
-          "column": [
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
             {
-              "name": "configKey",
-              "type": "string"
-            },
-            {
+              "id": "linkedin-keywords",
               "name": "keywords",
+              "value": "automation engineer, workflow automation",
               "type": "string"
             },
             {
+              "id": "linkedin-location",
               "name": "location",
+              "value": "Remote",
               "type": "string"
             },
             {
+              "id": "linkedin-profile",
               "name": "candidateProfile",
+              "value": "Senior automation engineer with n8n, JavaScript, APIs, and data pipeline experience.",
               "type": "string"
             },
             {
+              "id": "linkedin-score",
               "name": "minimumScore",
+              "value": 70,
               "type": "number"
             },
             {
+              "id": "linkedin-limit",
               "name": "maxItems",
+              "value": 10,
               "type": "number"
+            },
+            {
+              "id": "linkedin-destination",
+              "name": "deliveryDestination",
+              "value": "slack",
+              "type": "string"
+            },
+            {
+              "id": "linkedin-email",
+              "name": "gmailRecipient",
+              "value": "YOUR_GMAIL_RECIPIENT",
+              "type": "string"
+            },
+            {
+              "id": "linkedin-chat",
+              "name": "telegramChatId",
+              "value": "YOUR_TELEGRAM_CHAT_ID",
+              "type": "string"
             }
           ]
         },
-        "options": {
-          "createIfNotExists": true
-        }
+        "options": {}
       },
       "id": "10000000-0000-0000-4000-8000-000000000021",
-      "name": "Ensure LinkedIn Config Table",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
+      "name": "Edit Search Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         -1040,
         0
@@ -120,151 +141,7 @@
     },
     {
       "parameters": {
-        "resource": "row",
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "mode": "name",
-          "value": "FetchCat LinkedIn Config"
-        },
-        "returnAll": false,
-        "limit": 1,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "configKey",
-              "condition": "eq",
-              "keyValue": "default"
-            }
-          ]
-        }
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000003",
-      "name": "Load LinkedIn Configuration",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        -800,
-        0
-      ],
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "jsCode": "const saved = $input.first()?.json || {};\nreturn [{ json: {\n  configKey: 'default',\n  keywords: String(saved.keywords || 'automation engineer, workflow automation'),\n  location: String(saved.location || 'Remote'),\n  candidateProfile: String(saved.candidateProfile || 'Senior automation engineer with n8n, JavaScript, APIs, and data pipeline experience.'),\n  minimumScore: Math.max(0, Math.min(Number(saved.minimumScore) || 70, 100)),\n  maxItems: Math.max(1, Math.min(Number(saved.maxItems) || 10, 10))\n} }];"
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000022",
-      "name": "Apply LinkedIn Defaults",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -560,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "row",
-        "operation": "upsert",
-        "dataTableId": {
-          "__rl": true,
-          "mode": "name",
-          "value": "FetchCat LinkedIn Config"
-        },
-        "matchType": "allConditions",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "configKey",
-              "condition": "eq",
-              "keyValue": "default"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "matchingColumns": [],
-          "value": {
-            "configKey": "={{ $json.configKey }}",
-            "keywords": "={{ $json.keywords }}",
-            "location": "={{ $json.location }}",
-            "candidateProfile": "={{ $json.candidateProfile }}",
-            "minimumScore": "={{ $json.minimumScore }}",
-            "maxItems": "={{ $json.maxItems }}"
-          },
-          "schema": [
-            {
-              "id": "configKey",
-              "displayName": "configKey",
-              "required": false,
-              "defaultMatch": true,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "keywords",
-              "displayName": "keywords",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "location",
-              "displayName": "location",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "candidateProfile",
-              "displayName": "candidateProfile",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "minimumScore",
-              "displayName": "minimumScore",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "maxItems",
-              "displayName": "maxItems",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            }
-          ],
-          "attemptToConvertTypes": true,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000023",
-      "name": "Save Default LinkedIn Configuration",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        -320,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const config = $input.first()?.json;\nif (!config) throw new Error('Add a default row to the FetchCat LinkedIn Config data table.');\nconst keywords = String(config.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);\nif (keywords.length === 0) throw new Error('Configure at least one comma-separated job keyword.');\nconst candidateProfile = String(config.candidateProfile || '').trim();\nif (candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: { config: { candidateProfile, minimumScore }, actorInput: {\n  keywords,\n  location: String(config.location || 'Remote'),\n  maxItems,\n  includeDetails: true,\n  datePosted: 'past24h',\n  sortBy: 'recent'\n} } }];"
+        "jsCode": "const config = $input.first()?.json;\nif (!config) throw new Error('Configure the Edit Search Settings node.');\nconst keywords = String(config.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);\nif (keywords.length === 0) throw new Error('Configure at least one comma-separated job keyword.');\nconst candidateProfile = String(config.candidateProfile || '').trim();\nif (candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nconst deliveryDestination = String(config.deliveryDestination || '').trim();\nif (!['slack', 'gmail', 'telegram', 'googleSheets', 'notion'].includes(deliveryDestination)) throw new Error('deliveryDestination must be slack, gmail, telegram, googleSheets, or notion.');\nreturn [{ json: { config: { candidateProfile, minimumScore, deliveryDestination, gmailRecipient: String(config.gmailRecipient || ''), telegramChatId: String(config.telegramChatId || '') }, actorInput: {\n  keywords,\n  location: String(config.location || 'Remote'),\n  maxItems,\n  includeDetails: true,\n  datePosted: 'past24h',\n  sortBy: 'recent'\n} } }];"
       },
       "id": "10000000-0000-0000-4000-8000-000000000004",
       "name": "Build Actor Input",
@@ -479,15 +356,173 @@
     },
     {
       "parameters": {
-        "jsCode": "return $json.qualifiedJobs.map((job) => ({ json: job }));"
+        "jsCode": "const qualifiedJobs = $('Validate Job Batch').first().json.qualifiedJobs;\nconst jobs = [...qualifiedJobs].sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst slackLines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | Posted ' + job.postedRelative + '\\n' + job.reason + '\\n' + job.url);\nconst htmlLines = jobs.map((job, index) => '<p><strong>' + (index + 1) + '. ' + escapeHtml(job.title) + '</strong> at ' + escapeHtml(job.company) + ' (' + job.score + '/100)<br>' + escapeHtml(job.location) + ' | Posted ' + escapeHtml(job.postedRelative) + '<br>' + escapeHtml(job.reason) + '<br><a href=\"' + escapeHtml(job.url) + '\">Open job</a></p>');\nconst telegramLines = jobs.map((job, index) => '<b>' + (index + 1) + '. ' + escapeHtml(job.title) + '</b> at ' + escapeHtml(job.company) + ' (' + job.score + '/100)\\n' + escapeHtml(job.location) + ' | Posted ' + escapeHtml(job.postedRelative) + '\\n' + escapeHtml(job.reason) + '\\n<a href=\"' + escapeHtml(job.url) + '\">Open job</a>');\nreturn [{ json: {\n  qualifiedJobs,\n  deliveryDestination: $('Build Actor Input').first().json.config.deliveryDestination,\n  slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + slackLines.join('\\n\\n'),\n  gmailHtml: '<h2>LinkedIn Job Match Digest</h2>' + htmlLines.join(''),\n  telegramMessage: '<b>LinkedIn Job Match Digest</b>\\n\\n' + telegramLines.join('\\n\\n')\n} }];"
       },
       "id": "10000000-0000-0000-4000-8000-000000000012",
-      "name": "Expand Qualified Jobs",
+      "name": "Build Destination Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1840,
         -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.deliveryDestination }}",
+              "rightValue": "slack",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000022",
+      "name": "Is Slack Destination",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2080,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.deliveryDestination }}",
+              "rightValue": "gmail",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000023",
+      "name": "Is Gmail Destination",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.deliveryDestination }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000024",
+      "name": "Is Telegram Destination",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2560,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.deliveryDestination }}",
+              "rightValue": "googleSheets",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000025",
+      "name": "Is Google Sheets Destination",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2800,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $json.qualifiedJobs.map((job) => ({ json: job }));"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000026",
+      "name": "Expand Jobs for Google Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $json.qualifiedJobs.map((job) => ({ json: job }));"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000031",
+      "name": "Expand Jobs for Notion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        500
       ]
     },
     {
@@ -615,21 +650,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2080,
-        -100
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const jobs = $('Validate Job Batch').first().json.qualifiedJobs.sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst lines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | Posted ' + job.postedRelative + '\\n' + job.reason + '\\n' + job.url);\nreturn [{ json: { slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + lines.join('\\n\\n') } }];"
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000014",
-      "name": "Build Slack Digest",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2320,
-        -100
+        3280,
+        320
       ]
     },
     {
@@ -655,8 +677,99 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
+        2320,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $(\"Build Actor Input\").first().json.config.gmailRecipient }}",
+        "subject": "=LinkedIn Job Match Digest - {{ $now.format(\"dd MMM yyyy\") }}",
+        "emailType": "html",
+        "message": "={{ $json.gmailHtml }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000027",
+      "name": "Send Gmail Digest",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
         2560,
         -100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $(\"Build Actor Input\").first().json.config.telegramChatId }}",
+        "text": "={{ $json.telegramMessage }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_notification": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000028",
+      "name": "Send Telegram Digest",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2800,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "apiKey",
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "00000000-0000-0000-0000-000000000000"
+        },
+        "title": "={{ $json.title + \" - \" + $json.company }}",
+        "simple": true,
+        "propertiesUi": {
+          "propertyValues": []
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ \"Score: \" + $json.score + \"/100\" }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ \"Location: \" + $json.location }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.reason }}"
+            },
+            {
+              "type": "paragraph",
+              "richText": false,
+              "textContent": "={{ $json.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000029",
+      "name": "Create Notion Job Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        3280,
+        460
       ]
     },
     {
@@ -668,9 +781,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2800,
+        3520,
         40
-      ]
+      ],
+      "executeOnce": true
     },
     {
       "parameters": {
@@ -687,7 +801,7 @@
           "value": {
             "workflowSlug": "={{ $json.workflowSlug }}",
             "itemKey": "={{ $json.itemKey }}",
-            "destination": "Google Sheets + Slack",
+            "destination": "={{ $(\"Build Actor Input\").first().json.config.deliveryDestination }}",
             "deliveredAt": "={{ $now.toISO() }}"
           },
           "schema": [
@@ -737,286 +851,15 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        3040,
+        3760,
         40
-      ]
-    },
-    {
-      "parameters": {
-        "authentication": "none",
-        "formTitle": "Configure LinkedIn Job Match Digest",
-        "formDescription": "Save the search and candidate profile used by scheduled and manual runs.",
-        "formFields": {
-          "values": [
-            {
-              "fieldLabel": "Job keywords",
-              "fieldName": "keywords",
-              "fieldType": "text",
-              "defaultValue": "automation engineer, workflow automation",
-              "requiredField": true
-            },
-            {
-              "fieldLabel": "Location",
-              "fieldName": "location",
-              "fieldType": "text",
-              "defaultValue": "Remote",
-              "requiredField": true
-            },
-            {
-              "fieldLabel": "Candidate profile",
-              "fieldName": "candidateProfile",
-              "fieldType": "textarea",
-              "requiredField": true
-            },
-            {
-              "fieldLabel": "Minimum score",
-              "fieldName": "minimumScore",
-              "fieldType": "number",
-              "defaultValue": 70,
-              "requiredField": true
-            },
-            {
-              "fieldLabel": "Maximum jobs per run",
-              "fieldName": "maxItems",
-              "fieldType": "number",
-              "defaultValue": 10,
-              "requiredField": true
-            }
-          ]
-        },
-        "responseMode": "lastNode",
-        "options": {
-          "appendAttribution": false,
-          "path": "linkedin-job-match-setup",
-          "buttonLabel": "Save configuration",
-          "ignoreBots": true,
-          "useWorkflowTimezone": true
-        }
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000024",
-      "name": "LinkedIn Setup Form",
-      "type": "n8n-nodes-base.formTrigger",
-      "typeVersion": 2.6,
-      "position": [
-        -1280,
-        500
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "table",
-        "operation": "create",
-        "tableName": "FetchCat Delivery Ledger",
-        "columns": {
-          "column": [
-            {
-              "name": "workflowSlug",
-              "type": "string"
-            },
-            {
-              "name": "itemKey",
-              "type": "string"
-            },
-            {
-              "name": "destination",
-              "type": "string"
-            },
-            {
-              "name": "deliveredAt",
-              "type": "date"
-            }
-          ]
-        },
-        "options": {
-          "createIfNotExists": true
-        }
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000025",
-      "name": "Ensure Setup Delivery Ledger",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        -1040,
-        500
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "table",
-        "operation": "create",
-        "tableName": "FetchCat LinkedIn Config",
-        "columns": {
-          "column": [
-            {
-              "name": "configKey",
-              "type": "string"
-            },
-            {
-              "name": "keywords",
-              "type": "string"
-            },
-            {
-              "name": "location",
-              "type": "string"
-            },
-            {
-              "name": "candidateProfile",
-              "type": "string"
-            },
-            {
-              "name": "minimumScore",
-              "type": "number"
-            },
-            {
-              "name": "maxItems",
-              "type": "number"
-            }
-          ]
-        },
-        "options": {
-          "createIfNotExists": true
-        }
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000026",
-      "name": "Ensure Setup LinkedIn Config",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        -800,
-        500
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $('LinkedIn Setup Form').first().json;\nconst keywords = String(input.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);\nconst location = String(input.location || '').trim();\nconst candidateProfile = String(input.candidateProfile || '').trim();\nconst minimumScore = Number(input.minimumScore);\nconst maxItems = Number(input.maxItems);\nif (!keywords.length) throw new Error('Enter at least one job keyword.');\nif (!location) throw new Error('Enter a location or Remote.');\nif (candidateProfile.length < 20 || candidateProfile.length > 4000) throw new Error('Candidate profile must be 20 to 4000 characters.');\nif (!Number.isFinite(minimumScore) || minimumScore < 0 || minimumScore > 100) throw new Error('Minimum score must be from 0 to 100.');\nif (!Number.isInteger(maxItems) || maxItems < 1 || maxItems > 10) throw new Error('Maximum jobs must be from 1 to 10.');\nreturn [{ json: { configKey: 'default', keywords: keywords.join(', '), location, candidateProfile, minimumScore, maxItems } }];"
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000027",
-      "name": "Validate LinkedIn Setup",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -560,
-        500
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "row",
-        "operation": "upsert",
-        "dataTableId": {
-          "__rl": true,
-          "mode": "name",
-          "value": "FetchCat LinkedIn Config"
-        },
-        "matchType": "allConditions",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "configKey",
-              "condition": "eq",
-              "keyValue": "default"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "matchingColumns": [],
-          "value": {
-            "configKey": "={{ $json.configKey }}",
-            "keywords": "={{ $json.keywords }}",
-            "location": "={{ $json.location }}",
-            "candidateProfile": "={{ $json.candidateProfile }}",
-            "minimumScore": "={{ $json.minimumScore }}",
-            "maxItems": "={{ $json.maxItems }}"
-          },
-          "schema": [
-            {
-              "id": "configKey",
-              "displayName": "configKey",
-              "required": false,
-              "defaultMatch": true,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "keywords",
-              "displayName": "keywords",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "location",
-              "displayName": "location",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "candidateProfile",
-              "displayName": "candidateProfile",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "minimumScore",
-              "displayName": "minimumScore",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "maxItems",
-              "displayName": "maxItems",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            }
-          ],
-          "attemptToConvertTypes": true,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000028",
-      "name": "Save LinkedIn Setup",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        -320,
-        500
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{ json: { formSubmittedText: 'LinkedIn Job Match Digest configuration saved.' } }];"
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000029",
-      "name": "Confirm LinkedIn Setup",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -80,
-        500
       ]
     },
     {
       "parameters": {
         "width": 1200,
         "height": 440,
-        "content": "## Score LinkedIn jobs to Google Sheets and Slack\n\nFind newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, save qualified matches to Google Sheets, and send the five strongest results in one Slack digest. This template runs on both n8n Cloud and self-hosted n8n using only built-in n8n nodes plus the OpenAI node.\n\n### How it works\n\nThe workflow creates its configuration and delivery-ledger Data Tables automatically, then calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours. It rejects invalid records, skips LinkedIn job IDs already delivered, validates the complete AI response, and writes only qualified matches. IDs enter the ledger after Google Sheets and Slack succeed, so destination outages remain retryable.\n\n### Setup\n\nCreate an HTTP Header Auth credential named for Apify with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`. Connect OpenAI, Google Sheets, and Slack; select the destination sheet, tab, and channel; then run the setup form once to save keywords, location, candidate profile, score threshold, and item limit.\n\n### Customization\n\nAdjust the schedule, score threshold, search terms, or maximum items through the setup form. Keep the maximum at 10 to preserve the included cost controls.",
+        "content": "## Score LinkedIn jobs and deliver a daily digest\n\nFind newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, and deliver qualified matches to one selected destination: Slack, Gmail, Telegram, Google Sheets, or Notion. This template runs on both n8n Cloud and self-hosted n8n using only built-in n8n nodes plus the OpenAI node.\n\n### How it works\n\nThe workflow reads all user settings from one visible Edit Search Settings node and creates its delivery ledger automatically. It calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours, rejects invalid records, skips delivered LinkedIn job IDs, and validates the complete AI response. Only the chosen destination branch runs. IDs enter the ledger after that destination succeeds, so outages remain retryable.\n\n### Setup\n\nEdit keywords, location, candidate profile, score threshold, item limit, and deliveryDestination in Edit Search Settings. Create an Apify HTTP Header Auth credential with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`, connect OpenAI, then configure credentials and identifiers only for the selected destination node.\n\n### Customization\n\nAdjust the schedule or any search value in Edit Search Settings. Use exactly one of: `slack`, `gmail`, `telegram`, `googleSheets`, or `notion`. Keep the maximum at 10 to preserve the included cost controls.",
         "color": 1
       },
       "id": "10000000-0000-0000-4000-8000-000000000018",
@@ -1032,7 +875,7 @@
       "parameters": {
         "width": 1100,
         "height": 270,
-        "content": "## Setup and configuration\n\nUse the setup form once to save keywords, location, candidate profile, threshold, and item limit. Connect an Apify HTTP Header Auth credential, OpenAI, Google Sheets, and Slack, then select the `Jobs` tab and destination channel.",
+        "content": "## Setup and configuration\n\nEdit search values and choose one deliveryDestination in Edit Search Settings. Connect Apify and OpenAI, then configure only the selected Slack, Gmail, Telegram, Google Sheets, or Notion destination node.",
         "color": 7
       },
       "id": "10000000-0000-0000-4000-8000-000000000019",
@@ -1048,7 +891,7 @@
       "parameters": {
         "width": 1040,
         "height": 270,
-        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified rows are upserted by LinkedIn job ID, then one Slack digest is sent. IDs are committed only after delivery succeeds, so empty, duplicate, and failed-delivery runs remain safe.",
+        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch and only one destination branch runs. IDs are committed after that destination succeeds, so empty, duplicate, and failed-delivery runs remain safe.",
         "color": 7
       },
       "id": "10000000-0000-0000-4000-8000-000000000030",
@@ -1088,47 +931,14 @@
       "main": [
         [
           {
-            "node": "Ensure LinkedIn Config Table",
+            "node": "Edit Search Settings",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ensure LinkedIn Config Table": {
-      "main": [
-        [
-          {
-            "node": "Load LinkedIn Configuration",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Load LinkedIn Configuration": {
-      "main": [
-        [
-          {
-            "node": "Apply LinkedIn Defaults",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Apply LinkedIn Defaults": {
-      "main": [
-        [
-          {
-            "node": "Save Default LinkedIn Configuration",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Save Default LinkedIn Configuration": {
+    "Edit Search Settings": {
       "main": [
         [
           {
@@ -1220,7 +1030,7 @@
       "main": [
         [
           {
-            "node": "Expand Qualified Jobs",
+            "node": "Build Destination Payload",
             "type": "main",
             "index": 0
           }
@@ -1234,7 +1044,90 @@
         ]
       ]
     },
-    "Expand Qualified Jobs": {
+    "Build Destination Payload": {
+      "main": [
+        [
+          {
+            "node": "Is Slack Destination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Slack Destination": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Gmail Destination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Gmail Destination": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Telegram Destination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Telegram Destination": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Google Sheets Destination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Google Sheets Destination": {
+      "main": [
+        [
+          {
+            "node": "Expand Jobs for Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Expand Jobs for Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Jobs for Google Sheets": {
       "main": [
         [
           {
@@ -1245,22 +1138,11 @@
         ]
       ]
     },
-    "Upsert Qualified Jobs": {
+    "Expand Jobs for Notion": {
       "main": [
         [
           {
-            "node": "Build Slack Digest",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Slack Digest": {
-      "main": [
-        [
-          {
-            "node": "Send Slack Digest",
+            "node": "Create Notion Job Page",
             "type": "main",
             "index": 0
           }
@@ -1278,66 +1160,55 @@
         ]
       ]
     },
+    "Send Gmail Digest": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Digest": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Qualified Jobs": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Job Page": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Prepare Delivery Ledger": {
       "main": [
         [
           {
             "node": "Commit Delivered Jobs",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "LinkedIn Setup Form": {
-      "main": [
-        [
-          {
-            "node": "Ensure Setup Delivery Ledger",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ensure Setup Delivery Ledger": {
-      "main": [
-        [
-          {
-            "node": "Ensure Setup LinkedIn Config",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ensure Setup LinkedIn Config": {
-      "main": [
-        [
-          {
-            "node": "Validate LinkedIn Setup",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate LinkedIn Setup": {
-      "main": [
-        [
-          {
-            "node": "Save LinkedIn Setup",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Save LinkedIn Setup": {
-      "main": [
-        [
-          {
-            "node": "Confirm LinkedIn Setup",
             "type": "main",
             "index": 0
           }
