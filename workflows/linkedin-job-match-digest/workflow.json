@@ -107,24 +107,6 @@
               "name": "maxItems",
               "value": 10,
               "type": "number"
-            },
-            {
-              "id": "linkedin-destination",
-              "name": "deliveryDestination",
-              "value": "slack",
-              "type": "string"
-            },
-            {
-              "id": "linkedin-email",
-              "name": "gmailRecipient",
-              "value": "YOUR_GMAIL_RECIPIENT",
-              "type": "string"
-            },
-            {
-              "id": "linkedin-chat",
-              "name": "telegramChatId",
-              "value": "YOUR_TELEGRAM_CHAT_ID",
-              "type": "string"
             }
           ]
         },
@@ -141,7 +123,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $input.first()?.json;\nif (!config) throw new Error('Configure the Edit Search Settings node.');\nconst keywords = String(config.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);\nif (keywords.length === 0) throw new Error('Configure at least one comma-separated job keyword.');\nconst candidateProfile = String(config.candidateProfile || '').trim();\nif (candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nconst deliveryDestination = String(config.deliveryDestination || '').trim();\nif (!['slack', 'gmail', 'telegram', 'googleSheets', 'notion'].includes(deliveryDestination)) throw new Error('deliveryDestination must be slack, gmail, telegram, googleSheets, or notion.');\nreturn [{ json: { config: { candidateProfile, minimumScore, deliveryDestination, gmailRecipient: String(config.gmailRecipient || ''), telegramChatId: String(config.telegramChatId || '') }, actorInput: {\n  keywords,\n  location: String(config.location || 'Remote'),\n  maxItems,\n  includeDetails: true,\n  datePosted: 'past24h',\n  sortBy: 'recent'\n} } }];"
+        "jsCode": "const config = $input.first()?.json;\nif (!config) throw new Error('Configure the Edit Search Settings node.');\nconst keywords = String(config.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);\nif (keywords.length === 0) throw new Error('Configure at least one comma-separated job keyword.');\nconst candidateProfile = String(config.candidateProfile || '').trim();\nif (candidateProfile.length < 20) throw new Error('Candidate profile must be at least 20 characters.');\nconst minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nreturn [{ json: { config: { candidateProfile, minimumScore }, actorInput: {\n  keywords,\n  location: String(config.location || 'Remote'),\n  maxItems,\n  includeDetails: true,\n  datePosted: 'past24h',\n  sortBy: 'recent'\n} } }];"
       },
       "id": "10000000-0000-0000-4000-8000-000000000004",
       "name": "Build Actor Input",
@@ -356,10 +338,10 @@
     },
     {
       "parameters": {
-        "jsCode": "const qualifiedJobs = $('Validate Job Batch').first().json.qualifiedJobs;\nconst jobs = [...qualifiedJobs].sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst slackLines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | Posted ' + job.postedRelative + '\\n' + job.reason + '\\n' + job.url);\nconst htmlLines = jobs.map((job, index) => '<p><strong>' + (index + 1) + '. ' + escapeHtml(job.title) + '</strong> at ' + escapeHtml(job.company) + ' (' + job.score + '/100)<br>' + escapeHtml(job.location) + ' | Posted ' + escapeHtml(job.postedRelative) + '<br>' + escapeHtml(job.reason) + '<br><a href=\"' + escapeHtml(job.url) + '\">Open job</a></p>');\nconst telegramLines = jobs.map((job, index) => '<b>' + (index + 1) + '. ' + escapeHtml(job.title) + '</b> at ' + escapeHtml(job.company) + ' (' + job.score + '/100)\\n' + escapeHtml(job.location) + ' | Posted ' + escapeHtml(job.postedRelative) + '\\n' + escapeHtml(job.reason) + '\\n<a href=\"' + escapeHtml(job.url) + '\">Open job</a>');\nreturn [{ json: {\n  qualifiedJobs,\n  deliveryDestination: $('Build Actor Input').first().json.config.deliveryDestination,\n  slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + slackLines.join('\\n\\n'),\n  gmailHtml: '<h2>LinkedIn Job Match Digest</h2>' + htmlLines.join(''),\n  telegramMessage: '<b>LinkedIn Job Match Digest</b>\\n\\n' + telegramLines.join('\\n\\n')\n} }];"
+        "jsCode": "const qualifiedJobs = $('Validate Job Batch').first().json.qualifiedJobs;\nconst jobs = [...qualifiedJobs].sort((a, b) => b.score - a.score).slice(0, 5);\nif (jobs.length === 0) return [];\nconst slackLines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\\n' + job.location + ' | Posted ' + job.postedRelative + '\\n' + job.reason + '\\n' + job.url);\nreturn [{ json: {\n  qualifiedJobs,\n  slackMessage: '*LinkedIn Job Match Digest*\\n\\n' + slackLines.join('\\n\\n')\n} }];"
       },
       "id": "10000000-0000-0000-4000-8000-000000000012",
-      "name": "Build Destination Payload",
+      "name": "Build Delivery Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -369,160 +351,15 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "00000000-0000-4000-8000-000000000002",
-              "leftValue": "={{ $json.deliveryDestination }}",
-              "rightValue": "slack",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000022",
-      "name": "Is Slack Destination",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        2080,
-        -100
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "00000000-0000-4000-8000-000000000002",
-              "leftValue": "={{ $json.deliveryDestination }}",
-              "rightValue": "gmail",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000023",
-      "name": "Is Gmail Destination",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        2320,
-        40
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "00000000-0000-4000-8000-000000000002",
-              "leftValue": "={{ $json.deliveryDestination }}",
-              "rightValue": "telegram",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000024",
-      "name": "Is Telegram Destination",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        2560,
-        180
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "00000000-0000-4000-8000-000000000002",
-              "leftValue": "={{ $json.deliveryDestination }}",
-              "rightValue": "googleSheets",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000025",
-      "name": "Is Google Sheets Destination",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        2800,
-        320
-      ]
-    },
-    {
-      "parameters": {
         "jsCode": "return $json.qualifiedJobs.map((job) => ({ json: job }));"
       },
       "id": "10000000-0000-0000-4000-8000-000000000026",
-      "name": "Expand Jobs for Google Sheets",
+      "name": "Expand Jobs for Sheets",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3040,
-        320
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "return $json.qualifiedJobs.map((job) => ({ json: job }));"
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000031",
-      "name": "Expand Jobs for Notion",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3040,
-        500
+        2080,
+        -100
       ]
     },
     {
@@ -650,8 +487,21 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        3280,
-        320
+        2320,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Build Delivery Payload').first().json }];"
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000032",
+      "name": "Continue After Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        -100
       ]
     },
     {
@@ -677,99 +527,8 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.5,
       "position": [
-        2320,
-        -240
-      ]
-    },
-    {
-      "parameters": {
-        "sendTo": "={{ $(\"Build Actor Input\").first().json.config.gmailRecipient }}",
-        "subject": "=LinkedIn Job Match Digest - {{ $now.format(\"dd MMM yyyy\") }}",
-        "emailType": "html",
-        "message": "={{ $json.gmailHtml }}",
-        "options": {
-          "appendAttribution": false
-        }
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000027",
-      "name": "Send Gmail Digest",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.2,
-      "position": [
-        2560,
-        -100
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "message",
-        "operation": "sendMessage",
-        "chatId": "={{ $(\"Build Actor Input\").first().json.config.telegramChatId }}",
-        "text": "={{ $json.telegramMessage }}",
-        "replyMarkup": "none",
-        "additionalFields": {
-          "appendAttribution": false,
-          "disable_notification": false,
-          "parse_mode": "HTML"
-        }
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000028",
-      "name": "Send Telegram Digest",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.2,
-      "position": [
         2800,
-        40
-      ]
-    },
-    {
-      "parameters": {
-        "authentication": "apiKey",
-        "resource": "databasePage",
-        "operation": "create",
-        "databaseId": {
-          "__rl": true,
-          "mode": "id",
-          "value": "00000000-0000-0000-0000-000000000000"
-        },
-        "title": "={{ $json.title + \" - \" + $json.company }}",
-        "simple": true,
-        "propertiesUi": {
-          "propertyValues": []
-        },
-        "blockUi": {
-          "blockValues": [
-            {
-              "type": "paragraph",
-              "richText": false,
-              "textContent": "={{ \"Score: \" + $json.score + \"/100\" }}"
-            },
-            {
-              "type": "paragraph",
-              "richText": false,
-              "textContent": "={{ \"Location: \" + $json.location }}"
-            },
-            {
-              "type": "paragraph",
-              "richText": false,
-              "textContent": "={{ $json.reason }}"
-            },
-            {
-              "type": "paragraph",
-              "richText": false,
-              "textContent": "={{ $json.url }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "10000000-0000-0000-4000-8000-000000000029",
-      "name": "Create Notion Job Page",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2.2,
-      "position": [
-        3280,
-        460
+        -100
       ]
     },
     {
@@ -781,8 +540,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3520,
-        40
+        3040,
+        -100
       ],
       "executeOnce": true
     },
@@ -801,7 +560,7 @@
           "value": {
             "workflowSlug": "={{ $json.workflowSlug }}",
             "itemKey": "={{ $json.itemKey }}",
-            "destination": "={{ $(\"Build Actor Input\").first().json.config.deliveryDestination }}",
+            "destination": "google-sheets-and-slack",
             "deliveredAt": "={{ $now.toISO() }}"
           },
           "schema": [
@@ -851,15 +610,15 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        3760,
-        40
+        3280,
+        -100
       ]
     },
     {
       "parameters": {
         "width": 1200,
         "height": 440,
-        "content": "## Score LinkedIn jobs and deliver a daily digest\n\nFind newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, and deliver qualified matches to one selected destination: Slack, Gmail, Telegram, Google Sheets, or Notion. This template runs on both n8n Cloud and self-hosted n8n using only built-in n8n nodes plus the OpenAI node.\n\n### How it works\n\nThe workflow reads all user settings from one visible Edit Search Settings node and creates its delivery ledger automatically. It calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours, rejects invalid records, skips delivered LinkedIn job IDs, and validates the complete AI response. Only the chosen destination branch runs. IDs enter the ledger after that destination succeeds, so outages remain retryable.\n\n### Setup\n\nEdit keywords, location, candidate profile, score threshold, item limit, and deliveryDestination in Edit Search Settings. Create an Apify HTTP Header Auth credential with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`, connect OpenAI, then configure credentials and identifiers only for the selected destination node.\n\n### Customization\n\nAdjust the schedule or any search value in Edit Search Settings. Use exactly one of: `slack`, `gmail`, `telegram`, `googleSheets`, or `notion`. Keep the maximum at 10 to preserve the included cost controls.",
+        "content": "## Score LinkedIn jobs and deliver a daily digest\n\nFind newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, save qualified matches to Google Sheets, and send the five strongest matches in one Slack digest. This template runs on both n8n Cloud and self-hosted n8n using built-in n8n nodes plus the OpenAI node.\n\n### How it works\n\nThe workflow reads all user settings from one visible Edit Search Settings node and creates its delivery ledger automatically. It calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours, rejects invalid records, skips delivered LinkedIn job IDs, and validates the complete AI response. Sheets is updated before Slack; IDs enter the ledger only after both destinations succeed, so outages remain retryable.\n\n### Setup\n\nEdit keywords, location, candidate profile, score threshold, and item limit in Edit Search Settings. Create an Apify HTTP Header Auth credential with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`, connect OpenAI, select your Google Sheet and Jobs tab, then select your Slack channel.\n\n### Customization\n\nAdjust the daily schedule or any search value in Edit Search Settings. Keep the maximum at 10 to preserve the included cost controls.",
         "color": 1
       },
       "id": "10000000-0000-0000-4000-8000-000000000018",
@@ -875,7 +634,7 @@
       "parameters": {
         "width": 1100,
         "height": 270,
-        "content": "## Setup and configuration\n\nEdit search values and choose one deliveryDestination in Edit Search Settings. Connect Apify and OpenAI, then configure only the selected Slack, Gmail, Telegram, Google Sheets, or Notion destination node.",
+        "content": "## Setup and configuration\n\nEdit the five search values in Edit Search Settings. Connect Apify and OpenAI, then select the Google Sheet, Jobs tab, and Slack channel used for delivery.",
         "color": 7
       },
       "id": "10000000-0000-0000-4000-8000-000000000019",
@@ -891,7 +650,7 @@
       "parameters": {
         "width": 1040,
         "height": 270,
-        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch and only one destination branch runs. IDs are committed after that destination succeeds, so empty, duplicate, and failed-delivery runs remain safe.",
+        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified jobs are upserted to Google Sheets before one Slack digest is sent. IDs are committed only after both destinations succeed, so failed-delivery runs remain retryable.",
         "color": 7
       },
       "id": "10000000-0000-0000-4000-8000-000000000030",
@@ -1030,104 +789,25 @@
       "main": [
         [
           {
-            "node": "Build Destination Payload",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prepare Delivery Ledger",
+            "node": "Build Delivery Payload",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Destination Payload": {
+    "Build Delivery Payload": {
       "main": [
         [
           {
-            "node": "Is Slack Destination",
+            "node": "Expand Jobs for Sheets",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Is Slack Destination": {
-      "main": [
-        [
-          {
-            "node": "Send Slack Digest",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Is Gmail Destination",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Gmail Destination": {
-      "main": [
-        [
-          {
-            "node": "Send Gmail Digest",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Is Telegram Destination",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Telegram Destination": {
-      "main": [
-        [
-          {
-            "node": "Send Telegram Digest",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Is Google Sheets Destination",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Google Sheets Destination": {
-      "main": [
-        [
-          {
-            "node": "Expand Jobs for Google Sheets",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Expand Jobs for Notion",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Expand Jobs for Google Sheets": {
+    "Expand Jobs for Sheets": {
       "main": [
         [
           {
@@ -1138,11 +818,22 @@
         ]
       ]
     },
-    "Expand Jobs for Notion": {
+    "Upsert Qualified Jobs": {
       "main": [
         [
           {
-            "node": "Create Notion Job Page",
+            "node": "Continue After Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue After Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Digest",
             "type": "main",
             "index": 0
           }
@@ -1150,50 +841,6 @@
       ]
     },
     "Send Slack Digest": {
-      "main": [
-        [
-          {
-            "node": "Prepare Delivery Ledger",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Gmail Digest": {
-      "main": [
-        [
-          {
-            "node": "Prepare Delivery Ledger",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Telegram Digest": {
-      "main": [
-        [
-          {
-            "node": "Prepare Delivery Ledger",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upsert Qualified Jobs": {
-      "main": [
-        [
-          {
-            "node": "Prepare Delivery Ledger",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Notion Job Page": {
       "main": [
         [
           {

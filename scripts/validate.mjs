@@ -159,8 +159,11 @@ for (const slug of workflowSlugs()) {
       fail(slug, 'must not contain a setup form');
     }
     if (serialized.includes('FetchCat LinkedIn Config')) fail(slug, 'must not require a LinkedIn configuration table');
-    for (const destinationNode of ['Send Slack Digest', 'Send Gmail Digest', 'Send Telegram Digest', 'Upsert Qualified Jobs', 'Create Notion Job Page']) {
-      if (!names.has(destinationNode)) fail(slug, `missing selectable destination node ${destinationNode}`);
+    for (const destinationNode of ['Upsert Qualified Jobs', 'Send Slack Digest']) {
+      if (!names.has(destinationNode)) fail(slug, `missing required destination node ${destinationNode}`);
+    }
+    for (const removedDestination of ['Send Gmail Digest', 'Send Telegram Digest', 'Create Notion Job Page']) {
+      if (names.has(removedDestination)) fail(slug, `contains unsupported destination node ${removedDestination}`);
     }
     const creatorDraft = fs.readFileSync(path.join(dir, 'creator-draft.md'), 'utf8');
     if (!creatorDraft.startsWith('![LinkedIn Job Match Digest workflow]')) fail(slug, 'Creator description must start with the workflow image');

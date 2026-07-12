@@ -4,7 +4,7 @@
   "workflowKind": "actor-template",
   "actorId": "0XhGPLTjZjicBXYV5",
   "actorSlug": "fetch_cat/linkedin-jobs-scraper",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",
