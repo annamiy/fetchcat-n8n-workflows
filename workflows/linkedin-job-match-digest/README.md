@@ -1,6 +1,7 @@
 # LinkedIn Job Match Digest
 
-Runs `fetch_cat/linkedin-jobs-scraper` for jobs posted in the past 24 hours,
+Runs the [FetchCat LinkedIn Jobs Scraper](https://apify.com/fetch_cat/linkedin-jobs-scraper)
+(`fetch_cat/linkedin-jobs-scraper`) for jobs posted in the past 24 hours,
 checks a durable delivery ledger, and scores all new jobs in one strict AI
 batch. Qualified matches are saved to Google Sheets, then the five strongest
 matches are sent in one Slack digest.
@@ -13,7 +14,8 @@ import and works on n8n Cloud and self-hosted n8n.
 1. Import `workflow.json`.
 2. Open `1. Set Your Job Search` and change `keywords`, `location`,
    `candidateProfile`, `minimumScore`, and `maxItems`.
-3. For Apify, create an HTTP Header Auth credential whose header is
+3. Open the [FetchCat LinkedIn Jobs Scraper](https://apify.com/fetch_cat/linkedin-jobs-scraper)
+   and add it to your Apify account if required. Create an HTTP Header Auth credential whose header is
    `Authorization` and value is `Bearer YOUR_APIFY_TOKEN`. Select it in
    `2. Find Recent LinkedIn Jobs`.
 4. Connect OpenAI to `3. Score Jobs Against Your Profile`.
@@ -34,7 +36,7 @@ HTTP Request node with `@apify/n8n-nodes-apify`, but this is not necessary.
 flowchart LR
   T[Manual or noon trigger] --> L[Create or reuse ledger]
   L --> C[1. Set Your Job Search]
-  C --> A[Run LinkedIn Actor]
+  C --> A[Run FetchCat LinkedIn Jobs Scraper]
   A --> D[Skip delivered job IDs]
   D --> O[One strict AI batch score]
   O --> F[Validate and filter]
