@@ -24,7 +24,7 @@ Job seekers, recruiters, career coaches, and small talent teams that want a repe
 
 ### How it works
 
-The workflow runs manually or every day at noon. Users edit the search, candidate profile, score threshold, and item limit in one visible `Edit Search Settings` node. The workflow creates its delivery ledger automatically and calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs posted in the past 24 hours.
+The workflow runs manually or every day at noon. Users edit the search, candidate profile, score threshold, and item limit in one visible `1. Set Your Job Search` node. The workflow creates its delivery ledger automatically and calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs posted in the past 24 hours.
 
 Invalid and previously delivered jobs are removed before one structured OpenAI request scores the complete batch. Only schema-valid matches above the configured threshold continue. The workflow upserts those jobs to Google Sheets, sends the five strongest matches in one Slack digest, and records LinkedIn job IDs only after both destinations succeed. An interrupted delivery therefore remains retryable without duplicating Sheet rows.
 
@@ -45,7 +45,7 @@ Invalid and previously delivered jobs are removed before one structured OpenAI r
 
 ### How to customize
 
-Change search values in `Edit Search Settings`; change the run time in `Daily Schedule`. Keep the maximum at 10 to preserve the included cost controls.
+Change search values in `1. Set Your Job Search`; change the run time in `Daily Schedule`. Keep the maximum at 10 to preserve the included cost controls.
 
 Job descriptions and the candidate profile are sent to OpenAI. Qualified results are written to the configured Sheet and Slack channel. The workflow never applies for jobs or contacts employers.
 

@@ -294,10 +294,9 @@ const linkedInSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['jobId', 'qualified', 'score', 'reason'],
+        required: ['jobId', 'score', 'reason'],
         properties: {
           jobId: { type: 'string', minLength: 1 },
-          qualified: { type: 'boolean' },
           score: { type: 'integer', minimum: 0, maximum: 100 },
           reason: { type: 'string', minLength: 1, maxLength: 500 }
         }
@@ -312,7 +311,7 @@ const linkedInNodes = [
     rule: { interval: [{ field: 'days', daysInterval: 1, triggerAtHour: 12, triggerAtMinute: 0 }] }
   }),
   node('10000000-', 20, 'Ensure Delivery Ledger', 'n8n-nodes-base.dataTable', 1.1, [-1280, 0], createTableParameters('FetchCat Delivery Ledger', ledgerColumns)),
-  node('10000000-', 21, 'Edit Search Settings', 'n8n-nodes-base.set', 3.4, [-1040, 0], {
+  node('10000000-', 21, '1. Set Your Job Search', 'n8n-nodes-base.set', 3.4, [-1040, 0], {
     mode: 'manual',
     duplicateItem: false,
     assignments: { assignments: [
@@ -326,7 +325,7 @@ const linkedInNodes = [
   }),
   node('10000000-', 4, 'Build Actor Input', 'n8n-nodes-base.code', 2, [-80, 0], {
     jsCode: String.raw`const config = $input.first()?.json;
-if (!config) throw new Error('Configure the Edit Search Settings node.');
+if (!config) throw new Error('Configure the 1. Set Your Job Search node.');
 const keywords = String(config.keywords || '').split(',').map((value) => value.trim()).filter(Boolean);
 if (keywords.length === 0) throw new Error('Configure at least one comma-separated job keyword.');
 const candidateProfile = String(config.candidateProfile || '').trim();
@@ -342,27 +341,47 @@ return [{ json: { config: { candidateProfile, minimumScore }, actorInput: {
   sortBy: 'recent'
 } } }];`
   }),
-  node('10000000-', 5, 'Fetch LinkedIn Jobs from Apify', 'n8n-nodes-base.httpRequest', 4.3, [160, 0], {
+  node('10000000-', 5, '2. Find Recent LinkedIn Jobs', 'n8n-nodes-base.httpRequest', 4.3, [160, 0], {
     method: 'POST',
-    url: 'https://api.apify.com/v2/acts/0XhGPLTjZjicBXYV5/run-sync-get-dataset-items',
+    url: 'https://api.apify.com/v2/acts/0XhGPLTjZjicBXYV5/runs',
+    authentication: 'genericCredentialType',
+    genericAuthType: 'httpHeaderAuth',
+    sendHeaders: true,
+    headerParameters: { parameters: [
+      { name: 'Accept-Encoding', value: 'identity' }
+    ] },
+    sendQuery: true,
+    queryParameters: { parameters: [
+      { name: 'waitForFinish', value: '300' }
+    ] },
+    sendBody: true,
+    contentType: 'json',
+    specifyBody: 'json',
+    jsonBody: '={{ $json.actorInput }}',
+    options: { timeout: 310000, response: { response: { responseFormat: 'json' } } }
+  }),
+  node('10000000-', 33, 'Get LinkedIn Job Results', 'n8n-nodes-base.httpRequest', 4.3, [400, 0], {
+    method: 'GET',
+    url: '=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items',
     authentication: 'genericCredentialType',
     genericAuthType: 'httpHeaderAuth',
     sendQuery: true,
     queryParameters: { parameters: [
       { name: 'clean', value: 'true' },
-      { name: 'format', value: 'json' },
-      { name: 'timeout', value: '300' }
+      { name: 'limit', value: '10' }
     ] },
-    sendBody: true,
-    contentType: 'raw',
-    rawContentType: 'application/json',
-    body: '={{ JSON.stringify($json.actorInput) }}',
-    options: { timeout: 310000, response: { response: { responseFormat: 'json' } } }
+    options: { timeout: 60000, response: { response: { responseFormat: 'json' } } }
   }),
-  node('10000000-', 6, 'Normalize and Cap Jobs', 'n8n-nodes-base.code', 2, [400, 0], {
-    jsCode: String.raw`const normalized = [];
-for (const item of $input.all().slice(0, 10)) {
-  const job = item.json;
+  node('10000000-', 6, 'Normalize and Cap Jobs', 'n8n-nodes-base.code', 2, [640, 0], {
+    jsCode: String.raw`const rawJobs = $input.all().flatMap((item) => {
+  let payload = item.json?.data ?? item.json;
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }
+  }
+  return Array.isArray(payload) ? payload : [payload];
+}).slice(0, 10);
+const normalized = [];
+for (const job of rawJobs) {
   const title = String(job.title || '').trim();
   const invalidTitles = new Set(['delete account', 'sign in', 'join now', 'linkedin']);
   if (!job.jobId || !title || !job.jobUrl || invalidTitles.has(title.toLowerCase())) continue;
@@ -382,61 +401,61 @@ for (const item of $input.all().slice(0, 10)) {
 }
 return normalized;`
   }),
-  node('10000000-', 7, 'Keep Undelivered Jobs', 'n8n-nodes-base.dataTable', 1.1, [640, 0], ledgerCheckParameters('linkedin-job-match-digest', '={{ $json.jobId }}')),
-  node('10000000-', 8, 'Build Job Batch', 'n8n-nodes-base.code', 2, [880, 0], {
+  node('10000000-', 7, 'Keep Undelivered Jobs', 'n8n-nodes-base.dataTable', 1.1, [880, 0], ledgerCheckParameters('linkedin-job-match-digest', '={{ $json.jobId }}')),
+  node('10000000-', 8, 'Build Job Batch', 'n8n-nodes-base.code', 2, [1120, 0], {
     jsCode: String.raw`const jobs = $input.all().map((item) => item.json);
 if (jobs.length === 0) return [];
 return [{ json: { jobs, jobIds: jobs.map((job) => job.jobId) } }];`
   }),
-  node('10000000-', 9, 'Score Job Batch', '@n8n/n8n-nodes-langchain.openAi', 2.3, [1120, 0], openAiParameters(
+  node('10000000-', 9, '3. Score Jobs Against Your Profile', '@n8n/n8n-nodes-langchain.openAi', 2.3, [1360, 0], openAiParameters(
     '=Candidate profile:\n{{ $("Build Actor Input").first().json.config.candidateProfile }}\n\nMinimum score: {{ $("Build Actor Input").first().json.config.minimumScore }}\n\nEvaluate every job exactly once and preserve each jobId:\n{{ JSON.stringify($json.jobs) }}',
     'linkedin_job_fit_batch',
     linkedInSchema,
-    'Score every job against the candidate profile. Return exactly one result for every supplied jobId and no others. Set qualified true only when score meets the supplied minimum and fit is credible. Every reason must be English. Return the strict schema.',
+    'Score every job from 0 to 100 against the candidate profile. Return exactly one result for every supplied jobId and no others. Explain the fit in concise, natural English. Return the strict schema.',
     4000
   )),
-  node('10000000-', 10, 'Validate Job Batch', 'n8n-nodes-base.code', 2, [1360, 0], {
-    jsCode: `${parseStructured}\nconst batch = $("Build Job Batch").first().json;\nconst parsed = parseStructured($input.first().json, ['results']);\nif (!parsed || !Array.isArray(parsed.results)) throw new Error('OpenAI returned an invalid LinkedIn batch.');\nconst expectedIds = new Set(batch.jobIds);\nconst actualIds = parsed.results.map((result) => String(result.jobId));\nif (actualIds.length !== expectedIds.size || new Set(actualIds).size !== actualIds.length || actualIds.some((value) => !expectedIds.has(value))) throw new Error('OpenAI result IDs do not exactly match the LinkedIn input batch.');\nconst minimumScore = Number($("Build Actor Input").first().json.config.minimumScore);\nconst byId = new Map(batch.jobs.map((job) => [job.jobId, job]));\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedAt = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - Number(match[1]) * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  return toSheetsSerial(date);\n};\nconst qualifiedJobs = [];\nfor (const result of parsed.results) {\n  if (typeof result.qualified !== 'boolean' || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim()) throw new Error('OpenAI returned a malformed LinkedIn result.');\n  if (!result.qualified || result.score < minimumScore) continue;\n  const job = byId.get(String(result.jobId));\n  const collected = new Date(job.scrapedAt || Date.now());\n  const url = String(job.jobUrl);\n  qualifiedJobs.push({ title: job.title, company: job.companyName, location: job.location, postedAt: parsePostedAt(job.postedAtText, collected), postedRelative: job.postedAtText, jobLink: '=HYPERLINK("' + url.replace(/"/g, '""') + '","Open job")', url, score: result.score, reason: result.reason.trim(), collectedAt: toSheetsSerial(collected), linkedInJobId: job.jobId });\n}\nreturn [{ json: { allKeys: batch.jobIds, qualifiedJobs } }];`
+  node('10000000-', 10, 'Validate Job Batch', 'n8n-nodes-base.code', 2, [1600, 0], {
+    jsCode: `${parseStructured}\nconst batch = $("Build Job Batch").first().json;\nconst parsed = parseStructured($input.first().json, ['results']);\nif (!parsed || !Array.isArray(parsed.results)) throw new Error('OpenAI returned an invalid LinkedIn batch.');\nconst expectedIds = new Set(batch.jobIds);\nconst actualIds = parsed.results.map((result) => String(result.jobId));\nif (actualIds.length !== expectedIds.size || new Set(actualIds).size !== actualIds.length || actualIds.some((value) => !expectedIds.has(value))) throw new Error('OpenAI result IDs do not exactly match the LinkedIn input batch.');\nconst minimumScore = Number($("Build Actor Input").first().json.config.minimumScore);\nconst byId = new Map(batch.jobs.map((job) => [job.jobId, job]));\nconst sheetsEpochOffset = 25569;\nconst toSheetsSerial = (date) => date.getTime() / 86400000 + sheetsEpochOffset;\nconst parsePostedAt = (text, reference) => {\n  const value = String(text || '').trim().toLowerCase();\n  const date = new Date(reference);\n  if (!Number.isFinite(date.getTime())) return null;\n  const match = value.match(/(\\d+)\\s+(minute|hour|day|week|month)s?\\s+ago/);\n  if (match) {\n    const unitDays = { minute: 1 / 1440, hour: 1 / 24, day: 1, week: 7, month: 30 };\n    date.setTime(date.getTime() - Number(match[1]) * unitDays[match[2]] * 86400000);\n  } else if (!value.includes('today') && !value.includes('just now')) {\n    const absolute = new Date(text);\n    if (!Number.isFinite(absolute.getTime())) return null;\n    date.setTime(absolute.getTime());\n  }\n  return toSheetsSerial(date);\n};\nconst qualifiedJobs = [];\nfor (const result of parsed.results) {\n  if (!Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim()) throw new Error('OpenAI returned a malformed LinkedIn result.');\n  if (result.score < minimumScore) continue;\n  const job = byId.get(String(result.jobId));\n  const collected = new Date(job.scrapedAt || Date.now());\n  const url = String(job.jobUrl);\n  qualifiedJobs.push({ title: job.title, company: job.companyName, location: job.location, postedAt: parsePostedAt(job.postedAtText, collected), postedRelative: job.postedAtText, jobLink: '=HYPERLINK("' + url.replace(/"/g, '""') + '","Open job")', url, score: result.score, reason: result.reason.trim(), collectedAt: toSheetsSerial(collected), linkedInJobId: job.jobId });\n}\nreturn [{ json: { allKeys: batch.jobIds, qualifiedJobs } }];`
   }),
-  node('10000000-', 11, 'Has Qualified Jobs', 'n8n-nodes-base.if', 2.2, [1600, 0], hasItemsParameters('={{ $json.qualifiedJobs.length }}')),
-  node('10000000-', 12, 'Build Delivery Payload', 'n8n-nodes-base.code', 2, [1840, -100], {
+  node('10000000-', 11, 'Has Qualified Jobs', 'n8n-nodes-base.if', 2.2, [1840, 0], hasItemsParameters('={{ $json.qualifiedJobs.length }}')),
+  node('10000000-', 12, 'Build Delivery Payload', 'n8n-nodes-base.code', 2, [2080, -100], {
     jsCode: String.raw`const qualifiedJobs = $('Validate Job Batch').first().json.qualifiedJobs;
 const jobs = [...qualifiedJobs].sort((a, b) => b.score - a.score).slice(0, 5);
 if (jobs.length === 0) return [];
-const slackLines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* at ' + job.company + ' (' + job.score + '/100)\n' + job.location + ' | Posted ' + job.postedRelative + '\n' + job.reason + '\n' + job.url);
+const slackLines = jobs.map((job, index) => (index + 1) + '. *' + job.title + '* - ' + job.company + '\nScore: ' + job.score + '/100 | Location: ' + job.location + ' | Posted: ' + job.postedRelative + '\nWhy it matches: ' + job.reason + '\n<' + job.url + '|View job on LinkedIn>');
 return [{ json: {
   qualifiedJobs,
   slackMessage: '*LinkedIn Job Match Digest*\n\n' + slackLines.join('\n\n')
 } }];`
   }),
-  node('10000000-', 26, 'Expand Jobs for Sheets', 'n8n-nodes-base.code', 2, [2080, -100], {
+  node('10000000-', 26, 'Expand Jobs for Sheets', 'n8n-nodes-base.code', 2, [2320, -100], {
     jsCode: 'return $json.qualifiedJobs.map((job) => ({ json: job }));'
   }),
-  node('10000000-', 13, 'Upsert Qualified Jobs', 'n8n-nodes-base.googleSheets', 4.7, [2320, -100], {
+  node('10000000-', 13, '4. Save Matches to Google Sheets', 'n8n-nodes-base.googleSheets', 4.7, [2560, -100], {
     operation: 'appendOrUpdate',
     documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
     sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Jobs' },
     columns: {
       mappingMode: 'defineBelow',
-      matchingColumns: ['linkedInJobId'],
+      matchingColumns: ['LinkedIn job ID'],
       value: {
-        title: '={{ $json.title }}',
-        company: '={{ $json.company }}',
-        location: '={{ $json.location }}',
-        postedAt: '={{ $json.postedAt }}',
-        jobLink: '={{ $json.jobLink }}',
-        score: '={{ $json.score }}',
-        reason: '={{ $json.reason }}',
-        collectedAt: '={{ $json.collectedAt }}',
-        linkedInJobId: '={{ $json.linkedInJobId }}'
+        'Job title': '={{ $json.title }}',
+        Company: '={{ $json.company }}',
+        Location: '={{ $json.location }}',
+        'Posted at': '={{ $json.postedAt }}',
+        Job: '={{ $json.jobLink }}',
+        'Match score': '={{ $json.score }}',
+        'Why it matches': '={{ $json.reason }}',
+        'Added at': '={{ $json.collectedAt }}',
+        'LinkedIn job ID': '={{ $json.linkedInJobId }}'
       },
-      schema: ['title', 'company', 'location', 'postedAt', 'jobLink', 'score', 'reason', 'collectedAt', 'linkedInJobId'].map((field) => ({
+      schema: ['Job title', 'Company', 'Location', 'Posted at', 'Job', 'Match score', 'Why it matches', 'Added at', 'LinkedIn job ID'].map((field) => ({
         id: field,
         displayName: field,
         required: false,
         defaultMatch: false,
         display: true,
-        type: ['postedAt', 'score', 'collectedAt'].includes(field) ? 'number' : 'string',
+        type: ['Posted at', 'Match score', 'Added at'].includes(field) ? 'number' : 'string',
         canBeUsedToMatch: true
       })),
       attemptToConvertTypes: false,
@@ -444,10 +463,10 @@ return [{ json: {
     },
     options: { useAppend: true }
   }),
-  node('10000000-', 32, 'Continue After Sheets', 'n8n-nodes-base.code', 2, [2560, -100], {
+  node('10000000-', 32, 'Continue After Sheets', 'n8n-nodes-base.code', 2, [2800, -100], {
     jsCode: String.raw`return [{ json: $('Build Delivery Payload').first().json }];`
   }),
-  node('10000000-', 15, 'Send Slack Digest', 'n8n-nodes-base.slack', 2.5, [2800, -100], {
+  node('10000000-', 15, '5. Send Top Matches to Slack', 'n8n-nodes-base.slack', 2.5, [3040, -100], {
     resource: 'message',
     operation: 'post',
     select: 'channel',
@@ -456,26 +475,26 @@ return [{ json: {
     text: '={{ $json.slackMessage }}',
     otherOptions: { includeLinkToWorkflow: false, unfurl_links: false, unfurl_media: false }
   }),
-  { ...node('10000000-', 16, 'Prepare Delivery Ledger', 'n8n-nodes-base.code', 2, [3040, -100], {
+  { ...node('10000000-', 16, 'Prepare Delivery Ledger', 'n8n-nodes-base.code', 2, [3280, -100], {
     jsCode: String.raw`return $('Validate Job Batch').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'linkedin-job-match-digest', itemKey } }));`
   }), executeOnce: true },
-  node('10000000-', 17, 'Commit Delivered Jobs', 'n8n-nodes-base.dataTable', 1.1, [3280, -100], ledgerInsertParameters('google-sheets-and-slack')),
+  node('10000000-', 17, 'Commit Delivered Jobs', 'n8n-nodes-base.dataTable', 1.1, [3520, -100], ledgerInsertParameters('google-sheets-and-slack')),
   sticky('10000000-', 18, 'Workflow Overview', [-1560, -980], 1200, 440, `## Score LinkedIn jobs and deliver a daily digest
 
 Find newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, save qualified matches to Google Sheets, and send the five strongest matches in one Slack digest. This template runs on both n8n Cloud and self-hosted n8n using built-in n8n nodes plus the OpenAI node.
 
 ### How it works
 
-The workflow reads all user settings from one visible Edit Search Settings node and creates its delivery ledger automatically. It calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours, rejects invalid records, skips delivered LinkedIn job IDs, and validates the complete AI response. Sheets is updated before Slack; IDs enter the ledger only after both destinations succeed, so outages remain retryable.
+The workflow reads all user settings from one visible 1. Set Your Job Search node and creates its delivery ledger automatically. It calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours, rejects invalid records, skips delivered LinkedIn job IDs, and validates the complete AI response. Sheets is updated before Slack; IDs enter the ledger only after both destinations succeed, so outages remain retryable.
 
 ### Setup
 
-Edit keywords, location, candidate profile, score threshold, and item limit in Edit Search Settings. Create an Apify HTTP Header Auth credential with header \`Authorization\` and value \`Bearer YOUR_APIFY_TOKEN\`, connect OpenAI, select your Google Sheet and Jobs tab, then select your Slack channel.
+Edit keywords, location, candidate profile, score threshold, and item limit in 1. Set Your Job Search. Create an Apify HTTP Header Auth credential with header \`Authorization\` and value \`Bearer YOUR_APIFY_TOKEN\`, connect OpenAI, select your Google Sheet and Jobs tab, then select your Slack channel.
 
 ### Customization
 
-Adjust the daily schedule or any search value in Edit Search Settings. Keep the maximum at 10 to preserve the included cost controls.`, 1),
-  sticky('10000000-', 19, 'Setup Notes', [-320, -440], 1100, 270, '## Setup and configuration\n\nEdit the five search values in Edit Search Settings. Connect Apify and OpenAI, then select the Google Sheet, Jobs tab, and Slack channel used for delivery.', 7),
+Adjust the daily schedule or any search value in 1. Set Your Job Search. Keep the maximum at 10 to preserve the included cost controls.`, 1),
+  sticky('10000000-', 19, 'Setup Notes', [-320, -440], 1100, 270, '## Setup and configuration\n\nEdit the five search values in 1. Set Your Job Search. Connect Apify and OpenAI, then select the Google Sheet, Jobs tab, and Slack channel used for delivery.', 7),
   sticky('10000000-', 30, 'Delivery Notes', [1280, -440], 1040, 270, '## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified jobs are upserted to Google Sheets before one Slack digest is sent. IDs are committed only after both destinations succeed, so failed-delivery runs remain retryable.', 7)
 ];
 
@@ -485,21 +504,22 @@ const linkedInWorkflow = workflow(
   connectionMap([
     ['Manual Trigger', 'Ensure Delivery Ledger'],
     ['Daily Schedule', 'Ensure Delivery Ledger'],
-    ['Ensure Delivery Ledger', 'Edit Search Settings'],
-    ['Edit Search Settings', 'Build Actor Input'],
-    ['Build Actor Input', 'Fetch LinkedIn Jobs from Apify'],
-    ['Fetch LinkedIn Jobs from Apify', 'Normalize and Cap Jobs'],
+    ['Ensure Delivery Ledger', '1. Set Your Job Search'],
+    ['1. Set Your Job Search', 'Build Actor Input'],
+    ['Build Actor Input', '2. Find Recent LinkedIn Jobs'],
+    ['2. Find Recent LinkedIn Jobs', 'Get LinkedIn Job Results'],
+    ['Get LinkedIn Job Results', 'Normalize and Cap Jobs'],
     ['Normalize and Cap Jobs', 'Keep Undelivered Jobs'],
     ['Keep Undelivered Jobs', 'Build Job Batch'],
-    ['Build Job Batch', 'Score Job Batch'],
-    ['Score Job Batch', 'Validate Job Batch'],
+    ['Build Job Batch', '3. Score Jobs Against Your Profile'],
+    ['3. Score Jobs Against Your Profile', 'Validate Job Batch'],
     ['Validate Job Batch', 'Has Qualified Jobs'],
     ['Has Qualified Jobs', 'Build Delivery Payload'],
     ['Build Delivery Payload', 'Expand Jobs for Sheets'],
-    ['Expand Jobs for Sheets', 'Upsert Qualified Jobs'],
-    ['Upsert Qualified Jobs', 'Continue After Sheets'],
-    ['Continue After Sheets', 'Send Slack Digest'],
-    ['Send Slack Digest', 'Prepare Delivery Ledger'],
+    ['Expand Jobs for Sheets', '4. Save Matches to Google Sheets'],
+    ['4. Save Matches to Google Sheets', 'Continue After Sheets'],
+    ['Continue After Sheets', '5. Send Top Matches to Slack'],
+    ['5. Send Top Matches to Slack', 'Prepare Delivery Ledger'],
     ['Prepare Delivery Ledger', 'Commit Delivered Jobs']
   ])
 );
@@ -961,7 +981,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: '0XhGPLTjZjicBXYV5',
       actorSlug: 'fetch_cat/linkedin-jobs-scraper',
-      version: '2.4.0',
+      version: '2.5.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Slack', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.34 },

@@ -11,16 +11,16 @@ import and works on n8n Cloud and self-hosted n8n.
 ## Setup
 
 1. Import `workflow.json`.
-2. Open `Edit Search Settings` and change `keywords`, `location`,
+2. Open `1. Set Your Job Search` and change `keywords`, `location`,
    `candidateProfile`, `minimumScore`, and `maxItems`.
 3. For Apify, create an HTTP Header Auth credential whose header is
    `Authorization` and value is `Bearer YOUR_APIFY_TOKEN`. Select it in
-   `Fetch LinkedIn Jobs from Apify`.
-4. Connect OpenAI to `Score Job Batch`.
-5. Create a Google Sheet with a `Jobs` tab containing `title`, `company`, `location`,
-   `postedAt`, `jobLink`, `score`, `reason`, `collectedAt`, and
-   `linkedInJobId`, then select it in `Upsert Qualified Jobs`.
-6. Connect Slack and select the digest channel in `Send Slack Digest`.
+   `2. Find Recent LinkedIn Jobs`.
+4. Connect OpenAI to `3. Score Jobs Against Your Profile`.
+5. Create a Google Sheet with a `Jobs` tab containing `Job title`, `Company`,
+   `Location`, `Posted at`, `Job`, `Match score`, `Why it matches`, `Added at`,
+   and `LinkedIn job ID`, then select it in `4. Save Matches to Google Sheets`.
+6. Connect Slack and select the digest channel in `5. Send Top Matches to Slack`.
 7. Optionally import `../shared-error-notifications/workflow.json` and select it
    as this workflow's error workflow.
 
@@ -33,7 +33,7 @@ HTTP Request node with `@apify/n8n-nodes-apify`, but this is not necessary.
 ```mermaid
 flowchart LR
   T[Manual or noon trigger] --> L[Create or reuse ledger]
-  L --> C[Edit Search Settings]
+  L --> C[1. Set Your Job Search]
   C --> A[Run LinkedIn Actor]
   A --> D[Skip delivered job IDs]
   D --> O[One strict AI batch score]

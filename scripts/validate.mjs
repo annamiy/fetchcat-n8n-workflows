@@ -146,20 +146,23 @@ for (const slug of workflowSlugs()) {
     if (sectionStickies.some((entry) => (entry.parameters.content ?? '').trim().split(/\s+/).filter(Boolean).length >= 50)) {
       fail(slug, 'white section stickies must stay under 50 words');
     }
-    if (!workflow.nodes.some((entry) => entry.name === 'Fetch LinkedIn Jobs from Apify' && entry.type === 'n8n-nodes-base.httpRequest')) {
-      fail(slug, 'must use the Cloud-compatible HTTP Request node for Apify');
+    if (!workflow.nodes.some((entry) => entry.name === '2. Find Recent LinkedIn Jobs' && entry.type === 'n8n-nodes-base.httpRequest')) {
+      fail(slug, 'must use the Cloud-compatible HTTP Request node to run Apify');
+    }
+    if (!workflow.nodes.some((entry) => entry.name === 'Get LinkedIn Job Results' && entry.type === 'n8n-nodes-base.httpRequest')) {
+      fail(slug, 'must fetch the completed Apify dataset without the streaming endpoint');
     }
     if (workflow.nodes.some((entry) => entry.type === '@apify/n8n-nodes-apify.apify')) {
       fail(slug, 'must not require a community node');
     }
-    if (!workflow.nodes.some((entry) => entry.name === 'Edit Search Settings' && entry.type === 'n8n-nodes-base.set')) {
-      fail(slug, 'must expose user configuration in Edit Search Settings');
+    if (!workflow.nodes.some((entry) => entry.name === '1. Set Your Job Search' && entry.type === 'n8n-nodes-base.set')) {
+      fail(slug, 'must expose user configuration in 1. Set Your Job Search');
     }
     if (workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.formTrigger')) {
       fail(slug, 'must not contain a setup form');
     }
     if (serialized.includes('FetchCat LinkedIn Config')) fail(slug, 'must not require a LinkedIn configuration table');
-    for (const destinationNode of ['Upsert Qualified Jobs', 'Send Slack Digest']) {
+    for (const destinationNode of ['4. Save Matches to Google Sheets', '5. Send Top Matches to Slack']) {
       if (!names.has(destinationNode)) fail(slug, `missing required destination node ${destinationNode}`);
     }
     for (const removedDestination of ['Send Gmail Digest', 'Send Telegram Digest', 'Create Notion Job Page']) {
