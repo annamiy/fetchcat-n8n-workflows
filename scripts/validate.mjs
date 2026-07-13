@@ -142,9 +142,29 @@ for (const slug of workflowSlugs()) {
     const sectionStickies = workflow.nodes.filter((entry) =>
       entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 7
     );
-    if (sectionStickies.length < 1) fail(slug, 'must contain white section stickies');
+    const workflowNodes = workflow.nodes.filter((entry) => entry.type !== 'n8n-nodes-base.stickyNote');
+    const minimumGroups = Math.ceil(workflowNodes.length / 3);
+    if (sectionStickies.length < minimumGroups) {
+      fail(slug, `must contain at least ${minimumGroups} white logical-group stickies`);
+    }
+    if (sectionStickies.some((entry) => !(entry.parameters.content ?? '').startsWith('## '))) {
+      fail(slug, 'every white section sticky must start with an H2 heading');
+    }
     if (sectionStickies.some((entry) => (entry.parameters.content ?? '').trim().split(/\s+/).filter(Boolean).length >= 50)) {
       fail(slug, 'white section stickies must stay under 50 words');
+    }
+    for (const workflowNode of workflowNodes) {
+      const [nodeX, nodeY] = workflowNode.position;
+      const containingStickies = sectionStickies.filter((entry) => {
+        const [stickyX, stickyY] = entry.position;
+        const stickyWidth = Number(entry.parameters.width);
+        const stickyHeight = Number(entry.parameters.height);
+        return nodeX >= stickyX && nodeX + 96 <= stickyX + stickyWidth &&
+          nodeY >= stickyY && nodeY + 96 <= stickyY + stickyHeight;
+      });
+      if (containingStickies.length !== 1) {
+        fail(slug, `${workflowNode.name} must be enclosed by exactly one white logical-group sticky`);
+      }
     }
     if (!workflow.nodes.some((entry) => entry.name === '2. Find Recent LinkedIn Jobs' && entry.type === 'n8n-nodes-base.httpRequest')) {
       fail(slug, 'must use the Cloud-compatible HTTP Request node to run Apify');

@@ -479,23 +479,35 @@ return [{ json: {
     jsCode: String.raw`return $('Validate Job Batch').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'linkedin-job-match-digest', itemKey } }));`
   }), executeOnce: true },
   node('10000000-', 17, 'Commit Delivered Jobs', 'n8n-nodes-base.dataTable', 1.1, [3520, -100], ledgerInsertParameters('google-sheets-and-slack')),
-  sticky('10000000-', 18, 'Workflow Overview', [-1560, -980], 1200, 440, `## Score LinkedIn jobs and deliver a daily digest
-
-Find newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, save qualified matches to Google Sheets, and send the five strongest matches in one Slack digest. This template runs on both n8n Cloud and self-hosted n8n using built-in n8n nodes plus the OpenAI node.
+  sticky('10000000-', 18, 'Workflow Overview', [-2128, -256], 480, 896, `## LinkedIn Job Match Digest
 
 ### How it works
 
-The workflow reads all user settings from one visible 1. Set Your Job Search node and creates its delivery ledger automatically. It calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours, rejects invalid records, skips delivered LinkedIn job IDs, and validates the complete AI response. Sheets is updated before Slack; IDs enter the ledger only after both destinations succeed, so outages remain retryable.
+1. Starts manually or every day at noon and creates the delivery ledger if needed.
+2. Runs FetchCat LinkedIn Jobs Scraper for up to 10 jobs posted in the past 24 hours.
+3. Skips previously delivered LinkedIn job IDs and scores the remaining jobs in one OpenAI request.
+4. Saves qualified matches to Google Sheets and sends the five strongest matches to Slack.
+5. Records IDs only after both destinations succeed, keeping failed deliveries retryable.
 
-### Setup
+### Setup steps
 
-Edit keywords, location, candidate profile, score threshold, and item limit in 1. Set Your Job Search. Create an Apify HTTP Header Auth credential with header \`Authorization\` and value \`Bearer YOUR_APIFY_TOKEN\`, connect OpenAI, select your Google Sheet and Jobs tab, then select your Slack channel.
+- [ ] Add \`fetch_cat/linkedin-jobs-scraper\` to your Apify account if required.
+- [ ] Create HTTP Header Auth with \`Authorization: Bearer YOUR_APIFY_TOKEN\` and select it in both FetchCat request nodes.
+- [ ] Connect OpenAI in 3. Score Jobs Against Your Profile.
+- [ ] Create a Jobs sheet with the documented headers, then select it in 4. Save Matches to Google Sheets.
+- [ ] Connect Slack and choose the digest channel in 5. Send Top Matches to Slack.
+- [ ] Edit keywords, location, candidate profile, threshold, and item limit in 1. Set Your Job Search.
 
 ### Customization
 
-Adjust the daily schedule or any search value in 1. Set Your Job Search. Keep the maximum at 10 to preserve the included cost controls.`, 1),
-  sticky('10000000-', 19, 'Setup Notes', [-320, -440], 1100, 270, '## Setup and configuration\n\nEdit the five search values in 1. Set Your Job Search. Connect Apify and OpenAI, then select the Google Sheet, Jobs tab, and Slack channel used for delivery.', 7),
-  sticky('10000000-', 30, 'Delivery Notes', [1280, -440], 1040, 270, '## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified jobs are upserted to Google Sheets before one Slack digest is sent. IDs are committed only after both destinations succeed, so failed-delivery runs remain retryable.', 7)
+Adjust the daily schedule, search settings, score threshold, Slack message, or Google Sheets fields. Keep the item limit at 10 for the included cost controls.`, 1),
+  sticky('10000000-', 19, 'Start and ledger setup', [-1568, -256], 432, 496, '## Start and ledger setup\n\nStarts manually or at noon and creates the delivery ledger used to prevent repeated alerts.', 7),
+  sticky('10000000-', 30, 'Configure job search', [-1088, -112], 1632, 272, '## Configure job search\n\nReads your search settings, builds the FetchCat Actor input, runs `fetch_cat/linkedin-jobs-scraper`, and downloads its dataset.', 7),
+  sticky('10000000-', 31, 'Filter and batch jobs', [592, -128], 672, 304, '## Filter and batch jobs\n\nCleans returned jobs, skips LinkedIn job IDs already in the delivery ledger, and prepares one AI batch.', 7),
+  sticky('10000000-', 34, 'Score qualified matches', [1312, -128], 672, 304, '## Score qualified matches\n\nScores every job against the candidate profile, validates the structured response, and applies the configured threshold.', 7),
+  sticky('10000000-', 35, 'Prepare sheet output', [2032, -240], 672, 304, '## Prepare sheet output\n\nBuilds the ranked digest and writes qualified jobs to Google Sheets using LinkedIn job ID as the unique key.', 7),
+  sticky('10000000-', 36, 'Send Slack digest', [2752, -240], 432, 304, '## Send Slack digest\n\nContinues only after the Sheet write succeeds and posts the five strongest matches in one Slack message.', 7),
+  sticky('10000000-', 37, 'Commit delivery status', [3232, -256], 432, 320, '## Commit delivery status\n\nRecords evaluated job IDs only after Sheets and Slack succeed, so interrupted deliveries remain retryable.', 7)
 ];
 
 const linkedInWorkflow = workflow(
@@ -981,7 +993,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: '0XhGPLTjZjicBXYV5',
       actorSlug: 'fetch_cat/linkedin-jobs-scraper',
-      version: '2.5.0',
+      version: '2.5.1',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Slack', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.34 },

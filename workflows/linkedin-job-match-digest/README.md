@@ -9,6 +9,9 @@ matches are sent in one Slack digest.
 The workflow has a manual trigger and a daily noon trigger. It is inactive on
 import and works on n8n Cloud and self-hosted n8n.
 
+The canvas follows n8n's template annotation standard: one yellow overview
+with setup checkboxes and seven white notes surrounding the logical node groups.
+
 ## Setup
 
 1. Import `workflow.json`.

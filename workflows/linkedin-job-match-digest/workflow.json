@@ -654,9 +654,9 @@
     },
     {
       "parameters": {
-        "width": 1200,
-        "height": 440,
-        "content": "## Score LinkedIn jobs and deliver a daily digest\n\nFind newly posted LinkedIn jobs, score them against a candidate profile in one structured OpenAI request, save qualified matches to Google Sheets, and send the five strongest matches in one Slack digest. This template runs on both n8n Cloud and self-hosted n8n using built-in n8n nodes plus the OpenAI node.\n\n### How it works\n\nThe workflow reads all user settings from one visible 1. Set Your Job Search node and creates its delivery ledger automatically. It calls the FetchCat LinkedIn Jobs Scraper through Apify's HTTPS API for up to 10 jobs from the past 24 hours, rejects invalid records, skips delivered LinkedIn job IDs, and validates the complete AI response. Sheets is updated before Slack; IDs enter the ledger only after both destinations succeed, so outages remain retryable.\n\n### Setup\n\nEdit keywords, location, candidate profile, score threshold, and item limit in 1. Set Your Job Search. Create an Apify HTTP Header Auth credential with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`, connect OpenAI, select your Google Sheet and Jobs tab, then select your Slack channel.\n\n### Customization\n\nAdjust the daily schedule or any search value in 1. Set Your Job Search. Keep the maximum at 10 to preserve the included cost controls.",
+        "width": 480,
+        "height": 896,
+        "content": "## LinkedIn Job Match Digest\n\n### How it works\n\n1. Starts manually or every day at noon and creates the delivery ledger if needed.\n2. Runs FetchCat LinkedIn Jobs Scraper for up to 10 jobs posted in the past 24 hours.\n3. Skips previously delivered LinkedIn job IDs and scores the remaining jobs in one OpenAI request.\n4. Saves qualified matches to Google Sheets and sends the five strongest matches to Slack.\n5. Records IDs only after both destinations succeed, keeping failed deliveries retryable.\n\n### Setup steps\n\n- [ ] Add `fetch_cat/linkedin-jobs-scraper` to your Apify account if required.\n- [ ] Create HTTP Header Auth with `Authorization: Bearer YOUR_APIFY_TOKEN` and select it in both FetchCat request nodes.\n- [ ] Connect OpenAI in 3. Score Jobs Against Your Profile.\n- [ ] Create a Jobs sheet with the documented headers, then select it in 4. Save Matches to Google Sheets.\n- [ ] Connect Slack and choose the digest channel in 5. Send Top Matches to Slack.\n- [ ] Edit keywords, location, candidate profile, threshold, and item limit in 1. Set Your Job Search.\n\n### Customization\n\nAdjust the daily schedule, search settings, score threshold, Slack message, or Google Sheets fields. Keep the item limit at 10 for the included cost controls.",
         "color": 1
       },
       "id": "10000000-0000-0000-4000-8000-000000000018",
@@ -664,40 +664,120 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1560,
-        -980
+        -2128,
+        -256
       ]
     },
     {
       "parameters": {
-        "width": 1100,
-        "height": 270,
-        "content": "## Setup and configuration\n\nEdit the five search values in 1. Set Your Job Search. Connect Apify and OpenAI, then select the Google Sheet, Jobs tab, and Slack channel used for delivery.",
+        "width": 432,
+        "height": 496,
+        "content": "## Start and ledger setup\n\nStarts manually or at noon and creates the delivery ledger used to prevent repeated alerts.",
         "color": 7
       },
       "id": "10000000-0000-0000-4000-8000-000000000019",
-      "name": "Setup Notes",
+      "name": "Start and ledger setup",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -320,
-        -440
+        -1568,
+        -256
       ]
     },
     {
       "parameters": {
-        "width": 1040,
-        "height": 270,
-        "content": "## Transaction-aware delivery\n\nOne strict AI call scores the full batch. Qualified jobs are upserted to Google Sheets before one Slack digest is sent. IDs are committed only after both destinations succeed, so failed-delivery runs remain retryable.",
+        "width": 1632,
+        "height": 272,
+        "content": "## Configure job search\n\nReads your search settings, builds the FetchCat Actor input, runs `fetch_cat/linkedin-jobs-scraper`, and downloads its dataset.",
         "color": 7
       },
       "id": "10000000-0000-0000-4000-8000-000000000030",
-      "name": "Delivery Notes",
+      "name": "Configure job search",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1280,
-        -440
+        -1088,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 304,
+        "content": "## Filter and batch jobs\n\nCleans returned jobs, skips LinkedIn job IDs already in the delivery ledger, and prepares one AI batch.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000031",
+      "name": "Filter and batch jobs",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        592,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 304,
+        "content": "## Score qualified matches\n\nScores every job against the candidate profile, validates the structured response, and applies the configured threshold.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000034",
+      "name": "Score qualified matches",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 304,
+        "content": "## Prepare sheet output\n\nBuilds the ranked digest and writes qualified jobs to Google Sheets using LinkedIn job ID as the unique key.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000035",
+      "name": "Prepare sheet output",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 304,
+        "content": "## Send Slack digest\n\nContinues only after the Sheet write succeeds and posts the five strongest matches in one Slack message.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000036",
+      "name": "Send Slack digest",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2752,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 320,
+        "content": "## Commit delivery status\n\nRecords evaluated job IDs only after Sheets and Slack succeed, so interrupted deliveries remain retryable.",
+        "color": 7
+      },
+      "id": "10000000-0000-0000-4000-8000-000000000037",
+      "name": "Commit delivery status",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3232,
+        -256
       ]
     }
   ],
