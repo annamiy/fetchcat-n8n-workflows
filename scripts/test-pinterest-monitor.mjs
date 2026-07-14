@@ -9,23 +9,23 @@ const runCode = (source, input, lookup) => new Function('$input', '$', source)(i
 for (const entry of workflow.nodes.filter((node) => node.type === 'n8n-nodes-base.code')) {
   assert.doesNotThrow(() => new Function('$input', '$', entry.parameters.jsCode), `${entry.name} must compile`);
 }
-assert.match(code('Validate and Format Pinterest Brief'), /if \(!\/\[A-Za-z0-9\]\//);
-assert.match(code('Validate and Format Pinterest Brief'), /analysis\.monitorStage === 'baseline'.*evidenceConfidence === 'high'/);
-assert.match(code('Validate and Format Pinterest Brief'), /item\.searchIntent\.toUpperCase\(\)/);
-assert.match(code('Validate and Format Pinterest Brief'), /item\.resultSimilarity\.toUpperCase\(\)/);
-assert.match(code('Validate and Format Pinterest Brief'), /cleanSentence\(item\.contentGap\)/);
-assert.match(code('Validate and Format Pinterest Brief'), /analysis\.monitorStage === 'baseline' \? '' : movement/);
+assert.match(code('Check and Format Brief'), /if \(!\/\[A-Za-z0-9\]\//);
+assert.match(code('Check and Format Brief'), /analysis\.monitorStage === 'baseline'.*evidenceConfidence === 'high'/);
+assert.match(code('Check and Format Brief'), /item\.searchIntent\.toUpperCase\(\)/);
+assert.match(code('Check and Format Brief'), /item\.resultSimilarity\.toUpperCase\(\)/);
+assert.match(code('Check and Format Brief'), /cleanSentence\(item\.contentGap\)/);
+assert.match(code('Check and Format Brief'), /analysis\.monitorStage === 'baseline' \? '' : movement/);
 
-const queuedRunWait = workflow.nodes.find((entry) => entry.name === 'Wait for Queued Pinterest Run');
+const queuedRunWait = workflow.nodes.find((entry) => entry.name === 'Wait for FetchCat Run');
 assert.equal(queuedRunWait?.type, 'n8n-nodes-base.httpRequest');
 assert.equal(queuedRunWait.parameters.queryParameters.parameters.find((entry) => entry.name === 'waitForFinish')?.value, '300');
 assert.deepEqual(
   workflow.connections['2. Search Pinterest with FetchCat'].main[0].map((entry) => entry.node),
-  ['Wait for Queued Pinterest Run']
+  ['Wait for FetchCat Run']
 );
 assert.deepEqual(
-  workflow.connections['Wait for Queued Pinterest Run'].main[0].map((entry) => entry.node),
-  ['Validate Pinterest Actor Run']
+  workflow.connections['Wait for FetchCat Run'].main[0].map((entry) => entry.node),
+  ['Check FetchCat Run']
 );
 
 const notionTypes = workflow.nodes
@@ -93,7 +93,7 @@ assert.throws(() => runCode(
 
 const currentRows = normalized.map((item) => item.json);
 const compare = (historical) => runCode(
-  code('Compare Search Snapshots'),
+  code('Compare Search Visibility'),
   { all: () => historical.map((json) => ({ json })) },
   (name) => ({
     all: () => name === 'Normalize Pinterest Pins' ? currentRows.map((json) => ({ json })) : [],
