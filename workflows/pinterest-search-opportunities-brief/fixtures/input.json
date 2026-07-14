@@ -1,0 +1,44 @@
+{
+  "description": "Synthetic Pinterest search results for deterministic baseline and comparison tests.",
+  "items": [
+    {
+      "query": "small home office ideas",
+      "position": 1,
+      "pinId": "synthetic-pin-001",
+      "pinUrl": "https://www.pinterest.com/pin/100000000000000001/",
+      "title": "Small home office with vertical storage",
+      "description": "A compact workspace using wall shelves and concealed cable storage.",
+      "imageUrl": "https://example.invalid/pinterest/home-office-1.jpg",
+      "creatorName": "Synthetic Studio",
+      "domain": "example.invalid",
+      "saveCount": 42,
+      "repinCount": 8
+    },
+    {
+      "query": "sustainable workspace",
+      "position": 2,
+      "pinId": "synthetic-pin-002",
+      "pinUrl": "https://www.pinterest.com/pin/100000000000000002/",
+      "title": "Reclaimed wood desk setup",
+      "description": "A warm home office built around a reclaimed wood desk and natural light.",
+      "imageUrl": "https://example.invalid/pinterest/home-office-2.jpg",
+      "creatorName": "Synthetic Interiors",
+      "domain": "example.invalid",
+      "saveCount": null,
+      "repinCount": null
+    },
+    {
+      "query": "desk organization",
+      "position": 3,
+      "pinId": "synthetic-pin-003",
+      "pinUrl": "https://www.pinterest.com/pin/100000000000000003/",
+      "title": "Calm desk organization system",
+      "description": "Simple zones for stationery, charging, paperwork, and daily planning.",
+      "imageUrl": "https://example.invalid/pinterest/home-office-3.jpg",
+      "creatorName": "Synthetic Organizer",
+      "domain": "example.invalid",
+      "saveCount": 18,
+      "repinCount": 3
+    }
+  ]
+}

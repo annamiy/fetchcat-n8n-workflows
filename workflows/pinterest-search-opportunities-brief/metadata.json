@@ -1,0 +1,22 @@
+{
+  "slug": "pinterest-search-opportunities-brief",
+  "title": "Pinterest Search Opportunities and Content Brief",
+  "workflowKind": "actor-template",
+  "actorId": "FtsA7YTDVGAJ83XiS",
+  "actorSlug": "fetch_cat/pinterest-search-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets",
+    "Notion",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 3.33
+  },
+  "releaseState": "qa-passed"
+}
