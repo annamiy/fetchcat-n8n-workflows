@@ -590,10 +590,14 @@ const pinterestBriefSchema = {
       type: 'array', minItems: 5, maxItems: 5,
       items: {
         type: 'object', additionalProperties: false,
-        required: ['query', 'relevantCount', 'movementSignal', 'verdict', 'recommendedReplacement'],
+        required: ['query', 'relevantCount', 'searchIntent', 'dominantResultFormat', 'resultSimilarity', 'contentGap', 'movementSignal', 'verdict', 'recommendedReplacement'],
         properties: {
           query: { type: 'string', minLength: 1, maxLength: 150 },
           relevantCount: { type: 'integer', minimum: 0, maximum: 10 },
+          searchIntent: { type: 'string', enum: ['informational', 'commercial', 'mixed', 'unclear'] },
+          dominantResultFormat: { type: 'string', minLength: 1, maxLength: 250 },
+          resultSimilarity: { type: 'string', enum: ['low', 'medium', 'high'] },
+          contentGap: { type: 'string', minLength: 1, maxLength: 350 },
           movementSignal: { type: 'string', enum: ['baseline', 'early_signal', 'rising', 'falling', 'stable', 'mixed'] },
           verdict: { type: 'string', minLength: 1, maxLength: 400 },
           recommendedReplacement: { type: 'string', minLength: 1, maxLength: 150 }
@@ -679,6 +683,7 @@ const pinterestNotionBlockTypes = [
   'heading_2', 'paragraph',
   'heading_2', 'paragraph', ...Array(5).fill('bulleted_list_item'),
   'heading_2', ...Array(4).fill('bulleted_list_item'),
+  'heading_2', 'paragraph',
   'heading_2',
   ...Array(3).fill(null).flatMap(() => ['heading_3', 'paragraph', 'paragraph', 'paragraph', 'paragraph']),
   'heading_2', ...Array(3).fill('bulleted_list_item'),
@@ -692,9 +697,9 @@ const pinterestNotionBlockTypes = [
 function pinterestVisionParameters() {
   const parameters = openAiParameters(
     '=Decision to make: {{ $json.config.decisionToMake }}\nOffer or publication: {{ $json.config.offer }}\nTarget audience: {{ $json.config.targetAudience }}\nBrand style: {{ $json.config.brandStyle }}\nConstraints: {{ $json.config.constraints }}\nMinimum relevant pins required: {{ $json.config.minRelevantPins }}\nMonitor stage: {{ $json.monitorStage }}\nEarlier snapshot dates: {{ JSON.stringify($json.historyDates) }}\nQuery statistics: {{ JSON.stringify($json.queryStats) }}\nAll current text evidence: {{ JSON.stringify($json.evidencePins) }}\n\nThe ten attached current images correspond in order to these records. Use only the short evidenceId values P1 through P10 in pinId and sourcePinIds fields:\n{{ JSON.stringify($json.visionPins.map((pin, index) => ({ imageNumber: index + 1, evidenceId: pin.evidenceId, pinterestPinId: pin.pinId, query: pin.query, position: pin.position, previousPosition: pin.previousPosition, status: pin.status, weeksObserved: pin.weeksObserved, title: pin.title, description: pin.description, creatorName: pin.creatorName, domain: pin.domain, pinUrl: pin.pinUrl }))) }}',
-    'pinterest_search_momentum_monitor',
+    'pinterest_content_opportunity_research',
     pinterestBriefSchema,
-    'Create a weekly Pinterest search momentum brief from the supplied search ranks, dated snapshots, metadata, and ten current images. The returned monitorStage must exactly match the supplied stage. Assess every image for relevance to the niche and decision. A ready brief requires at least the configured number of relevant images; otherwise return zero opportunities and repair the searches. Baseline means current search landscape only: every query movementSignal must be baseline and no pattern may be recurring or emerging. Comparison has one earlier snapshot: movement may be described only as an early signal and no pattern may be emerging. Momentum has at least two earlier snapshots: emerging is allowed only when supported by repeated rank or appearance evidence across snapshots. Search-result movement is not search-volume or demand growth. Never claim sales, clicks, impressions, popularity, virality, or engagement when those metrics are absent. Return exactly three original, testable content opportunities when ready. Each opportunity must say what to publish, why now, how it differs, and what result to measure. Never copy designs or recommend copyrighted characters, trademarks, book covers, or close imitation. Cite supplied pin IDs for every pattern, avoid item, and opportunity; opportunities may cite only relevant pins. Return concise natural English in the strict schema.',
+    'Create a Pinterest content opportunity research brief from the supplied current search results, dated snapshots, metadata, and ten current images. The first job is useful current-landscape research: for every query identify visible search intent, the dominant result format, how repetitive the supplied results look, and one concrete content gap. These observations describe the supplied results only; do not infer search volume or demand. The returned monitorStage must exactly match the supplied stage. Assess every image for relevance to the niche and decision. A ready brief requires at least the configured number of relevant images; otherwise return zero opportunities and repair the searches. Baseline means current search landscape only: every query movementSignal must be baseline and no pattern may be recurring or emerging. Comparison has one earlier snapshot: movement may be described only as an early visibility signal and no pattern may be emerging. Momentum has at least two earlier snapshots: emerging is allowed only when supported by repeated rank or appearance evidence across snapshots. Search-result movement is not search-volume or demand growth. Never claim sales, clicks, impressions, popularity, virality, or engagement when those metrics are absent. Return exactly three original, testable content opportunities when ready. Each opportunity must solve a specific audience problem, exploit an observed content gap, say what to publish, explain how it differs from visible results, and name a measurable test. Avoid generic category roundups when a narrower promise is supported. Never copy designs or recommend copyrighted characters, trademarks, book covers, or close imitation. Cite supplied pin IDs for every pattern, avoid item, and opportunity; opportunities may cite only relevant pins. Return concise natural English in the strict schema.',
     9000
   );
   parameters.responses.values.push(...Array.from({ length: 10 }, (_, index) => ({
@@ -717,7 +722,7 @@ const pinterestNodes = [
     mode: 'manual',
     duplicateItem: false,
     assignments: { assignments: [
-      { id: 'pinterest-name', name: 'researchName', value: 'Small-space gardening Pinterest monitor', type: 'string' },
+      { id: 'pinterest-name', name: 'researchName', value: 'Small-space gardening content opportunities', type: 'string' },
       { id: 'pinterest-decision', name: 'decisionToMake', value: 'Which Pinterest topics and creative formats should we publish or test next?', type: 'string' },
       { id: 'pinterest-offer', name: 'offer', value: 'A practical small-space gardening publication with guides, newsletters, and affiliate recommendations.', type: 'string' },
       { id: 'pinterest-audience', name: 'targetAudience', value: 'Apartment renters in the United States who want attractive, productive gardens in very limited space.', type: 'string' },
@@ -975,12 +980,12 @@ return [{ json: { config, isBaseline, monitorStage, historyDates, pendingSnapsho
     jsCode: String.raw`const analysis = $('Compare Search Snapshots').first().json;
 return [{ json: { status: 'No new Pinterest brief needed', reason: 'The same dated search snapshot was already delivered.', snapshotDate: analysis.compared[0]?.snapshotDate || '' } }];`
   }),
-  node('50000000-', 12, '3. Generate Weekly Content Brief', '@n8n/n8n-nodes-langchain.openAi', 2.3, [880, 0], pinterestVisionParameters()),
+  node('50000000-', 12, '3. Generate Content Opportunity Brief', '@n8n/n8n-nodes-langchain.openAi', 2.3, [880, 0], pinterestVisionParameters()),
   node('50000000-', 13, 'Validate and Format Pinterest Brief', 'n8n-nodes-base.code', 2, [1120, 0], {
     jsCode: `${parseStructured}
 const analysis = $('Compare Search Snapshots').first().json;
 const brief = parseStructured($input.first().json, ['decisionStatus', 'monitorStage', 'confidence', 'summary', 'queryAssessments', 'pinAssessments', 'patterns', 'opportunities', 'avoid', 'nextActions', 'recommendedQueries']);
-if (!brief || brief.queryAssessments?.length !== 5 || brief.pinAssessments?.length !== 10 || brief.patterns?.length !== 4 || !Array.isArray(brief.opportunities) || brief.avoid?.length !== 3 || brief.nextActions?.length !== 4 || brief.recommendedQueries?.length !== 5) throw new Error('OpenAI returned an invalid Pinterest monitor brief.');
+if (!brief || brief.queryAssessments?.length !== 5 || brief.pinAssessments?.length !== 10 || brief.patterns?.length !== 4 || !Array.isArray(brief.opportunities) || brief.avoid?.length !== 3 || brief.nextActions?.length !== 4 || brief.recommendedQueries?.length !== 5) throw new Error('OpenAI returned an invalid Pinterest opportunity brief.');
 if (brief.monitorStage !== analysis.monitorStage) throw new Error('OpenAI monitor stage does not match the available history.');
 if (analysis.monitorStage === 'baseline') {
   brief.queryAssessments.forEach((item) => { item.movementSignal = 'baseline'; });
@@ -1021,22 +1026,33 @@ const cleanSearchText = (value, fallback) => {
   if (!/[A-Za-z0-9]/.test(text)) return fallback;
   return text || fallback;
 };
+const cleanSentence = (value) => String(value || '').trim().replace(/[.\s]+$/g, '');
 const blocks = [];
 const add = (type, textContent = '', url = '') => blocks.push({ type, textContent, url });
 const heading = (text) => add('heading_2', text);
 const bullet = (text) => add('bulleted_list_item', text);
 add('paragraph', 'Generated ' + new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Lisbon' }) + '. Ten current pin images were assessed from ' + analysis.compared.length + ' complete search results.');
-heading("This week's decision");
-add('paragraph', (brief.decisionStatus === 'ready' ? 'READY TO TEST' : 'INSUFFICIENT EVIDENCE') + ' | ' + brief.monitorStage.toUpperCase() + ' | Confidence: ' + effectiveConfidence.toUpperCase() + '\\n' + summaryText);
-heading('Monitoring status');
-add('paragraph', relevantIds.size + ' of 10 visually assessed pins were relevant. Earlier snapshots: ' + analysis.historyDates.length + '.\\nDecision: ' + analysis.config.decisionToMake + '\\nPublication or offer: ' + analysis.config.offer + '\\nAudience: ' + analysis.config.targetAudience + '\\nStyle: ' + analysis.config.brandStyle + '\\nConstraints: ' + analysis.config.constraints);
+heading('Content opportunity decision');
+const stageLabel = analysis.monitorStage === 'baseline' ? 'CURRENT LANDSCAPE' : analysis.monitorStage === 'comparison' ? 'EARLY VISIBILITY COMPARISON' : 'VISIBILITY MOMENTUM';
+add('paragraph', (brief.decisionStatus === 'ready' ? 'READY TO PLAN' : 'INSUFFICIENT EVIDENCE') + ' | ' + stageLabel + ' | Confidence: ' + effectiveConfidence.toUpperCase() + '\\n' + summaryText);
+heading('Research brief');
+add('paragraph', relevantIds.size + ' of 10 visually assessed pins were relevant.\\nDecision: ' + analysis.config.decisionToMake + '\\nPublication or offer: ' + analysis.config.offer + '\\nAudience: ' + analysis.config.targetAudience + '\\nStyle: ' + analysis.config.brandStyle + '\\nConstraints: ' + analysis.config.constraints);
 brief.queryAssessments.forEach((item) => {
   const replacement = cleanSearchText(item.recommendedReplacement, 'Keep this query');
   const stats = analysis.queryStats.find((entry) => entry.query.toLowerCase() === String(item.query).toLowerCase());
-  bullet(item.query + ' — ' + item.movementSignal.replace('_', ' ').toUpperCase() + ' | ' + relevantCountByQuery.get(String(item.query).toLowerCase()) + ' relevant images | New ' + stats.newPins + ', rising ' + stats.risingPins + ', falling ' + stats.fallingPins + ', repeated ' + stats.repeatedPins + '. ' + item.verdict + ' Next search: ' + replacement);
+  const landscape = item.query + ' — ' + item.searchIntent.toUpperCase() + ' intent | ' + relevantCountByQuery.get(String(item.query).toLowerCase()) + ' relevant images | Result similarity: ' + item.resultSimilarity.toUpperCase() + '. Dominant format: ' + cleanSentence(item.dominantResultFormat) + '. Content gap: ' + cleanSentence(item.contentGap) + '. ' + item.verdict + ' Next search: ' + replacement;
+  const movement = ' Visibility since the previous snapshot: ' + item.movementSignal.replace('_', ' ').toUpperCase() + ' | New ' + stats.newPins + ', rising ' + stats.risingPins + ', falling ' + stats.fallingPins + ', repeated ' + stats.repeatedPins + '.';
+  bullet(landscape + (analysis.monitorStage === 'baseline' ? '' : movement));
 });
-heading('Search landscape and movement');
-brief.patterns.forEach((item) => bullet(item.stage.toUpperCase() + ' | ' + item.pattern + ' — ' + item.observation + ' Evidence: ' + pinLinks(item.sourcePinIds)));
+heading('Current patterns and differentiation gaps');
+brief.patterns.forEach((item) => {
+  const pattern = String(item.pattern).replace(/^(?:current|recurring|emerging)\s*(?:[-:|—]\s*)?/i, '').trim();
+  bullet((analysis.monitorStage === 'baseline' ? '' : item.stage.toUpperCase() + ' | ') + pattern + ' — ' + item.observation + ' Evidence: ' + pinLinks(item.sourcePinIds));
+});
+heading('Visibility tracking');
+add('paragraph', analysis.monitorStage === 'baseline'
+  ? 'No earlier snapshot exists for these searches. This run establishes the baseline; new, rising, falling, and repeated visibility signals will appear after the same queries run again on a later date.'
+  : 'Earlier snapshots: ' + analysis.historyDates.length + '. Across the current results: new ' + analysis.counts.new + ', rising ' + analysis.counts.rising + ', falling ' + analysis.counts.falling + ', steady ' + analysis.counts.steady + '. These are search-result visibility changes, not search-volume or demand trends.');
 heading(brief.decisionStatus === 'ready' ? 'What to publish next' : 'Recommendations withheld');
 const opportunitySlots = brief.decisionStatus === 'ready' ? brief.opportunities : [
   { title: 'No product concept generated', productOrFormat: 'Evidence gate stopped the workflow', audienceIntent: 'The current results do not reliably represent the intended buyer.', concept: 'Refine the searches below and run the workflow again.', differentiation: 'This prevents generic ideas from being mistaken for research findings.', visualBrief: { composition: 'Not generated', typography: 'Not generated', palette: 'Not generated', imagery: 'Not generated' }, pinterestTitle: 'Not generated', pinterestDescription: 'Not generated', keywords: [], confidence: 'low', sourcePinIds: [] },
@@ -1072,7 +1088,7 @@ sourcePins.forEach((pin) => {
 });
 heading('Method and limits');
 add('paragraph', (analysis.monitorStage === 'baseline' ? 'This is the first baseline; it describes only the current search landscape. ' : analysis.monitorStage === 'comparison' ? 'This is an early comparison with one earlier snapshot; changes are signals, not trends. ' : 'Momentum labels require at least two earlier snapshots, but still describe search-result visibility rather than search demand. ') + 'Pinterest search position and visible pin content are observations, not proof of popularity, market demand, or sales. Missing saves and repins remain unknown. Recommendations are original hypotheses to test.');
-if (blocks.length !== 59) throw new Error('Pinterest Notion brief block count changed unexpectedly.');
+if (blocks.length !== 61) throw new Error('Pinterest Notion brief block count changed unexpectedly.');
 return [{ json: { title: analysis.config.researchName + ' - ' + analysis.compared[0].snapshotDate, notionBlocks: blocks, sheetRows: analysis.sheetRows, snapshotRows: analysis.snapshotRows, summary: summaryText, decisionStatus: brief.decisionStatus, relevantPinCount: relevantIds.size } }];`
   }),
   node('50000000-', 14, 'Expand Pinterest Evidence Rows', 'n8n-nodes-base.code', 2, [1360, 0], {
@@ -1131,39 +1147,39 @@ return [{ json: { title: analysis.config.researchName + ' - ' + analysis.compare
 const brief = $('Validate and Format Pinterest Brief').first().json;
 return [{ json: { status: brief.decisionStatus === 'ready' ? 'Pinterest concepts ready to test' : 'Pinterest evidence needs better queries', decisionStatus: brief.decisionStatus, relevantPinCount: brief.relevantPinCount, title: brief.title, notionUrl: page.url || '', summary: brief.summary, evidenceRows: brief.sheetRows.length } }];`
   }),
-  sticky('50000000-', 21, 'Workflow Overview', [-2240, -320], 400, 960, `## Weekly Pinterest Search Momentum Monitor
+  sticky('50000000-', 21, 'Workflow Overview', [-2240, -320], 400, 960, `## Weekly Pinterest Content Opportunity Research
 
 ### How it works
 
 1. Starts manually or every Monday morning and creates a durable Pinterest search snapshot table.
 2. Runs FetchCat Pinterest Search Scraper for five tracked queries and rejects incomplete datasets before analysis.
-3. Compares every result with dated history. Run one is a baseline, run two is an early comparison, and momentum labels require at least two earlier snapshots.
-4. Visually assesses ten balanced current pins and summarizes query-level new, rising, falling, steady, and repeated results.
-5. Produces three evidence-linked content briefs, a watch list, and next actions. Sheets and Notion are written before the snapshot is committed.
+3. Identifies visible search intent, dominant formats, repetitive result patterns, and content gaps on the first run.
+4. Produces three evidence-linked content briefs, a watch list, and next actions from ten balanced current images.
+5. Stores dated ranks so later weekly runs can add secondary new, rising, falling, steady, and repeated visibility signals.
 
 ### Setup steps
 
 - [ ] Add \`fetch_cat/pinterest-search-scraper\` to your Apify account if required.
 - [ ] Create HTTP Header Auth with \`Authorization: Bearer YOUR_APIFY_TOKEN\` and select it in all three FetchCat request nodes.
-- [ ] Connect OpenAI in 3. Generate Weekly Content Brief.
+- [ ] Connect OpenAI in 3. Generate Content Opportunity Brief.
 - [ ] Create a Pinterest Search sheet with the documented headers and select it in 4. Save Pinterest Evidence to Google Sheets.
 - [ ] Connect Notion, share a database with the integration, and select it in 5. Create Pinterest Brief in Notion.
 - [ ] Edit the decision, publication or offer, audience, style, constraints, and exactly five tracked queries in 1. Set Your Pinterest Research.
 
 ### Accuracy controls
 
-The workflow never treats search-result movement as demand growth. Baselines cannot claim movement; one comparison cannot claim an emerging pattern. Ten images are assessed for meaning, and incomplete query results stop the run. Missing public saves and repins remain unknown.`, 1),
+The workflow reports only the visible current search landscape on run one. It never treats result similarity or rank movement as demand growth. One comparison cannot claim an emerging pattern. Ten images are assessed for meaning, and incomplete query results stop the run. Missing public saves and repins remain unknown.`, 1),
   sticky('50000000-', 22, 'Start and configure', [-1808, -256], 576, 432, '## Start and configure\n\nStarts manually or weekly, creates the snapshot table, and exposes all editable research settings in one clearly numbered node.', 7),
   sticky('50000000-', 23, 'Run FetchCat Pinterest scraper', [-1088, -128], 624, 304, '## Run FetchCat Pinterest scraper\n\nValidates the setup and runs `fetch_cat/pinterest-search-scraper` through Cloud-compatible HTTP Request nodes.', 7),
   sticky('50000000-', 24, 'Collect and normalize pins', [-416, -128], 528, 304, '## Collect and normalize pins\n\nDownloads the completed Apify dataset, validates every tracked query, rejects malformed results, deduplicates query and pin IDs, and selects ten balanced images.', 7),
-  sticky('50000000-', 25, 'Compare dated snapshots', [112, -128], 528, 304, '## Compare dated snapshots\n\nBuilds baseline, comparison, or momentum context and calculates new, rising, falling, steady, and repeated search-result evidence.', 7),
-  sticky('50000000-', 26, 'Assess evidence and decide', [592, -128], 816, 496, '## Assess evidence and decide\n\nOne structured vision request assesses ten current images plus rank history. It creates three content briefs only after relevance passes and limits trend language to the available history.', 7),
+  sticky('50000000-', 25, 'Build current landscape', [112, -128], 528, 304, '## Build current landscape\n\nCombines complete search results with any dated history. The first run focuses on visible intent, formats, repetition, and content gaps; later runs add rank movement.', 7),
+  sticky('50000000-', 26, 'Assess evidence and decide', [592, -128], 816, 496, '## Assess evidence and decide\n\nOne structured vision request assesses ten current images, identifies differentiation opportunities, and creates three specific content briefs. Historical visibility signals remain secondary.', 7),
   sticky('50000000-', 27, 'Save readable evidence', [1312, -128], 672, 304, '## Save readable evidence\n\nUpserts sortable, linked Google Sheets rows. Same-day retries use Snapshot key to avoid duplicate evidence.', 7),
   sticky('50000000-', 28, 'Publish brief and commit snapshot', [2032, -128], 912, 304, '## Publish brief and commit snapshot\n\nCreates the Notion brief first, then commits the dated Data Table snapshot so failed destination writes remain retryable.', 7)
 ];
 
 const pinterestWorkflow = workflow(
-  'Weekly Pinterest Search Momentum Monitor',
+  'Weekly Pinterest Content Opportunity Research',
   pinterestNodes,
   connectionMap([
     ['Manual Trigger', 'Ensure Pinterest Snapshot Table'],
@@ -1178,9 +1194,9 @@ const pinterestWorkflow = workflow(
     ['Normalize Pinterest Pins', 'Load Previous Pinterest Snapshots'],
     ['Load Previous Pinterest Snapshots', 'Compare Search Snapshots'],
     ['Compare Search Snapshots', 'Needs Today\'s Brief'],
-    ['Needs Today\'s Brief', '3. Generate Weekly Content Brief'],
+    ['Needs Today\'s Brief', '3. Generate Content Opportunity Brief'],
     ['Needs Today\'s Brief', 'No New Snapshot Needed', 0, 1],
-    ['3. Generate Weekly Content Brief', 'Validate and Format Pinterest Brief'],
+    ['3. Generate Content Opportunity Brief', 'Validate and Format Pinterest Brief'],
     ['Validate and Format Pinterest Brief', 'Expand Pinterest Evidence Rows'],
     ['Expand Pinterest Evidence Rows', '4. Save Pinterest Evidence to Google Sheets'],
     ['4. Save Pinterest Evidence to Google Sheets', 'Continue After Evidence Sheet'],
@@ -1660,11 +1676,11 @@ const definitions = [
     workflow: pinterestWorkflow,
     metadata: {
       slug: 'pinterest-search-opportunities-brief',
-      title: 'Weekly Pinterest Search Momentum Monitor',
+      title: 'Weekly Pinterest Content Opportunity Research',
       workflowKind: 'actor-template',
       actorId: 'FtsA7YTDVGAJ83XiS',
       actorSlug: 'fetch_cat/pinterest-search-scraper',
-      version: '3.0.2',
+      version: '4.0.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Notion', 'n8n Data Tables'],
       testLimits: { actorItems: 50, apifyBackedExecutions: 3, budgetUsd: 3.33 },

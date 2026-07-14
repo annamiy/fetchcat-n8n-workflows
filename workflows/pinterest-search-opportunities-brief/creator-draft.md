@@ -1,33 +1,35 @@
-![Pinterest search momentum workflow](assets/workflow-overview.png)
+![Pinterest content opportunity workflow](assets/workflow-overview.png)
 
-# Monitor Pinterest search momentum and plan what to publish next
+# Research Pinterest content opportunities with FetchCat, OpenAI, Sheets and Notion
 
-Stop rebuilding a Pinterest content plan from scratch every week. This workflow
-uses `fetch_cat/pinterest-search-scraper` to monitor five stable niche searches,
-compare dated result snapshots, inspect current pin creatives, and create three
-evidence-linked briefs for the next publishing cycle.
+Turn five related Pinterest searches into a source-linked publishing plan. This
+workflow uses `fetch_cat/pinterest-search-scraper` to collect complete current results,
+inspect ten balanced pin images, identify visible search intent and content gaps, and
+produce three specific ideas to publish or test next.
+
+It is useful on the first run. Weekly history is optional and adds secondary rank and
+appearance comparisons without calling them search-demand trends.
 
 ## Who is it for?
 
-- Pinterest marketers and bloggers planning niche content
-- Ecommerce teams monitoring visual search-result changes
-- Agencies producing recurring research and content briefs
-- SEO and editorial teams that need source-linked recommendations
+- Bloggers and editorial teams choosing specific Pinterest-led topics
+- Ecommerce and affiliate teams connecting audience problems to useful content
+- Pinterest marketers researching visible formats and differentiation gaps
+- Agencies producing recurring, source-linked content opportunity reports
 
 ## How it works
 
 1. Runs manually or every Monday morning.
-2. Fetches up to ten public pins for each of five configured queries.
-3. Rejects partial datasets instead of analyzing missing queries.
-4. Stores dated ranks and identifies new, rising, falling, steady, and repeated pins.
-5. Assesses ten balanced current images with one structured OpenAI request.
-6. Creates three original content briefs, a watch list, and next actions.
-7. Saves sortable evidence to Google Sheets and a readable report to Notion.
+2. Fetches up to ten public pins for each of five configured searches.
+3. Waits for queued Apify runs and rejects partial datasets.
+4. Assesses ten balanced current images in one structured OpenAI request.
+5. Reports intent, dominant format, result similarity, and a content gap per search.
+6. Creates three original briefs with visual direction, Pinterest copy, and citations.
+7. Saves sortable evidence to Google Sheets and the readable plan to Notion.
+8. Stores dated ranks so later runs can add visibility comparisons.
 
-The first run is a baseline, the second is an early comparison, and momentum
-language requires at least two earlier snapshots. Search visibility is not search
-volume or sales evidence, so the workflow never claims demand, popularity, or
-commercial performance from ranking data alone.
+The workflow never treats visible repetition or rank movement as proof of search
+volume, popularity, demand, engagement, or sales.
 
 ## Required accounts
 

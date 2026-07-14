@@ -11,6 +11,10 @@ for (const entry of workflow.nodes.filter((node) => node.type === 'n8n-nodes-bas
 }
 assert.match(code('Validate and Format Pinterest Brief'), /if \(!\/\[A-Za-z0-9\]\//);
 assert.match(code('Validate and Format Pinterest Brief'), /analysis\.monitorStage === 'baseline'.*evidenceConfidence === 'high'/);
+assert.match(code('Validate and Format Pinterest Brief'), /item\.searchIntent\.toUpperCase\(\)/);
+assert.match(code('Validate and Format Pinterest Brief'), /item\.resultSimilarity\.toUpperCase\(\)/);
+assert.match(code('Validate and Format Pinterest Brief'), /cleanSentence\(item\.contentGap\)/);
+assert.match(code('Validate and Format Pinterest Brief'), /analysis\.monitorStage === 'baseline' \? '' : movement/);
 
 const queuedRunWait = workflow.nodes.find((entry) => entry.name === 'Wait for Queued Pinterest Run');
 assert.equal(queuedRunWait?.type, 'n8n-nodes-base.httpRequest');
@@ -27,9 +31,9 @@ assert.deepEqual(
 const notionTypes = workflow.nodes
   .find((entry) => entry.name === '5. Create Pinterest Brief in Notion')
   .parameters.blockUi.blockValues.map((block) => block.type);
-assert.equal(notionTypes.length, 59);
-assert.deepEqual(notionTypes.slice(10, 16), ['heading_2', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'heading_2']);
-assert.deepEqual(notionTypes.slice(35, 46), ['heading_2', 'to_do', 'to_do', 'to_do', 'to_do', 'heading_2', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item']);
+assert.equal(notionTypes.length, 61);
+assert.deepEqual(notionTypes.slice(10, 17), ['heading_2', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'heading_2', 'paragraph']);
+assert.deepEqual(notionTypes.slice(37, 48), ['heading_2', 'to_do', 'to_do', 'to_do', 'to_do', 'heading_2', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item']);
 
 const liveLike = structuredClone(workflow);
 liveLike.nodes.find((entry) => entry.type === 'n8n-nodes-base.googleSheets').parameters.documentId.value = 'private-sheet-id';
@@ -48,7 +52,7 @@ const queries = [
   'small patio garden ideas'
 ];
 const config = {
-  researchName: 'Small-space gardening Pinterest monitor',
+  researchName: 'Small-space gardening content opportunities',
   decisionToMake: 'Which Pinterest topics and creative formats should we publish or test next?',
   offer: 'A practical small-space gardening publication with useful guides and recommendations.',
   targetAudience: 'Apartment renters who want productive gardens in very limited outdoor space.',
@@ -119,4 +123,4 @@ const momentum = compare([
 assert.equal(momentum.monitorStage, 'momentum');
 assert.ok(momentum.compared.every((row) => row.weeksObserved === 3));
 
-console.log('Pinterest monitor logic passed completeness, stage, movement, and image-balance tests.');
+console.log('Pinterest opportunity research passed completeness, first-run, history, and image-balance tests.');

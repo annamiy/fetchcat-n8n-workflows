@@ -1,10 +1,10 @@
 {
   "slug": "pinterest-search-opportunities-brief",
-  "title": "Weekly Pinterest Search Momentum Monitor",
+  "title": "Weekly Pinterest Content Opportunity Research",
   "workflowKind": "actor-template",
   "actorId": "FtsA7YTDVGAJ83XiS",
   "actorSlug": "fetch_cat/pinterest-search-scraper",
-  "version": "3.0.2",
+  "version": "4.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",
