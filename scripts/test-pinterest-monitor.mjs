@@ -11,6 +11,18 @@ for (const entry of workflow.nodes.filter((node) => node.type === 'n8n-nodes-bas
 }
 assert.match(code('Validate and Format Pinterest Brief'), /if \(!\/\[A-Za-z0-9\]\//);
 
+const queuedRunWait = workflow.nodes.find((entry) => entry.name === 'Wait for Queued Pinterest Run');
+assert.equal(queuedRunWait?.type, 'n8n-nodes-base.httpRequest');
+assert.equal(queuedRunWait.parameters.queryParameters.parameters.find((entry) => entry.name === 'waitForFinish')?.value, '300');
+assert.deepEqual(
+  workflow.connections['2. Search Pinterest with FetchCat'].main[0].map((entry) => entry.node),
+  ['Wait for Queued Pinterest Run']
+);
+assert.deepEqual(
+  workflow.connections['Wait for Queued Pinterest Run'].main[0].map((entry) => entry.node),
+  ['Validate Pinterest Actor Run']
+);
+
 const notionTypes = workflow.nodes
   .find((entry) => entry.name === '5. Create Pinterest Brief in Notion')
   .parameters.blockUi.blockValues.map((block) => block.type);

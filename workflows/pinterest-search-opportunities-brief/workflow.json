@@ -255,6 +255,39 @@
     },
     {
       "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "waitForFinish",
+              "value": "300"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 310000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000031",
+      "name": "Wait for Queued Pinterest Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -620,
+        0
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "const run = $input.first()?.json?.data;\nif (!run?.defaultDatasetId) throw new Error('FetchCat Pinterest Search Scraper did not return a dataset.');\nif (run.status && run.status !== 'SUCCEEDED') throw new Error('FetchCat Pinterest Search Scraper finished with status: ' + run.status);\nreturn [{ json: { datasetId: run.defaultDatasetId, actorRunId: String(run.id || '') } }];"
       },
       "id": "50000000-0000-0000-4000-8000-000000000007",
@@ -262,7 +295,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -560,
+        -440,
         0
       ]
     },
@@ -1239,7 +1272,7 @@
       "parameters": {
         "width": 400,
         "height": 960,
-        "content": "## Weekly Pinterest Search Momentum Monitor\n\n### How it works\n\n1. Starts manually or every Monday morning and creates a durable Pinterest search snapshot table.\n2. Runs FetchCat Pinterest Search Scraper for five tracked queries and rejects incomplete datasets before analysis.\n3. Compares every result with dated history. Run one is a baseline, run two is an early comparison, and momentum labels require at least two earlier snapshots.\n4. Visually assesses ten balanced current pins and summarizes query-level new, rising, falling, steady, and repeated results.\n5. Produces three evidence-linked content briefs, a watch list, and next actions. Sheets and Notion are written before the snapshot is committed.\n\n### Setup steps\n\n- [ ] Add `fetch_cat/pinterest-search-scraper` to your Apify account if required.\n- [ ] Create HTTP Header Auth with `Authorization: Bearer YOUR_APIFY_TOKEN` and select it in both FetchCat request nodes.\n- [ ] Connect OpenAI in 3. Generate Weekly Content Brief.\n- [ ] Create a Pinterest Search sheet with the documented headers and select it in 4. Save Pinterest Evidence to Google Sheets.\n- [ ] Connect Notion, share a database with the integration, and select it in 5. Create Pinterest Brief in Notion.\n- [ ] Edit the decision, publication or offer, audience, style, constraints, and exactly five tracked queries in 1. Set Your Pinterest Research.\n\n### Accuracy controls\n\nThe workflow never treats search-result movement as demand growth. Baselines cannot claim movement; one comparison cannot claim an emerging pattern. Ten images are assessed for meaning, and incomplete query results stop the run. Missing public saves and repins remain unknown.",
+        "content": "## Weekly Pinterest Search Momentum Monitor\n\n### How it works\n\n1. Starts manually or every Monday morning and creates a durable Pinterest search snapshot table.\n2. Runs FetchCat Pinterest Search Scraper for five tracked queries and rejects incomplete datasets before analysis.\n3. Compares every result with dated history. Run one is a baseline, run two is an early comparison, and momentum labels require at least two earlier snapshots.\n4. Visually assesses ten balanced current pins and summarizes query-level new, rising, falling, steady, and repeated results.\n5. Produces three evidence-linked content briefs, a watch list, and next actions. Sheets and Notion are written before the snapshot is committed.\n\n### Setup steps\n\n- [ ] Add `fetch_cat/pinterest-search-scraper` to your Apify account if required.\n- [ ] Create HTTP Header Auth with `Authorization: Bearer YOUR_APIFY_TOKEN` and select it in all three FetchCat request nodes.\n- [ ] Connect OpenAI in 3. Generate Weekly Content Brief.\n- [ ] Create a Pinterest Search sheet with the documented headers and select it in 4. Save Pinterest Evidence to Google Sheets.\n- [ ] Connect Notion, share a database with the integration, and select it in 5. Create Pinterest Brief in Notion.\n- [ ] Edit the decision, publication or offer, audience, style, constraints, and exactly five tracked queries in 1. Set Your Pinterest Research.\n\n### Accuracy controls\n\nThe workflow never treats search-result movement as demand growth. Baselines cannot claim movement; one comparison cannot claim an emerging pattern. Ten images are assessed for meaning, and incomplete query results stop the run. Missing public saves and repins remain unknown.",
         "color": 1
       },
       "id": "50000000-0000-0000-4000-8000-000000000021",
@@ -1421,6 +1454,17 @@
       ]
     },
     "2. Search Pinterest with FetchCat": {
+      "main": [
+        [
+          {
+            "node": "Wait for Queued Pinterest Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Queued Pinterest Run": {
       "main": [
         [
           {

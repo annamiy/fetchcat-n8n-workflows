@@ -788,7 +788,16 @@ return [{ json: {
     jsonBody: '={{ $json.actorInput }}',
     options: { timeout: 310000, response: { response: { responseFormat: 'json' } } }
   }),
-  node('50000000-', 7, 'Validate Pinterest Actor Run', 'n8n-nodes-base.code', 2, [-560, 0], {
+  node('50000000-', 31, 'Wait for Queued Pinterest Run', 'n8n-nodes-base.httpRequest', 4.3, [-620, 0], {
+    method: 'GET',
+    url: '=https://api.apify.com/v2/actor-runs/{{ $json.data.id }}',
+    authentication: 'genericCredentialType',
+    genericAuthType: 'httpHeaderAuth',
+    sendQuery: true,
+    queryParameters: { parameters: [{ name: 'waitForFinish', value: '300' }] },
+    options: { timeout: 310000, response: { response: { responseFormat: 'json' } } }
+  }),
+  node('50000000-', 7, 'Validate Pinterest Actor Run', 'n8n-nodes-base.code', 2, [-440, 0], {
     jsCode: String.raw`const run = $input.first()?.json?.data;
 if (!run?.defaultDatasetId) throw new Error('FetchCat Pinterest Search Scraper did not return a dataset.');
 if (run.status && run.status !== 'SUCCEEDED') throw new Error('FetchCat Pinterest Search Scraper finished with status: ' + run.status);
@@ -1134,7 +1143,7 @@ return [{ json: { status: brief.decisionStatus === 'ready' ? 'Pinterest concepts
 ### Setup steps
 
 - [ ] Add \`fetch_cat/pinterest-search-scraper\` to your Apify account if required.
-- [ ] Create HTTP Header Auth with \`Authorization: Bearer YOUR_APIFY_TOKEN\` and select it in both FetchCat request nodes.
+- [ ] Create HTTP Header Auth with \`Authorization: Bearer YOUR_APIFY_TOKEN\` and select it in all three FetchCat request nodes.
 - [ ] Connect OpenAI in 3. Generate Weekly Content Brief.
 - [ ] Create a Pinterest Search sheet with the documented headers and select it in 4. Save Pinterest Evidence to Google Sheets.
 - [ ] Connect Notion, share a database with the integration, and select it in 5. Create Pinterest Brief in Notion.
@@ -1161,7 +1170,8 @@ const pinterestWorkflow = workflow(
     ['Ensure Pinterest Snapshot Table', '1. Set Your Pinterest Research'],
     ['1. Set Your Pinterest Research', 'Build Pinterest Actor Input'],
     ['Build Pinterest Actor Input', '2. Search Pinterest with FetchCat'],
-    ['2. Search Pinterest with FetchCat', 'Validate Pinterest Actor Run'],
+    ['2. Search Pinterest with FetchCat', 'Wait for Queued Pinterest Run'],
+    ['Wait for Queued Pinterest Run', 'Validate Pinterest Actor Run'],
     ['Validate Pinterest Actor Run', 'Get Pinterest Search Results'],
     ['Get Pinterest Search Results', 'Normalize Pinterest Pins'],
     ['Normalize Pinterest Pins', 'Load Previous Pinterest Snapshots'],
@@ -1653,7 +1663,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'FtsA7YTDVGAJ83XiS',
       actorSlug: 'fetch_cat/pinterest-search-scraper',
-      version: '3.0.0',
+      version: '3.0.1',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Notion', 'n8n Data Tables'],
       testLimits: { actorItems: 50, apifyBackedExecutions: 3, budgetUsd: 3.33 },

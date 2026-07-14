@@ -19,7 +19,7 @@ volume, popularity, or commercial demand.
    comma-separated queries. Keep these queries unchanged between weekly runs.
 3. Add `fetch_cat/pinterest-search-scraper` to your Apify account. Create HTTP
    Header Auth with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`,
-   then select it in both FetchCat HTTP Request nodes.
+   then select it in all three FetchCat HTTP Request nodes.
 4. Connect a vision-capable OpenAI model in `3. Generate Weekly Content Brief`.
 5. Create a Google Sheet tab named `Pinterest Search` with headers: `Snapshot at`,
    `Query`, `Position`, `Previous position`, `Movement`, `Status`, `Pin`, `Title`,
