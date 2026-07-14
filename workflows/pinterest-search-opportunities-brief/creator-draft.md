@@ -1,46 +1,48 @@
-![Pinterest Search Opportunities workflow](assets/workflow-overview.png)
+![Pinterest visual opportunity workflow](assets/workflow-overview.png)
 
-# Monitor Pinterest search opportunities and create weekly content briefs with FetchCat
+# Find Pinterest product and content opportunities with visual AI analysis
 
-Turn public Pinterest search results into an evidence-backed weekly content plan.
-This workflow runs `fetch_cat/pinterest-search-scraper`, preserves dated rank
-snapshots, compares each query with its latest earlier observation, saves the
-source evidence to Google Sheets, and creates a structured Notion brief with
-five original content opportunities.
+Turn public Pinterest search results into a decision brief rather than a generic
+idea list. This workflow runs `fetch_cat/pinterest-search-scraper`, assesses nine
+actual pin images and their metadata, rejects irrelevant results, and creates
+three evidence-linked concepts only when the research passes a configurable
+quality threshold.
 
-It works on n8n Cloud or self-hosted n8n and uses only built-in HTTP Request,
-Google Sheets, Notion, Data Table, Code, Schedule, and OpenAI nodes.
+Weak or ambiguous searches do not produce fabricated opportunities. They create
+a Notion query-repair report with rejected evidence, replacement searches, and
+next actions.
 
 ## Who is it for?
 
-- Pinterest marketers and SEO teams researching public search results
-- Ecommerce teams planning seasonal visual content
-- Agencies producing repeatable research briefs for clients
-- Bloggers and creators looking for evidence-backed topic and creative angles
+- Ecommerce and print-on-demand teams deciding what to test next
+- Pinterest marketers researching visual formats and creative gaps
+- Agencies creating repeatable, source-linked opportunity briefs
+- Content teams that need evidence quality controls before ideation
 
 ## What it does
 
 1. Runs manually or every Monday morning.
-2. Searches one to five Pinterest queries with FetchCat Pinterest Search Scraper.
-3. Creates a first-run baseline or compares results with the latest earlier snapshot.
-4. Generates one strict, source-cited OpenAI analysis.
-5. Upserts readable evidence rows to Google Sheets.
-6. Creates a formatted Notion brief with observed patterns and content ideas.
-7. Commits the snapshot only after both destinations succeed.
+2. Searches exactly three focused queries with FetchCat Pinterest Search Scraper.
+3. Selects nine balanced, image-backed pins and compares dated search positions.
+4. Uses one structured OpenAI vision call to assess relevance and visual patterns.
+5. Applies a minimum relevant-evidence gate.
+6. Creates either three testable concepts or an insufficient-evidence report.
+7. Saves sortable evidence to Google Sheets and embeds source images and links in Notion.
+8. Commits the snapshot only after both destinations succeed.
 
 ## Required accounts
 
 - Apify with access to `fetch_cat/pinterest-search-scraper`
-- OpenAI
+- OpenAI with a vision-capable model
 - Google Sheets
 - Notion
 
-The workflow does not require Pinterest login or Pinterest Developer API access.
-It does not publish pins or access private boards.
+The workflow uses built-in n8n nodes, works on n8n Cloud and self-hosted n8n,
+does not require Pinterest login, and never publishes or edits pins.
 
-## Accuracy and cost controls
+## Accuracy controls
 
-The first run never claims movement. Later movement is calculated from observed
-search positions, not inferred by AI. Missing saves and repins remain unknown,
-and the brief never invents search volume, clicks, or impressions. Same-day
-retries are idempotent, and OpenAI analyzes all evidence in one structured batch.
+The workflow does not equate keyword overlap with relevance. It does not invent
+market demand, sales, search volume, clicks, impressions, or missing engagement
+metrics. Recommendations cite only pins judged relevant, and the prompt excludes
+trademarks, copyrighted characters, copied designs, and close imitation.

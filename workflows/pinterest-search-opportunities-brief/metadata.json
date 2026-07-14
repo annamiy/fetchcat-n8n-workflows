@@ -1,10 +1,10 @@
 {
   "slug": "pinterest-search-opportunities-brief",
-  "title": "Pinterest Search Opportunities and Content Brief",
+  "title": "Pinterest Visual Opportunity Decision Brief",
   "workflowKind": "actor-template",
   "actorId": "FtsA7YTDVGAJ83XiS",
   "actorSlug": "fetch_cat/pinterest-search-scraper",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",

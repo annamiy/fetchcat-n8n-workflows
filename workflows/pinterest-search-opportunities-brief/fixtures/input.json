@@ -1,44 +1,24 @@
 {
-  "description": "Synthetic Pinterest search results for deterministic baseline and comparison tests.",
+  "description": "Synthetic Pinterest evidence for a visual relevance and decision-gate test.",
+  "config": {
+    "researchName": "Book-lover print-on-demand opportunities",
+    "decisionToMake": "Which original print-on-demand product concepts should I test next?",
+    "offer": "Print-on-demand apparel, mugs, tote bags, and wall art for book lovers.",
+    "targetAudience": "Adult readers in the United States who buy witty, tasteful gifts and home accessories.",
+    "brandStyle": "Modern editorial typography, restrained color, clever but not snarky.",
+    "constraints": "Original concepts only. Avoid copyrighted characters, book covers, author quotes, and trademarks.",
+    "queries": ["book lover shirt ideas", "bookish mug design", "reading wall art"],
+    "minRelevantPins": 6
+  },
   "items": [
-    {
-      "query": "small home office ideas",
-      "position": 1,
-      "pinId": "synthetic-pin-001",
-      "pinUrl": "https://www.pinterest.com/pin/100000000000000001/",
-      "title": "Small home office with vertical storage",
-      "description": "A compact workspace using wall shelves and concealed cable storage.",
-      "imageUrl": "https://example.invalid/pinterest/home-office-1.jpg",
-      "creatorName": "Synthetic Studio",
-      "domain": "example.invalid",
-      "saveCount": 42,
-      "repinCount": 8
-    },
-    {
-      "query": "sustainable workspace",
-      "position": 2,
-      "pinId": "synthetic-pin-002",
-      "pinUrl": "https://www.pinterest.com/pin/100000000000000002/",
-      "title": "Reclaimed wood desk setup",
-      "description": "A warm home office built around a reclaimed wood desk and natural light.",
-      "imageUrl": "https://example.invalid/pinterest/home-office-2.jpg",
-      "creatorName": "Synthetic Interiors",
-      "domain": "example.invalid",
-      "saveCount": null,
-      "repinCount": null
-    },
-    {
-      "query": "desk organization",
-      "position": 3,
-      "pinId": "synthetic-pin-003",
-      "pinUrl": "https://www.pinterest.com/pin/100000000000000003/",
-      "title": "Calm desk organization system",
-      "description": "Simple zones for stationery, charging, paperwork, and daily planning.",
-      "imageUrl": "https://example.invalid/pinterest/home-office-3.jpg",
-      "creatorName": "Synthetic Organizer",
-      "domain": "example.invalid",
-      "saveCount": 18,
-      "repinCount": 3
-    }
+    { "query": "book lover shirt ideas", "position": 1, "pinId": "synthetic-pin-001", "pinUrl": "https://www.pinterest.com/pin/100000000000000001/", "title": "Minimal reading club typographic shirt", "description": "Original serif lettering on a neutral shirt mockup.", "imageUrl": "https://example.invalid/pinterest/book-shirt-1.jpg" },
+    { "query": "book lover shirt ideas", "position": 2, "pinId": "synthetic-pin-002", "pinUrl": "https://www.pinterest.com/pin/100000000000000002/", "title": "Library card inspired reading tee", "description": "Grid typography inspired by generic library checkout cards.", "imageUrl": "https://example.invalid/pinterest/book-shirt-2.jpg" },
+    { "query": "book lover shirt ideas", "position": 3, "pinId": "synthetic-pin-003", "pinUrl": "https://www.pinterest.com/pin/100000000000000003/", "title": "Quiet weekend reading shirt", "description": "Small chest print with an original open-book mark.", "imageUrl": "https://example.invalid/pinterest/book-shirt-3.jpg" },
+    { "query": "bookish mug design", "position": 1, "pinId": "synthetic-pin-005", "pinUrl": "https://www.pinterest.com/pin/100000000000000005/", "title": "Reading progress mug", "description": "A wraparound progress motif using original symbols.", "imageUrl": "https://example.invalid/pinterest/book-mug-1.jpg" },
+    { "query": "bookish mug design", "position": 2, "pinId": "synthetic-pin-006", "pinUrl": "https://www.pinterest.com/pin/100000000000000006/", "title": "Personal library mug", "description": "Editorial type with a customizable owner line.", "imageUrl": "https://example.invalid/pinterest/book-mug-2.jpg" },
+    { "query": "bookish mug design", "position": 3, "pinId": "synthetic-pin-007", "pinUrl": "https://www.pinterest.com/pin/100000000000000007/", "title": "Stacked books coffee mug", "description": "A simple generic book-stack illustration.", "imageUrl": "https://example.invalid/pinterest/book-mug-3.jpg" },
+    { "query": "reading wall art", "position": 1, "pinId": "synthetic-pin-009", "pinUrl": "https://www.pinterest.com/pin/100000000000000009/", "title": "Reading ritual wall print", "description": "Original modular poster describing a calm reading routine.", "imageUrl": "https://example.invalid/pinterest/reading-art-1.jpg" },
+    { "query": "reading wall art", "position": 2, "pinId": "synthetic-pin-010", "pinUrl": "https://www.pinterest.com/pin/100000000000000010/", "title": "Personal bookshelf inventory print", "description": "Customizable typographic inventory poster.", "imageUrl": "https://example.invalid/pinterest/reading-art-2.jpg" },
+    { "query": "reading wall art", "position": 3, "pinId": "synthetic-pin-011", "pinUrl": "https://www.pinterest.com/pin/100000000000000011/", "title": "Classic author quote poster", "description": "A quotation-based design excluded by the constraints.", "imageUrl": "https://example.invalid/pinterest/reading-art-3.jpg" }
   ]
 }

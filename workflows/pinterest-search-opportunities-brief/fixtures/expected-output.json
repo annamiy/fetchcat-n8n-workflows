@@ -1,10 +1,13 @@
 {
   "assertions": [
-    "A first execution is labeled as a baseline and makes no week-over-week movement claims.",
-    "Every AI finding, pattern, and opportunity cites only supplied Pinterest pin IDs.",
-    "Google Sheets receives sortable date-time and numeric rank fields with compact pin and image links.",
-    "A same-day retry upserts by Snapshot key instead of adding duplicate evidence rows.",
-    "Notion receives actual headings for research criteria, summary, observations, patterns, opportunities, source pins, and methodology.",
+    "Exactly nine image-backed pins are assessed once each using both metadata and image evidence.",
+    "Each configured query receives a relevance count, verdict, and replacement query.",
+    "At least six relevant pins produce exactly three evidence-linked concepts.",
+    "Fewer than six relevant pins produce zero concepts and an insufficient-evidence report.",
+    "Recommendations cite only pins assessed relevant; all other citations use supplied pin IDs.",
+    "Notion separates observations from recommendations and embeds five source images with Pinterest links.",
+    "The first execution is a baseline and makes no week-over-week movement claims.",
+    "Google Sheets receives sortable date-time and numeric rank fields without duplicate Snapshot keys.",
     "The durable snapshot is committed only after Google Sheets and Notion both succeed."
   ]
 }
