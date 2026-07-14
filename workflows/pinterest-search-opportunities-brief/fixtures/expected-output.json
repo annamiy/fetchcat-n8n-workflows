@@ -1,12 +1,13 @@
 {
   "assertions": [
-    "Exactly nine image-backed pins are assessed once each using both metadata and image evidence.",
-    "Each configured query receives a relevance count, verdict, and replacement query.",
-    "At least six relevant pins produce exactly three evidence-linked concepts.",
-    "Fewer than six relevant pins produce zero concepts and an insufficient-evidence report.",
-    "Recommendations cite only pins assessed relevant; all other citations use supplied pin IDs.",
-    "Notion separates observations from recommendations and embeds five source images with Pinterest links.",
-    "The first execution is a baseline and makes no week-over-week movement claims.",
+    "Every one of five configured queries meets the per-query completeness threshold before analysis.",
+    "Exactly ten balanced current images are assessed once each.",
+    "A first run is labeled baseline and contains no movement, recurring, or emerging claims.",
+    "A run with one earlier snapshot is labeled comparison and contains no emerging claims.",
+    "Momentum labels require at least two earlier snapshot dates and cited rank or appearance evidence.",
+    "At least seven relevant images produce exactly three evidence-linked content briefs.",
+    "Recommendations cite only relevant supplied pin IDs.",
+    "Notion separates monitoring status, observations, recommendations, watch items, actions, and method limits.",
     "Google Sheets receives sortable date-time and numeric rank fields without duplicate Snapshot keys.",
     "The durable snapshot is committed only after Google Sheets and Notion both succeed."
   ]

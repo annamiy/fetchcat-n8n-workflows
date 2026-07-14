@@ -1,24 +1,31 @@
 {
-  "description": "Synthetic Pinterest evidence for a visual relevance and decision-gate test.",
+  "description": "Synthetic balanced image sample for Pinterest monitor validation. Completeness tests use generated rows outside this compact fixture.",
   "config": {
-    "researchName": "Book-lover print-on-demand opportunities",
-    "decisionToMake": "Which original print-on-demand product concepts should I test next?",
-    "offer": "Print-on-demand apparel, mugs, tote bags, and wall art for book lovers.",
-    "targetAudience": "Adult readers in the United States who buy witty, tasteful gifts and home accessories.",
-    "brandStyle": "Modern editorial typography, restrained color, clever but not snarky.",
-    "constraints": "Original concepts only. Avoid copyrighted characters, book covers, author quotes, and trademarks.",
-    "queries": ["book lover shirt ideas", "bookish mug design", "reading wall art"],
-    "minRelevantPins": 6
+    "researchName": "Small-space gardening Pinterest monitor",
+    "decisionToMake": "Which Pinterest topics and creative formats should we publish or test next?",
+    "offer": "A practical small-space gardening publication with guides and affiliate recommendations.",
+    "targetAudience": "Apartment renters who want attractive, productive gardens in limited space.",
+    "brandStyle": "Useful, achievable, bright, and specific, with clear instructional visuals.",
+    "constraints": "Recommend original educational content and do not claim demand without trend data.",
+    "queries": [
+      "small balcony garden ideas",
+      "balcony vegetable garden",
+      "vertical garden for balcony",
+      "apartment herb garden",
+      "small patio garden ideas"
+    ],
+    "minRelevantPins": 7
   },
   "items": [
-    { "query": "book lover shirt ideas", "position": 1, "pinId": "synthetic-pin-001", "pinUrl": "https://www.pinterest.com/pin/100000000000000001/", "title": "Minimal reading club typographic shirt", "description": "Original serif lettering on a neutral shirt mockup.", "imageUrl": "https://example.invalid/pinterest/book-shirt-1.jpg" },
-    { "query": "book lover shirt ideas", "position": 2, "pinId": "synthetic-pin-002", "pinUrl": "https://www.pinterest.com/pin/100000000000000002/", "title": "Library card inspired reading tee", "description": "Grid typography inspired by generic library checkout cards.", "imageUrl": "https://example.invalid/pinterest/book-shirt-2.jpg" },
-    { "query": "book lover shirt ideas", "position": 3, "pinId": "synthetic-pin-003", "pinUrl": "https://www.pinterest.com/pin/100000000000000003/", "title": "Quiet weekend reading shirt", "description": "Small chest print with an original open-book mark.", "imageUrl": "https://example.invalid/pinterest/book-shirt-3.jpg" },
-    { "query": "bookish mug design", "position": 1, "pinId": "synthetic-pin-005", "pinUrl": "https://www.pinterest.com/pin/100000000000000005/", "title": "Reading progress mug", "description": "A wraparound progress motif using original symbols.", "imageUrl": "https://example.invalid/pinterest/book-mug-1.jpg" },
-    { "query": "bookish mug design", "position": 2, "pinId": "synthetic-pin-006", "pinUrl": "https://www.pinterest.com/pin/100000000000000006/", "title": "Personal library mug", "description": "Editorial type with a customizable owner line.", "imageUrl": "https://example.invalid/pinterest/book-mug-2.jpg" },
-    { "query": "bookish mug design", "position": 3, "pinId": "synthetic-pin-007", "pinUrl": "https://www.pinterest.com/pin/100000000000000007/", "title": "Stacked books coffee mug", "description": "A simple generic book-stack illustration.", "imageUrl": "https://example.invalid/pinterest/book-mug-3.jpg" },
-    { "query": "reading wall art", "position": 1, "pinId": "synthetic-pin-009", "pinUrl": "https://www.pinterest.com/pin/100000000000000009/", "title": "Reading ritual wall print", "description": "Original modular poster describing a calm reading routine.", "imageUrl": "https://example.invalid/pinterest/reading-art-1.jpg" },
-    { "query": "reading wall art", "position": 2, "pinId": "synthetic-pin-010", "pinUrl": "https://www.pinterest.com/pin/100000000000000010/", "title": "Personal bookshelf inventory print", "description": "Customizable typographic inventory poster.", "imageUrl": "https://example.invalid/pinterest/reading-art-2.jpg" },
-    { "query": "reading wall art", "position": 3, "pinId": "synthetic-pin-011", "pinUrl": "https://www.pinterest.com/pin/100000000000000011/", "title": "Classic author quote poster", "description": "A quotation-based design excluded by the constraints.", "imageUrl": "https://example.invalid/pinterest/reading-art-3.jpg" }
+    { "query": "small balcony garden ideas", "position": 1, "pinId": "synthetic-pin-001", "pinUrl": "https://www.pinterest.com/pin/100000000000000001/", "title": "Tiny balcony layout with layered planters", "imageUrl": "https://example.invalid/pinterest/balcony-1.jpg" },
+    { "query": "small balcony garden ideas", "position": 2, "pinId": "synthetic-pin-002", "pinUrl": "https://www.pinterest.com/pin/100000000000000002/", "title": "Small-space balcony garden checklist", "imageUrl": "https://example.invalid/pinterest/balcony-2.jpg" },
+    { "query": "balcony vegetable garden", "position": 1, "pinId": "synthetic-pin-003", "pinUrl": "https://www.pinterest.com/pin/100000000000000003/", "title": "Container vegetables for apartment balconies", "imageUrl": "https://example.invalid/pinterest/vegetable-1.jpg" },
+    { "query": "balcony vegetable garden", "position": 2, "pinId": "synthetic-pin-004", "pinUrl": "https://www.pinterest.com/pin/100000000000000004/", "title": "Balcony tomato and herb planting plan", "imageUrl": "https://example.invalid/pinterest/vegetable-2.jpg" },
+    { "query": "vertical garden for balcony", "position": 1, "pinId": "synthetic-pin-005", "pinUrl": "https://www.pinterest.com/pin/100000000000000005/", "title": "DIY vertical garden for a narrow balcony", "imageUrl": "https://example.invalid/pinterest/vertical-1.jpg" },
+    { "query": "vertical garden for balcony", "position": 2, "pinId": "synthetic-pin-006", "pinUrl": "https://www.pinterest.com/pin/100000000000000006/", "title": "Wall planter comparison for renters", "imageUrl": "https://example.invalid/pinterest/vertical-2.jpg" },
+    { "query": "apartment herb garden", "position": 1, "pinId": "synthetic-pin-007", "pinUrl": "https://www.pinterest.com/pin/100000000000000007/", "title": "Sunny windowsill herb garden guide", "imageUrl": "https://example.invalid/pinterest/herb-1.jpg" },
+    { "query": "apartment herb garden", "position": 2, "pinId": "synthetic-pin-008", "pinUrl": "https://www.pinterest.com/pin/100000000000000008/", "title": "Five herbs that thrive in containers", "imageUrl": "https://example.invalid/pinterest/herb-2.jpg" },
+    { "query": "small patio garden ideas", "position": 1, "pinId": "synthetic-pin-009", "pinUrl": "https://www.pinterest.com/pin/100000000000000009/", "title": "Compact patio zones for plants and seating", "imageUrl": "https://example.invalid/pinterest/patio-1.jpg" },
+    { "query": "small patio garden ideas", "position": 2, "pinId": "synthetic-pin-010", "pinUrl": "https://www.pinterest.com/pin/100000000000000010/", "title": "Budget patio garden before and after", "imageUrl": "https://example.invalid/pinterest/patio-2.jpg" }
   ]
 }

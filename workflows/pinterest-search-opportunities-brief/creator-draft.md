@@ -1,34 +1,33 @@
-![Pinterest visual opportunity workflow](assets/workflow-overview.png)
+![Pinterest search momentum workflow](assets/workflow-overview.png)
 
-# Find Pinterest product and content opportunities with visual AI analysis
+# Monitor Pinterest search momentum and plan what to publish next
 
-Turn public Pinterest search results into a decision brief rather than a generic
-idea list. This workflow runs `fetch_cat/pinterest-search-scraper`, assesses nine
-actual pin images and their metadata, rejects irrelevant results, and creates
-three evidence-linked concepts only when the research passes a configurable
-quality threshold.
-
-Weak or ambiguous searches do not produce fabricated opportunities. They create
-a Notion query-repair report with rejected evidence, replacement searches, and
-next actions.
+Stop rebuilding a Pinterest content plan from scratch every week. This workflow
+uses `fetch_cat/pinterest-search-scraper` to monitor five stable niche searches,
+compare dated result snapshots, inspect current pin creatives, and create three
+evidence-linked briefs for the next publishing cycle.
 
 ## Who is it for?
 
-- Ecommerce and print-on-demand teams deciding what to test next
-- Pinterest marketers researching visual formats and creative gaps
-- Agencies creating repeatable, source-linked opportunity briefs
-- Content teams that need evidence quality controls before ideation
+- Pinterest marketers and bloggers planning niche content
+- Ecommerce teams monitoring visual search-result changes
+- Agencies producing recurring research and content briefs
+- SEO and editorial teams that need source-linked recommendations
 
-## What it does
+## How it works
 
 1. Runs manually or every Monday morning.
-2. Searches exactly three focused queries with FetchCat Pinterest Search Scraper.
-3. Selects nine balanced, image-backed pins and compares dated search positions.
-4. Uses one structured OpenAI vision call to assess relevance and visual patterns.
-5. Applies a minimum relevant-evidence gate.
-6. Creates either three testable concepts or an insufficient-evidence report.
-7. Saves sortable evidence to Google Sheets and embeds source images and links in Notion.
-8. Commits the snapshot only after both destinations succeed.
+2. Fetches up to ten public pins for each of five configured queries.
+3. Rejects partial datasets instead of analyzing missing queries.
+4. Stores dated ranks and identifies new, rising, falling, steady, and repeated pins.
+5. Assesses ten balanced current images with one structured OpenAI request.
+6. Creates three original content briefs, a watch list, and next actions.
+7. Saves sortable evidence to Google Sheets and a readable report to Notion.
+
+The first run is a baseline, the second is an early comparison, and momentum
+language requires at least two earlier snapshots. Search visibility is not search
+volume or sales evidence, so the workflow never claims demand, popularity, or
+commercial performance from ranking data alone.
 
 ## Required accounts
 
@@ -37,12 +36,5 @@ next actions.
 - Google Sheets
 - Notion
 
-The workflow uses built-in n8n nodes, works on n8n Cloud and self-hosted n8n,
-does not require Pinterest login, and never publishes or edits pins.
-
-## Accuracy controls
-
-The workflow does not equate keyword overlap with relevance. It does not invent
-market demand, sales, search volume, clicks, impressions, or missing engagement
-metrics. Recommendations cite only pins judged relevant, and the prompt excludes
-trademarks, copyrighted characters, copied designs, and close imitation.
+Only built-in n8n nodes are used, so it works on n8n Cloud and self-hosted n8n.
+It does not require Pinterest login and never publishes or edits pins.

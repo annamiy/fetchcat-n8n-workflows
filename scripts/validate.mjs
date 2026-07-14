@@ -202,7 +202,8 @@ for (const slug of workflowSlugs()) {
   if (!/^\d+\.\d+\.\d+$/.test(metadata.version ?? '')) fail(slug, 'metadata version is not semantic');
   if (metadata.minimumN8nVersion !== '2.26.8') fail(slug, 'minimum n8n version must be 2.26.8');
   if (!releaseStates.has(metadata.releaseState)) fail(slug, 'invalid release state');
-  if (metadata.testLimits?.actorItems > 10) fail(slug, 'Actor test item limit exceeds 10');
+  const actorItemLimit = slug === 'pinterest-search-opportunities-brief' ? 50 : 10;
+  if (metadata.testLimits?.actorItems > actorItemLimit) fail(slug, `Actor test item limit exceeds ${actorItemLimit}`);
   if (metadata.workflowKind === 'actor-template' && metadata.testLimits?.actorItems < 1) fail(slug, 'Actor workflow must test at least one item');
   if (metadata.testLimits?.apifyBackedExecutions > 3) fail(slug, 'Apify-backed test execution limit exceeds 3');
   if (metadata.testLimits?.budgetUsd > 10) fail(slug, 'test budget exceeds $10');

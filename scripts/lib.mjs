@@ -69,6 +69,22 @@ export function sanitizeWorkflow(workflow) {
   }
 
   clean(copy);
+  for (const node of copy.nodes ?? []) {
+    const parameters = node.parameters ?? {};
+    if (node.type === 'n8n-nodes-base.googleSheets') {
+      if (parameters.documentId?.value) parameters.documentId.value = '0000000000000000000000000000000000000000000';
+      if (parameters.sheetName?.value) parameters.sheetName.value = '0';
+    }
+    if (node.type === 'n8n-nodes-base.notion' && parameters.databaseId?.value) {
+      parameters.databaseId.value = '00000000-0000-0000-0000-000000000000';
+    }
+    if (node.type === 'n8n-nodes-base.slack' && parameters.channelId?.value) {
+      parameters.channelId.value = 'C0000000000';
+    }
+    if (node.type === 'n8n-nodes-base.telegram' && typeof parameters.chatId === 'string') {
+      parameters.chatId = '-1000000000000';
+    }
+  }
   copy.active = false;
   copy.pinData = {};
   const settings = { ...(copy.settings ?? {}) };
