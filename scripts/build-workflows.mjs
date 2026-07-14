@@ -1009,7 +1009,8 @@ assertSources(brief.patterns);
 assertSources(brief.avoid);
 assertSources(brief.opportunities, true);
 const queryCounts = [...relevantCountByQuery.values()];
-const effectiveConfidence = relevantIds.size >= 8 && queryCounts.every((count) => count >= 1) ? brief.confidence : brief.confidence === 'low' ? 'low' : 'medium';
+const evidenceConfidence = relevantIds.size >= 8 && queryCounts.every((count) => count >= 1) ? brief.confidence : brief.confidence === 'low' ? 'low' : 'medium';
+const effectiveConfidence = analysis.monitorStage === 'baseline' && evidenceConfidence === 'high' ? 'medium' : evidenceConfidence;
 const countedSummary = String(brief.summary).replace(/^(?:zero|one|two|three|four|five|six|seven|eight|nine|\\d+)(?:\\s+of\\s+(?:nine|9))?\\s+pins?\\s+(?:are|were)\\s+relevant[^.]*\\.\\s*/i, '').trim();
 const summaryText = relevantIds.size + ' of 10 visually assessed pins were relevant. ' + countedSummary;
 const pinLinks = (ids) => ids.map((pinId) => visionById.get(String(pinId))?.pinUrl).filter(Boolean).join(' | ');
@@ -1663,7 +1664,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'FtsA7YTDVGAJ83XiS',
       actorSlug: 'fetch_cat/pinterest-search-scraper',
-      version: '3.0.1',
+      version: '3.0.2',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets', 'Notion', 'n8n Data Tables'],
       testLimits: { actorItems: 50, apifyBackedExecutions: 3, budgetUsd: 3.33 },

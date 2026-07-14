@@ -10,6 +10,7 @@ for (const entry of workflow.nodes.filter((node) => node.type === 'n8n-nodes-bas
   assert.doesNotThrow(() => new Function('$input', '$', entry.parameters.jsCode), `${entry.name} must compile`);
 }
 assert.match(code('Validate and Format Pinterest Brief'), /if \(!\/\[A-Za-z0-9\]\//);
+assert.match(code('Validate and Format Pinterest Brief'), /analysis\.monitorStage === 'baseline'.*evidenceConfidence === 'high'/);
 
 const queuedRunWait = workflow.nodes.find((entry) => entry.name === 'Wait for Queued Pinterest Run');
 assert.equal(queuedRunWait?.type, 'n8n-nodes-base.httpRequest');
