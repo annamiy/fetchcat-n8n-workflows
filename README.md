@@ -9,7 +9,7 @@ and is designed to fail closed before writing to an external service.
 | Workflow | Actor | Destinations | State |
 | --- | --- | --- | --- |
 | [LinkedIn Job Match Digest](workflows/linkedin-job-match-digest/) | `fetch_cat/linkedin-jobs-scraper` | Google Sheets, Slack | QA passed |
-| [Weekly Pinterest Content Opportunity Research](workflows/pinterest-search-opportunities-brief/) | `fetch_cat/pinterest-search-scraper` | Google Sheets, Notion | QA passed |
+| [Track Pinterest Keyword Rankings Weekly](workflows/pinterest-keyword-rank-tracker/) | `fetch_cat/pinterest-search-scraper` | Google Sheets | QA passed |
 | [YouTube Research Brief to Notion](workflows/youtube-research-brief-to-notion/) | `fetch_cat/youtube-transcript-scraper` | Notion | QA passed |
 | [Reddit Buying-Intent Alerts](workflows/reddit-buying-intent-alerts/) | `fetch_cat/reddit-scraper` | Telegram | QA passed |
 | [Private Workflow Error Alerts](workflows/shared-error-notifications/) | Companion workflow | Telegram | QA passed |
@@ -72,9 +72,9 @@ network URLs, and personal email addresses in workflow artifacts. Testing is
 limited to three Apify-backed executions per workflow, ten Actor items per run,
 one YouTube video per run, and a shared total budget of USD 10.
 
-Actor templates use a durable delivery ledger instead of execution-local
-deduplication. LinkedIn and Reddit make one structured AI request per batch,
-and the companion error workflow sends minimal private failure alerts.
+Actor templates use durable destination-backed history or a delivery ledger instead
+of execution-local deduplication. LinkedIn and Reddit make one structured AI request
+per batch, and the companion error workflow sends minimal private failure alerts.
 
 This repository does not modify any FetchCat Actor source, metadata, README,
 task, schema, or Store page.

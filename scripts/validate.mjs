@@ -99,14 +99,20 @@ for (const slug of workflowSlugs()) {
     }
     if (!metadata.actorId || !serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
     if (!metadata.actorSlug || !readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
-    if (!serialized.includes('n8n-nodes-base.dataTable')) fail(slug, 'does not use a durable n8n Data Table ledger');
-    const tableCreateNodes = workflow.nodes.filter((entry) =>
-      entry.type === 'n8n-nodes-base.dataTable'
-      && entry.parameters?.resource === 'table'
-      && entry.parameters?.operation === 'create'
-      && entry.parameters?.options?.createIfNotExists === true
-    );
-    if (tableCreateNodes.length < 1) fail(slug, 'does not create required Data Tables idempotently');
+    const usesDataTableLedger = serialized.includes('n8n-nodes-base.dataTable');
+    const usesSheetsHistory = slug === 'pinterest-keyword-rank-tracker'
+      && workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'read')
+      && workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate');
+    if (!usesDataTableLedger && !usesSheetsHistory) fail(slug, 'does not use durable destination-backed history or a Data Table ledger');
+    if (usesDataTableLedger) {
+      const tableCreateNodes = workflow.nodes.filter((entry) =>
+        entry.type === 'n8n-nodes-base.dataTable'
+        && entry.parameters?.resource === 'table'
+        && entry.parameters?.operation === 'create'
+        && entry.parameters?.options?.createIfNotExists === true
+      );
+      if (tableCreateNodes.length < 1) fail(slug, 'does not create required Data Tables idempotently');
+    }
     if (serialized.includes('n8n-nodes-base.removeDuplicates')) fail(slug, 'uses pre-delivery Remove Duplicates state');
   } else {
     if (metadata.actorId !== null || metadata.actorSlug !== null) fail(slug, 'support workflow must not declare an Actor');
@@ -202,7 +208,7 @@ for (const slug of workflowSlugs()) {
   if (!/^\d+\.\d+\.\d+$/.test(metadata.version ?? '')) fail(slug, 'metadata version is not semantic');
   if (metadata.minimumN8nVersion !== '2.26.8') fail(slug, 'minimum n8n version must be 2.26.8');
   if (!releaseStates.has(metadata.releaseState)) fail(slug, 'invalid release state');
-  const actorItemLimit = slug === 'pinterest-search-opportunities-brief' ? 50 : 10;
+  const actorItemLimit = slug === 'pinterest-keyword-rank-tracker' ? 50 : 10;
   if (metadata.testLimits?.actorItems > actorItemLimit) fail(slug, `Actor test item limit exceeds ${actorItemLimit}`);
   if (metadata.workflowKind === 'actor-template' && metadata.testLimits?.actorItems < 1) fail(slug, 'Actor workflow must test at least one item');
   if (metadata.testLimits?.apifyBackedExecutions > 3) fail(slug, 'Apify-backed test execution limit exceeds 3');

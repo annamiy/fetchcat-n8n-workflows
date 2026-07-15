@@ -1,17 +1,14 @@
 {
-  "slug": "pinterest-search-opportunities-brief",
-  "title": "Weekly Pinterest Content Opportunity Research",
+  "slug": "pinterest-keyword-rank-tracker",
+  "title": "Track Pinterest Keyword Rankings Weekly with Apify and Google Sheets",
   "workflowKind": "actor-template",
   "actorId": "FtsA7YTDVGAJ83XiS",
   "actorSlug": "fetch_cat/pinterest-search-scraper",
-  "version": "4.0.2",
+  "version": "1.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",
-    "OpenAI",
-    "Google Sheets",
-    "Notion",
-    "n8n Data Tables"
+    "Google Sheets"
   ],
   "testLimits": {
     "actorItems": 50,

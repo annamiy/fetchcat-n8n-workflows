@@ -2,70 +2,42 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { sanitizeWorkflow } from './lib.mjs';
 
-const workflow = JSON.parse(fs.readFileSync(new URL('../workflows/pinterest-search-opportunities-brief/workflow.json', import.meta.url)));
+const workflow = JSON.parse(fs.readFileSync(new URL('../workflows/pinterest-keyword-rank-tracker/workflow.json', import.meta.url)));
 const code = (name) => workflow.nodes.find((entry) => entry.name === name)?.parameters?.jsCode;
 const runCode = (source, input, lookup) => new Function('$input', '$', source)(input, lookup);
 
 for (const entry of workflow.nodes.filter((node) => node.type === 'n8n-nodes-base.code')) {
   assert.doesNotThrow(() => new Function('$input', '$', entry.parameters.jsCode), `${entry.name} must compile`);
 }
-assert.match(code('Check and Format Brief'), /if \(!\/\[A-Za-z0-9\]\//);
-assert.match(code('Check and Format Brief'), /analysis\.monitorStage === 'baseline'.*evidenceConfidence === 'high'/);
-assert.match(code('Check and Format Brief'), /item\.searchIntent\.toUpperCase\(\)/);
-assert.match(code('Check and Format Brief'), /item\.resultSimilarity\.toUpperCase\(\)/);
-assert.match(code('Check and Format Brief'), /cleanSentence\(item\.contentGap\)/);
-assert.match(code('Check and Format Brief'), /analysis\.monitorStage === 'baseline' \? '' : movement/);
 
-const queuedRunWait = workflow.nodes.find((entry) => entry.name === 'Wait for FetchCat Run');
-assert.equal(queuedRunWait?.type, 'n8n-nodes-base.httpRequest');
-assert.equal(queuedRunWait.parameters.queryParameters.parameters.find((entry) => entry.name === 'waitForFinish')?.value, '300');
-assert.deepEqual(
-  workflow.connections['2. Search Pinterest with FetchCat'].main[0].map((entry) => entry.node),
-  ['Wait for FetchCat Run']
-);
-assert.deepEqual(
-  workflow.connections['Wait for FetchCat Run'].main[0].map((entry) => entry.node),
-  ['Check FetchCat Run']
-);
+assert.equal(workflow.name, 'Track Pinterest Keyword Rankings Weekly with Apify and Google Sheets');
+assert.equal(workflow.active, false);
+assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets').length, 2);
+assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.dataTable').length, 0);
+assert.equal(workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi').length, 0);
+assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.notion').length, 0);
 
-const notionTypes = workflow.nodes
-  .find((entry) => entry.name === '5. Create Pinterest Brief in Notion')
-  .parameters.blockUi.blockValues.map((block) => block.type);
-assert.equal(notionTypes.length, 61);
-assert.deepEqual(notionTypes.slice(10, 17), ['heading_2', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'heading_2', 'paragraph']);
-assert.deepEqual(notionTypes.slice(37, 48), ['heading_2', 'to_do', 'to_do', 'to_do', 'to_do', 'heading_2', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item', 'bulleted_list_item']);
+const readSheet = workflow.nodes.find((entry) => entry.name === 'Read Earlier Rankings from Google Sheets');
+assert.equal(readSheet.parameters.operation, 'read');
+assert.equal(readSheet.alwaysOutputData, true);
+assert.equal(readSheet.executeOnce, true);
 
-const liveLike = structuredClone(workflow);
-liveLike.nodes.find((entry) => entry.type === 'n8n-nodes-base.googleSheets').parameters.documentId.value = 'private-sheet-id';
-liveLike.nodes.find((entry) => entry.type === 'n8n-nodes-base.googleSheets').parameters.sheetName.value = 'private-tab-id';
-liveLike.nodes.find((entry) => entry.type === 'n8n-nodes-base.notion').parameters.databaseId.value = 'private-database-id';
-const sanitized = sanitizeWorkflow(liveLike);
-assert.equal(sanitized.nodes.find((entry) => entry.type === 'n8n-nodes-base.googleSheets').parameters.documentId.value, '0000000000000000000000000000000000000000000');
-assert.equal(sanitized.nodes.find((entry) => entry.type === 'n8n-nodes-base.googleSheets').parameters.sheetName.value, '0');
-assert.equal(sanitized.nodes.find((entry) => entry.type === 'n8n-nodes-base.notion').parameters.databaseId.value, '00000000-0000-0000-0000-000000000000');
+const writeSheet = workflow.nodes.find((entry) => entry.name === '4. Save Rankings to Google Sheets');
+assert.equal(writeSheet.parameters.operation, 'appendOrUpdate');
+assert.deepEqual(writeSheet.parameters.columns.matchingColumns, ['Snapshot key']);
+assert.deepEqual(writeSheet.parameters.options, {});
 
-const queries = [
-  'small balcony garden ideas',
-  'balcony vegetable garden',
-  'vertical garden for balcony',
-  'apartment herb garden',
-  'small patio garden ideas'
-];
+const fetchCatSearch = workflow.nodes.find((entry) => entry.name === '2. Search Pinterest with FetchCat');
+assert.equal(fetchCatSearch?.type, 'n8n-nodes-base.httpRequest');
+assert.match(fetchCatSearch.parameters.url, /run-sync-get-dataset-items$/);
+assert.equal(fetchCatSearch.parameters.queryParameters.parameters.find((entry) => entry.name === 'timeout')?.value, '300');
+assert.deepEqual(workflow.connections['2. Search Pinterest with FetchCat'].main[0].map((entry) => entry.node), ['Normalize Current Rankings']);
+
 const config = {
-  researchName: 'Small-space gardening content opportunities',
-  decisionToMake: 'Which Pinterest topics and creative formats should we publish or test next?',
-  offer: 'A practical small-space gardening publication with useful guides and recommendations.',
-  targetAudience: 'Apartment renters who want productive gardens in very limited outdoor space.',
-  brandStyle: 'Useful, achievable, bright, and specific, with clear instructional visuals.',
-  constraints: 'Recommend original educational content and do not claim demand without trend data.',
-  queries,
-  locale: 'en-US',
-  country: 'US',
-  maxResultsPerQuery: 10,
-  minRelevantPins: 7
+  queries: ['small balcony garden ideas', 'balcony vegetable garden', 'apartment herb garden'],
+  maxResultsPerQuery: 10
 };
-
-const actorRows = queries.flatMap((query, queryIndex) => Array.from({ length: 7 }, (_, index) => ({
+const actorRows = config.queries.flatMap((query, queryIndex) => Array.from({ length: 2 }, (_, index) => ({
   query,
   position: index + 1,
   pinId: `pin-${queryIndex}-${index}`,
@@ -74,53 +46,70 @@ const actorRows = queries.flatMap((query, queryIndex) => Array.from({ length: 7 
   imageUrl: `https://images.example.test/${queryIndex}-${index}.jpg`
 })));
 
-const normalizeLookup = (name) => ({
-  first: () => ({ json: { config } })
-});
 const normalized = runCode(
-  code('Normalize Pinterest Pins'),
+  code('Normalize Current Rankings'),
   { all: () => actorRows.map((json) => ({ json })) },
-  normalizeLookup
+  () => ({ first: () => ({ json: { config } }) })
 );
-assert.equal(normalized.length, 35);
+assert.equal(normalized.length, 6);
+assert.equal(new Set(normalized.map((item) => `${item.json.query}|${item.json.pinId}`)).size, 6);
 
-const incompleteRows = actorRows.filter((row) => row.query !== queries[4] || row.position <= 6);
 assert.throws(() => runCode(
-  code('Normalize Pinterest Pins'),
-  { all: () => incompleteRows.map((json) => ({ json })) },
-  normalizeLookup
-), /Incomplete Pinterest dataset/);
+  code('Normalize Current Rankings'),
+  { all: () => actorRows.filter((row) => row.query !== config.queries[2]).map((json) => ({ json })) },
+  () => ({ first: () => ({ json: { config } }) })
+), /returned no usable pins/);
 
 const currentRows = normalized.map((item) => item.json);
-const compare = (historical) => runCode(
-  code('Compare Search Visibility'),
-  { all: () => historical.map((json) => ({ json })) },
-  (name) => ({
-    all: () => name === 'Normalize Pinterest Pins' ? currentRows.map((json) => ({ json })) : [],
-    first: () => ({ json: { config } })
-  })
+const compare = (sheetRows) => runCode(
+  code('3. Compare Weekly Rankings'),
+  { all: () => sheetRows.map((json) => ({ json })) },
+  () => ({ all: () => currentRows.map((json) => ({ json })) })
 )[0].json;
 
-const baseline = compare([]);
-assert.equal(baseline.monitorStage, 'baseline');
-assert.equal(baseline.visionPins.length, 10);
-assert.deepEqual(baseline.visionPins.map((pin) => pin.evidenceId), ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10']);
-assert.equal(baseline.queryStats.length, 5);
+const baseline = compare([{}]);
+assert.equal(baseline.rows.length, 6);
+assert.ok(baseline.rows.every((row) => row.status === 'First snapshot'));
+assert.ok(baseline.rows.every((row) => row.previousPosition === null && row.movement === null));
+assert.equal(new Set(baseline.rows.map((row) => row.snapshotKey)).size, 6);
 
-const historicalRows = (date, offset) => currentRows.map((row) => ({
-  ...row,
-  snapshotDate: date,
-  snapshotKey: `${date}|${row.query.toLowerCase()}|${row.pinId}`,
-  position: Math.min(20, row.position + offset)
-}));
-const comparison = compare(historicalRows('2026-06-30', 1));
-assert.equal(comparison.monitorStage, 'comparison');
-assert.ok(comparison.compared.some((row) => row.status === 'rising'));
-const momentum = compare([
-  ...historicalRows('2026-06-23', 2),
-  ...historicalRows('2026-06-30', 1)
-]);
-assert.equal(momentum.monitorStage, 'momentum');
-assert.ok(momentum.compared.every((row) => row.weeksObserved === 3));
+const currentDate = currentRows[0].snapshotDate;
+const previousDate = new Date(`${currentDate}T12:00:00Z`);
+previousDate.setUTCDate(previousDate.getUTCDate() - 7);
+const previousSerial = previousDate.getTime() / 86400000 + 25569;
+const prior = [
+  { 'Snapshot at': previousSerial, Query: config.queries[0], Position: 2, 'Pinterest pin ID': 'pin-0-0', Title: 'Prior pin 0' },
+  { 'Snapshot at': previousSerial, Query: config.queries[0], Position: 3, 'Pinterest pin ID': 'missing-pin', Title: 'Previously visible pin' },
+  { 'Snapshot at': previousSerial, Query: config.queries[1], Position: 1, 'Pinterest pin ID': 'pin-1-0', Title: 'Prior pin 1' },
+  { 'Snapshot at': previousSerial, Query: config.queries[1], Position: 1, 'Pinterest pin ID': 'pin-1-1', Title: 'Prior pin 2' },
+  { 'Snapshot at': previousSerial, Query: config.queries[2], Position: 2, 'Pinterest pin ID': 'pin-2-0', Title: 'Prior pin 3' },
+  { 'Snapshot at': previousSerial, Query: config.queries[2], Position: 2, 'Pinterest pin ID': 'pin-2-1', Title: 'Prior pin 4' }
+];
+const comparison = compare(prior);
+const statusById = new Map(comparison.rows.map((row) => [row.pinId, row.status]));
+assert.equal(statusById.get('pin-0-0'), 'Moved up');
+assert.equal(statusById.get('pin-0-1'), 'New in search results');
+assert.equal(statusById.get('pin-1-0'), 'Unchanged');
+assert.equal(statusById.get('pin-1-1'), 'Moved down');
+assert.equal(statusById.get('pin-2-0'), 'Moved up');
+assert.equal(statusById.get('pin-2-1'), 'Unchanged');
+assert.equal(statusById.get('missing-pin'), 'No longer visible');
+assert.equal(comparison.rows.find((row) => row.pinId === 'pin-0-0').movement, 1);
+assert.equal(comparison.rows.find((row) => row.pinId === 'pin-1-1').movement, -1);
+assert.equal(comparison.rows.find((row) => row.pinId === 'pin-0-1').previousPosition, null);
+assert.equal(comparison.rows.find((row) => row.pinId === 'missing-pin').position, null);
+assert.equal(comparison.rows.find((row) => row.pinId === 'missing-pin').movement, null);
+assert.equal(comparison.counts.noLongerVisible, 1);
 
-console.log('Pinterest opportunity research passed completeness, first-run, history, and image-balance tests.');
+const liveLike = structuredClone(workflow);
+for (const node of liveLike.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets')) {
+  node.parameters.documentId.value = 'private-sheet-id';
+  node.parameters.sheetName.value = 'private-tab-id';
+}
+const sanitized = sanitizeWorkflow(liveLike);
+for (const node of sanitized.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets')) {
+  assert.equal(node.parameters.documentId.value, '0000000000000000000000000000000000000000000');
+  assert.equal(node.parameters.sheetName.value, '0');
+}
+
+console.log('Pinterest rank tracker passed baseline, movement, disappearance, idempotency, and sanitization tests.');
