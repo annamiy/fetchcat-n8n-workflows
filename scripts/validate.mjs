@@ -31,6 +31,47 @@ function scanText(slug, filename, text) {
   }
 }
 
+function validateAutoAnnotatedStickies(slug, workflow) {
+  const overviewStickies = workflow.nodes.filter((entry) =>
+    entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 1
+  );
+  if (overviewStickies.length !== 1) fail(slug, 'must contain exactly one yellow overview sticky');
+  if (overviewStickies.length === 1) {
+    const content = overviewStickies[0].parameters.content ?? '';
+    const words = content.trim().split(/\s+/).filter(Boolean).length;
+    if (words < 100 || words > 300) fail(slug, 'yellow overview sticky must contain 100 to 300 words');
+    if (!content.includes('### How it works') || !content.includes('### Setup')) {
+      fail(slug, 'yellow overview sticky must contain How it works and Setup sections');
+    }
+  }
+
+  const sectionStickies = workflow.nodes.filter((entry) =>
+    entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 7
+  );
+  const workflowNodes = workflow.nodes.filter((entry) => entry.type !== 'n8n-nodes-base.stickyNote');
+  const minimumGroups = Math.ceil(workflowNodes.length / 3);
+  if (sectionStickies.length < minimumGroups) fail(slug, `must contain at least ${minimumGroups} white logical-group stickies`);
+  if (sectionStickies.some((entry) => !(entry.parameters.content ?? '').startsWith('## '))) {
+    fail(slug, 'every white section sticky must start with an H2 heading');
+  }
+  if (sectionStickies.some((entry) => (entry.parameters.content ?? '').trim().split(/\s+/).filter(Boolean).length >= 50)) {
+    fail(slug, 'white section stickies must stay under 50 words');
+  }
+  for (const workflowNode of workflowNodes) {
+    const [nodeX, nodeY] = workflowNode.position;
+    const containingStickies = sectionStickies.filter((entry) => {
+      const [stickyX, stickyY] = entry.position;
+      const stickyWidth = Number(entry.parameters.width);
+      const stickyHeight = Number(entry.parameters.height);
+      return nodeX >= stickyX && nodeX + 96 <= stickyX + stickyWidth &&
+        nodeY >= stickyY && nodeY + 96 <= stickyY + stickyHeight;
+    });
+    if (containingStickies.length !== 1) {
+      fail(slug, `${workflowNode.name} must be enclosed by exactly one white logical-group sticky`);
+    }
+  }
+}
+
 for (const slug of workflowSlugs()) {
   const dir = workflowPath(slug, '');
   const required = [
@@ -120,6 +161,7 @@ for (const slug of workflowSlugs()) {
   if (metadata.integrations.includes('OpenAI') && !serialized.includes('gpt-5.4-mini')) {
     fail(slug, 'does not pin gpt-5.4-mini');
   }
+  if (slug === 'pinterest-content-opportunity-research') validateAutoAnnotatedStickies(slug, workflow);
   if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {
     const openAiNodes = workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi');
     if (openAiNodes.length !== 1) fail(slug, 'must use exactly one OpenAI batch node');

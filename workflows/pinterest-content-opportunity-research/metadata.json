@@ -4,7 +4,7 @@
   "workflowKind": "actor-template",
   "actorId": "FtsA7YTDVGAJ83XiS",
   "actorSlug": "fetch_cat/pinterest-search-scraper",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",

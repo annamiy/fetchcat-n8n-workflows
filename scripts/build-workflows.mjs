@@ -825,11 +825,11 @@ return [{ json: { status: 'Pinterest content opportunity research saved', ...rep
 ### Interpretation
 
 Themes and underrepresented angles are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. Suggested search expansions are clearly marked as unvalidated brainstorming prompts. Nothing measures Pinterest search volume, trend growth, clicks, sales, or demand.`, 1),
-  sticky('51000000-', 22, 'Configure niche', [-1808, -224], 528, 400, '## Configure niche\n\nEnter one clear research niche and one to five searches. The default collects 100 pins per search; raise it to 500 only when the extra breadth is useful.', 7),
-  sticky('51000000-', 23, 'Collect and normalize', [-1280, -224], 528, 400, '## Collect and normalize\n\nFetchCat collects public Pinterest results. The workflow validates IDs, URLs, positions, titles, descriptions, creators, boards, domains, formats, and available save data.', 7),
-  sticky('51000000-', 24, 'Build evidence', [-752, -224], 528, 400, '## Build evidence\n\nCreates source rows, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.', 7),
-  sticky('51000000-', 25, 'Analyze and validate', [-224, -224], 528, 400, '## Analyze and validate\n\nOpenAI proposes themes, underrepresented angles, and production briefs using supplied pin IDs. Invalid citations are removed; a finding with no supplied evidence or malformed output stops the workflow before any Sheet write.', 7),
-  sticky('51000000-', 26, 'Save research', [304, -224], 1152, 400, '## Save research\n\nWrites source pins and the readable brief to separate tabs. Creator, board, domain, and destination fields remain on each pin when Pinterest exposes them. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.', 7)
+  sticky('51000000-', 22, 'Configure niche', [-1808, -224], 480, 400, '## Configure niche\n\nEnter one clear research niche and one to five searches. The default collects 100 pins per search; raise it to 500 only when the extra breadth is useful.', 7),
+  sticky('51000000-', 23, 'Collect and normalize', [-1328, -224], 720, 400, '## Collect and normalize\n\nFetchCat collects public Pinterest results. The workflow validates IDs, URLs, positions, titles, descriptions, creators, boards, domains, formats, and available save data.', 7),
+  sticky('51000000-', 24, 'Build evidence', [-608, -224], 480, 400, '## Build evidence\n\nCreates source rows, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.', 7),
+  sticky('51000000-', 25, 'Analyze and validate', [-128, -224], 480, 400, '## Analyze and validate\n\nOpenAI proposes themes, underrepresented angles, and production briefs using supplied pin IDs. Invalid citations are removed; a finding with no supplied evidence or malformed output stops the workflow before any Sheet write.', 7),
+  sticky('51000000-', 26, 'Save research', [352, -224], 1104, 400, '## Save research\n\nWrites source pins and the readable brief to separate tabs. Creator, board, domain, and destination fields remain on each pin when Pinterest exposes them. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.', 7)
 ];
 
 const pinterestResearchWorkflow = workflow(
@@ -1325,7 +1325,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'FtsA7YTDVGAJ83XiS',
       actorSlug: 'fetch_cat/pinterest-search-scraper',
-      version: '1.2.0',
+      version: '1.2.1',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets'],
       testLimits: { actorItems: 50, apifyBackedExecutions: 3, budgetUsd: 3.33 },

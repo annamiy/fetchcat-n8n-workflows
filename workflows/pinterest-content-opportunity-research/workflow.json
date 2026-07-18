@@ -620,7 +620,7 @@
     },
     {
       "parameters": {
-        "width": 528,
+        "width": 480,
         "height": 400,
         "content": "## Configure niche\n\nEnter one clear research niche and one to five searches. The default collects 100 pins per search; raise it to 500 only when the extra breadth is useful.",
         "color": 7
@@ -636,7 +636,7 @@
     },
     {
       "parameters": {
-        "width": 528,
+        "width": 720,
         "height": 400,
         "content": "## Collect and normalize\n\nFetchCat collects public Pinterest results. The workflow validates IDs, URLs, positions, titles, descriptions, creators, boards, domains, formats, and available save data.",
         "color": 7
@@ -646,13 +646,13 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1280,
+        -1328,
         -224
       ]
     },
     {
       "parameters": {
-        "width": 528,
+        "width": 480,
         "height": 400,
         "content": "## Build evidence\n\nCreates source rows, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.",
         "color": 7
@@ -662,13 +662,13 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -752,
+        -608,
         -224
       ]
     },
     {
       "parameters": {
-        "width": 528,
+        "width": 480,
         "height": 400,
         "content": "## Analyze and validate\n\nOpenAI proposes themes, underrepresented angles, and production briefs using supplied pin IDs. Invalid citations are removed; a finding with no supplied evidence or malformed output stops the workflow before any Sheet write.",
         "color": 7
@@ -678,13 +678,13 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -224,
+        -128,
         -224
       ]
     },
     {
       "parameters": {
-        "width": 1152,
+        "width": 1104,
         "height": 400,
         "content": "## Save research\n\nWrites source pins and the readable brief to separate tabs. Creator, board, domain, and destination fields remain on each pin when Pinterest exposes them. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.",
         "color": 7
@@ -694,7 +694,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        304,
+        352,
         -224
       ]
     }
