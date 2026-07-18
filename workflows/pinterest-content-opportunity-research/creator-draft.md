@@ -4,15 +4,14 @@
 
 Turn a Pinterest niche into inspectable content research instead of
 another unstructured list of pins. This workflow runs
-`fetch_cat/pinterest-search-scraper`, saves every source result, summarizes available
-public sources, and produces an evidence-linked research brief.
+`fetch_cat/pinterest-search-scraper`, saves every source result, and produces an
+evidence-linked research brief.
 
 For example, enter `female cycling` and request up to 500 public results. The output
 shows how many pins Pinterest returned, which formats and phrases recur, what the
 existing results underrepresent, and five production-ready content briefs. Each brief
 includes a proposed pin title, visual concept, audience problem, differentiating angle,
-destination content, observed phrases, and unvalidated search-expansion ideas. When Pinterest
-exposes creator or destination fields, the workflow summarizes those sources too.
+destination content, observed phrases, and unvalidated search-expansion ideas.
 
 ## Who is it for?
 
@@ -27,17 +26,14 @@ exposes creator or destination fields, the workflow summarizes those sources too
 2. Collects 20 to 500 public pins per search with FetchCat.
 3. Saves positions, titles, descriptions, creators, boards, domains, destinations,
    formats, images, and available public metrics.
-4. Ranks creators and domains by total appearances, top-ten appearances, and best
-   position.
-5. Builds a bounded evidence packet and analyzes it in one structured OpenAI call.
-6. Rejects findings that cite pin IDs absent from the supplied source data.
-7. Clearly separates observed phrases from unvalidated search-expansion ideas.
-8. Saves source pins, available public source aggregates, and the readable brief to
-   separate Google Sheet tabs.
+4. Builds a bounded evidence packet and analyzes it in one structured OpenAI call.
+5. Removes invalid citations and rejects findings without supplied evidence.
+6. Clearly separates observed phrases from unvalidated search-expansion ideas.
+7. Saves source pins and the readable brief to separate Google Sheet tabs.
 
 Public detail enrichment is enabled by default. Pinterest can still withhold creator,
-board, domain, destination, save, or repin fields; unavailable evidence is left blank
-or identified explicitly rather than inferred.
+board, domain, destination, save, or repin fields. Those fields remain on individual
+pin rows when available and are left blank rather than inferred when unavailable.
 
 ## Required accounts
 

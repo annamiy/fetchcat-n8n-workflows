@@ -1,14 +1,13 @@
 {
   "assertions": [
     "Every valid source pin is saved with its search position and evidence links.",
-    "Creators and domains are ranked by top-ten appearances, total appearances, and best position.",
     "One bounded structured OpenAI request analyzes the supplied evidence.",
     "Every theme, underrepresented angle, and content test cites only supplied Pinterest pin IDs.",
     "Invalid citations are discarded, while findings with no supplied evidence fail before Sheet writes.",
     "The report contains four to eight themes, three to five underrepresented angles, and exactly five content tests.",
     "Each content test includes a proposed pin title, visual concept, format, audience problem, differentiating angle, destination content, observed phrases, and unvalidated search-expansion ideas.",
     "Theme matching counts use literal terms found in supplied titles and descriptions.",
-    "Pins, Sources, and Research Brief use stable Research keys for same-day reruns.",
+    "Pins and Research Brief use stable Research keys for same-day reruns.",
     "The workflow makes no search-volume, trend-growth, clicks, sales, or demand claims."
   ]
 }

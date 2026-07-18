@@ -149,7 +149,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const pins = $input.all().map((item) => item.json);\nconst config = $('Build FetchCat Research Input').first().json.config;\nconst sheetsEpochOffset = 25569;\nconst researchSerial = new Date(pins[0].researchAt).getTime() / 86400000 + sheetsEpochOffset;\nconst escapeFormula = (value) => String(value || '').replace(/\"/g, '\"\"');\nconst sourceRows = pins.map((pin) => {\n  return {\n    researchAt: researchSerial,\n    niche: config.niche,\n    query: pin.query,\n    position: pin.position,\n    pinLink: '=HYPERLINK(\"' + escapeFormula(pin.pinUrl) + '\",\"View pin\")',\n    title: pin.title,\n    description: pin.description,\n    creator: pin.creatorName,\n    board: pin.boardName,\n    domain: pin.domain,\n    destinationLink: pin.outboundUrl ? '=HYPERLINK(\"' + escapeFormula(pin.outboundUrl) + '\",\"Open destination\")' : '',\n    imageLink: pin.imageUrl ? '=HYPERLINK(\"' + escapeFormula(pin.imageUrl) + '\",\"View image\")' : '',\n    format: pin.isVideo ? 'Video' : 'Image',\n    saves: pin.saveCount,\n    repins: pin.repinCount,\n    pinId: pin.pinId,\n    researchKey: pins[0].researchDate + '|' + config.niche.toLowerCase() + '|' + pin.query.toLowerCase() + '|' + pin.pinId\n  };\n});\nconst aggregate = (field, type) => {\n  const map = new Map();\n  for (const pin of pins) {\n    const name = String(pin[field] || '').trim();\n    if (!name) continue;\n    const key = name.toLowerCase();\n    const row = map.get(key) || { type, name, appearances: 0, topTenAppearances: 0, bestPosition: Infinity, examplePinUrl: pin.pinUrl };\n    row.appearances += 1;\n    if (pin.position <= 10) row.topTenAppearances += 1;\n    row.bestPosition = Math.min(row.bestPosition, pin.position);\n    map.set(key, row);\n  }\n  return [...map.values()];\n};\nlet publicSources = [...aggregate('creatorName', 'Creator'), ...aggregate('domain', 'Domain')]\n  .sort((a, b) => b.topTenAppearances - a.topTenAppearances || b.appearances - a.appearances || a.bestPosition - b.bestPosition)\n  .slice(0, 50);\nif (publicSources.length === 0) publicSources = [{ type: 'Availability', name: 'Pinterest did not expose public creator or domain data', appearances: 0, topTenAppearances: 0, bestPosition: null, examplePinUrl: pins[0].pinUrl }];\npublicSources = publicSources.map((row, index) => ({\n    researchAt: researchSerial, niche: config.niche, ...row,\n    examplePin: '=HYPERLINK(\"' + escapeFormula(row.examplePinUrl) + '\",\"View pin\")',\n    researchKey: pins[0].researchDate + '|' + config.niche.toLowerCase() + '|' + row.type.toLowerCase() + '|' + row.name.toLowerCase(),\n    sortOrder: index + 1\n  }));\nconst stopWords = new Set('a an and are as at be by for from how in into is it of on or that the this to with you your pinterest pin ideas'.split(' '));\nconst phraseCounts = new Map();\nfor (const pin of pins) {\n  const words = (pin.title + ' ' + pin.description).toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\\s+/).filter((word) => word.length > 2 && !stopWords.has(word));\n  const phrases = new Set();\n  for (let i = 0; i < words.length - 1; i += 1) phrases.add(words[i] + ' ' + words[i + 1]);\n  for (const phrase of phrases) phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);\n}\nconst recurringPhrases = [...phraseCounts].filter(([, count]) => count >= 2).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([phrase, count]) => ({ phrase, pins: count }));\nconst compactPins = [];\nlet packetSize = 0;\nfor (const pin of pins) {\n  const compact = { pinId: pin.pinId, query: pin.query, position: pin.position, title: pin.title.slice(0, 180), description: pin.description.slice(0, 260), creator: pin.creatorName, domain: pin.domain, format: pin.isVideo ? 'Video' : 'Image' };\n  const size = JSON.stringify(compact).length;\n  if (packetSize + size > 105000) break;\n  compactPins.push(compact);\n  packetSize += size;\n}\nconst stats = {\n  niche: config.niche,\n  searches: config.queries,\n  totalPins: pins.length,\n  analyzedPins: compactPins.length,\n  uniqueCreators: new Set(pins.map((pin) => pin.creatorName).filter(Boolean).map((value) => value.toLowerCase())).size,\n  uniqueDomains: new Set(pins.map((pin) => pin.domain).filter(Boolean).map((value) => value.toLowerCase())).size,\n  imagePins: pins.filter((pin) => !pin.isVideo).length,\n  videoPins: pins.filter((pin) => pin.isVideo).length,\n  pinsWithSaveData: pins.filter((pin) => pin.saveCount !== null).length\n};\nreturn [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stats, recurringPhrases, publicSources: publicSources.slice(0, 20).map(({ type, name, appearances, topTenAppearances, bestPosition }) => ({ type, name, appearances, topTenAppearances, bestPosition })), pins: compactPins } } }];"
+        "jsCode": "const pins = $input.all().map((item) => item.json);\nconst config = $('Build FetchCat Research Input').first().json.config;\nconst sheetsEpochOffset = 25569;\nconst researchSerial = new Date(pins[0].researchAt).getTime() / 86400000 + sheetsEpochOffset;\nconst escapeFormula = (value) => String(value || '').replace(/\"/g, '\"\"');\nconst sourceRows = pins.map((pin) => {\n  return {\n    researchAt: researchSerial,\n    niche: config.niche,\n    query: pin.query,\n    position: pin.position,\n    pinLink: '=HYPERLINK(\"' + escapeFormula(pin.pinUrl) + '\",\"View pin\")',\n    title: pin.title,\n    description: pin.description,\n    creator: pin.creatorName,\n    board: pin.boardName,\n    domain: pin.domain,\n    destinationLink: pin.outboundUrl ? '=HYPERLINK(\"' + escapeFormula(pin.outboundUrl) + '\",\"Open destination\")' : '',\n    imageLink: pin.imageUrl ? '=HYPERLINK(\"' + escapeFormula(pin.imageUrl) + '\",\"View image\")' : '',\n    format: pin.isVideo ? 'Video' : 'Image',\n    saves: pin.saveCount,\n    repins: pin.repinCount,\n    pinId: pin.pinId,\n    researchKey: pins[0].researchDate + '|' + config.niche.toLowerCase() + '|' + pin.query.toLowerCase() + '|' + pin.pinId\n  };\n});\nconst stopWords = new Set('a an and are as at be by for from how in into is it of on or that the this to with you your pinterest pin ideas'.split(' '));\nconst phraseCounts = new Map();\nfor (const pin of pins) {\n  const words = (pin.title + ' ' + pin.description).toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\\s+/).filter((word) => word.length > 2 && !stopWords.has(word));\n  const phrases = new Set();\n  for (let i = 0; i < words.length - 1; i += 1) phrases.add(words[i] + ' ' + words[i + 1]);\n  for (const phrase of phrases) phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);\n}\nconst recurringPhrases = [...phraseCounts].filter(([, count]) => count >= 2).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([phrase, count]) => ({ phrase, pins: count }));\nconst compactPins = [];\nlet packetSize = 0;\nfor (const pin of pins) {\n  const compact = { pinId: pin.pinId, query: pin.query, position: pin.position, title: pin.title.slice(0, 180), description: pin.description.slice(0, 260), creator: pin.creatorName, domain: pin.domain, format: pin.isVideo ? 'Video' : 'Image' };\n  const size = JSON.stringify(compact).length;\n  if (packetSize + size > 105000) break;\n  compactPins.push(compact);\n  packetSize += size;\n}\nconst stats = {\n  niche: config.niche,\n  searches: config.queries,\n  totalPins: pins.length,\n  analyzedPins: compactPins.length,\n  uniqueCreators: new Set(pins.map((pin) => pin.creatorName).filter(Boolean).map((value) => value.toLowerCase())).size,\n  uniqueDomains: new Set(pins.map((pin) => pin.domain).filter(Boolean).map((value) => value.toLowerCase())).size,\n  imagePins: pins.filter((pin) => !pin.isVideo).length,\n  videoPins: pins.filter((pin) => pin.isVideo).length,\n  pinsWithSaveData: pins.filter((pin) => pin.saveCount !== null).length\n};\nreturn [{ json: { stats, sourceRows, pins, researchPacket: { stats, recurringPhrases, pins: compactPins } } }];"
       },
       "id": "51000000-0000-0000-4000-8000-000000000010",
       "name": "Build Research Evidence",
@@ -459,147 +459,6 @@
     },
     {
       "parameters": {
-        "jsCode": "return $('Validate Evidence and Build Report').first().json.publicSources.map((row) => ({ json: row }));"
-      },
-      "id": "51000000-0000-0000-4000-8000-000000000015",
-      "name": "Prepare Public Source Rows",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        880,
-        80
-      ],
-      "executeOnce": true
-    },
-    {
-      "parameters": {
-        "operation": "appendOrUpdate",
-        "documentId": {
-          "__rl": true,
-          "mode": "id",
-          "value": "0000000000000000000000000000000000000000000"
-        },
-        "sheetName": {
-          "__rl": true,
-          "mode": "id",
-          "value": "0",
-          "cachedResultName": "Sources"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "matchingColumns": [
-            "Research key"
-          ],
-          "value": {
-            "Research at": "={{ $json.researchAt }}",
-            "Niche": "={{ $json.niche }}",
-            "Type": "={{ $json.type }}",
-            "Name": "={{ $json.name }}",
-            "Appearances": "={{ $json.appearances }}",
-            "Top 10 appearances": "={{ $json.topTenAppearances }}",
-            "Best position": "={{ $json.bestPosition }}",
-            "Example pin": "={{ $json.examplePin }}",
-            "Research key": "={{ $json.researchKey }}"
-          },
-          "schema": [
-            {
-              "id": "Research at",
-              "displayName": "Research at",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Niche",
-              "displayName": "Niche",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Type",
-              "displayName": "Type",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Name",
-              "displayName": "Name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Appearances",
-              "displayName": "Appearances",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Top 10 appearances",
-              "displayName": "Top 10 appearances",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Best position",
-              "displayName": "Best position",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Example pin",
-              "displayName": "Example pin",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Research key",
-              "displayName": "Research key",
-              "required": false,
-              "defaultMatch": true,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "51000000-0000-0000-4000-8000-000000000016",
-      "name": "5. Save Public Source Summary",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        1120,
-        80
-      ]
-    },
-    {
-      "parameters": {
         "jsCode": "return $('Validate Evidence and Build Report').first().json.briefRows.map((row) => ({ json: row }));"
       },
       "id": "51000000-0000-0000-4000-8000-000000000017",
@@ -607,7 +466,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1360,
+        880,
         80
       ],
       "executeOnce": true
@@ -721,24 +580,24 @@
         "options": {}
       },
       "id": "51000000-0000-0000-4000-8000-000000000018",
-      "name": "6. Save Research Brief",
+      "name": "5. Save Research Brief",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1600,
+        1120,
         80
       ]
     },
     {
       "parameters": {
-        "jsCode": "const report = $('Validate Evidence and Build Report').first().json;\nreturn [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, publicSourceRows: report.publicSources.length, themeRows: report.analysis.themes.length, underrepresentedAngles: report.analysis.underrepresentedAngles.length, contentTests: report.analysis.contentTests.length, discardedInvalidCitations: report.analysis.discardedInvalidCitations || 0, note: 'Findings describe the supplied Pinterest results. Search-expansion ideas are unvalidated brainstorming prompts, not Pinterest keyword or demand data.' } }];"
+        "jsCode": "const report = $('Validate Evidence and Build Report').first().json;\nreturn [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, themeRows: report.analysis.themes.length, underrepresentedAngles: report.analysis.underrepresentedAngles.length, contentTests: report.analysis.contentTests.length, discardedInvalidCitations: report.analysis.discardedInvalidCitations || 0, note: 'Findings describe the supplied Pinterest results. Search-expansion ideas are unvalidated brainstorming prompts, not Pinterest keyword or demand data.' } }];"
       },
       "id": "51000000-0000-0000-4000-8000-000000000019",
       "name": "Research Complete",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1840,
+        1360,
         80
       ],
       "executeOnce": true
@@ -747,7 +606,7 @@
       "parameters": {
         "width": 400,
         "height": 1100,
-        "content": "## Pinterest Content Opportunity Research\n\n### How it works\n\n1. Accepts a niche and one to five Pinterest search phrases.\n2. Runs `fetch_cat/pinterest-search-scraper` for up to 500 public pins per search.\n3. Saves every source pin with its position, creator, board, domain, format, and public metrics.\n4. Aggregates public creators and domains when Pinterest exposes them.\n5. Uses one structured AI request to identify themes, underrepresented angles, and five production-ready content briefs.\n6. Removes invalid citations, rejects unsupported findings, and saves the report to three Google Sheet tabs.\n\n### Setup\n\n- [ ] Edit the niche, searches, locale, country, and result limit in **1. Set Your Research Niche**.\n- [ ] Connect Apify HTTP Header Auth in **2. Collect Pinterest Results with FetchCat**.\n- [ ] Create `Pins`, `Sources`, and `Research Brief` tabs with the documented headers.\n- [ ] Select the same spreadsheet and matching tab in each Google Sheets node.\n- [ ] Connect OpenAI in **3. Analyze Content Landscape and Opportunities**.\n- [ ] Run manually and inspect the source pins before acting on recommendations.\n\n### Interpretation\n\nThemes and underrepresented angles are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. Suggested search expansions are clearly marked as unvalidated brainstorming prompts. Nothing measures Pinterest search volume, trend growth, clicks, sales, or demand.",
+        "content": "## Pinterest Content Opportunity Research\n\n### How it works\n\n1. Accepts a niche and one to five Pinterest search phrases.\n2. Runs `fetch_cat/pinterest-search-scraper` for up to 500 public pins per search.\n3. Saves every source pin with its position, creator, board, domain, format, and public metrics.\n4. Uses one structured AI request to identify themes, underrepresented angles, and five production-ready content briefs.\n5. Removes invalid citations, rejects unsupported findings, and saves the evidence and report to two Google Sheet tabs.\n\n### Setup\n\n- [ ] Edit the niche, searches, locale, country, and result limit in **1. Set Your Research Niche**.\n- [ ] Connect Apify HTTP Header Auth in **2. Collect Pinterest Results with FetchCat**.\n- [ ] Create `Pins` and `Research Brief` tabs with the documented headers.\n- [ ] Select the same spreadsheet and matching tab in each Google Sheets node.\n- [ ] Connect OpenAI in **3. Analyze Content Landscape and Opportunities**.\n- [ ] Run manually and inspect the source pins before acting on recommendations.\n\n### Interpretation\n\nThemes and underrepresented angles are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. Suggested search expansions are clearly marked as unvalidated brainstorming prompts. Nothing measures Pinterest search volume, trend growth, clicks, sales, or demand.",
         "color": 1
       },
       "id": "51000000-0000-0000-4000-8000-000000000021",
@@ -795,7 +654,7 @@
       "parameters": {
         "width": 528,
         "height": 400,
-        "content": "## Build evidence\n\nCreates source rows, available public source counts, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.",
+        "content": "## Build evidence\n\nCreates source rows, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.",
         "color": 7
       },
       "id": "51000000-0000-0000-4000-8000-000000000024",
@@ -825,9 +684,9 @@
     },
     {
       "parameters": {
-        "width": 1392,
+        "width": 1152,
         "height": 400,
-        "content": "## Save research\n\nWrites source pins, available public source aggregates, and the readable brief to separate tabs. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.",
+        "content": "## Save research\n\nWrites source pins and the readable brief to separate tabs. Creator, board, domain, and destination fields remain on each pin when Pinterest exposes them. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.",
         "color": 7
       },
       "id": "51000000-0000-0000-4000-8000-000000000026",
@@ -955,28 +814,6 @@
       "main": [
         [
           {
-            "node": "Prepare Public Source Rows",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Public Source Rows": {
-      "main": [
-        [
-          {
-            "node": "5. Save Public Source Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "5. Save Public Source Summary": {
-      "main": [
-        [
-          {
             "node": "Prepare Research Brief Rows",
             "type": "main",
             "index": 0
@@ -988,14 +825,14 @@
       "main": [
         [
           {
-            "node": "6. Save Research Brief",
+            "node": "5. Save Research Brief",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "6. Save Research Brief": {
+    "5. Save Research Brief": {
       "main": [
         [
           {

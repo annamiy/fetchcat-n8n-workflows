@@ -12,14 +12,14 @@ for (const entry of workflow.nodes.filter((node) => node.type === 'n8n-nodes-bas
 
 assert.equal(workflow.name, 'Analyze Pinterest Content Opportunities with Apify, OpenAI and Google Sheets');
 assert.equal(workflow.active, false);
-assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets').length, 3);
+assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets').length, 2);
 assert.equal(workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi').length, 1);
 assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.scheduleTrigger').length, 0);
 assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.dataTable').length, 0);
 assert.equal(workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.notion').length, 0);
 
 const sheetNodes = workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets');
-assert.deepEqual(sheetNodes.map((entry) => entry.parameters.sheetName.cachedResultName), ['Pins', 'Sources', 'Research Brief']);
+assert.deepEqual(sheetNodes.map((entry) => entry.parameters.sheetName.cachedResultName), ['Pins', 'Research Brief']);
 for (const sheet of sheetNodes) {
   assert.equal(sheet.parameters.operation, 'appendOrUpdate');
   assert.deepEqual(sheet.parameters.columns.matchingColumns, ['Research key']);
@@ -75,8 +75,7 @@ const evidence = runCode(
 assert.equal(evidence.stats.totalPins, 12);
 assert.equal(evidence.stats.niche, 'female cycling');
 assert.equal(evidence.sourceRows.length, 12);
-assert.ok(evidence.publicSources.length >= 2);
-assert.ok(evidence.publicSources.some((row) => row.type === 'Creator' && row.name === 'Cycling Studio'));
+assert.equal('publicSources' in evidence, false);
 assert.equal(new Set(evidence.sourceRows.map((row) => row.researchKey)).size, 12);
 assert.ok(JSON.stringify(evidence.researchPacket).length < 120000);
 
@@ -156,4 +155,4 @@ for (const node of sanitized.nodes.filter((entry) => entry.type === 'n8n-nodes-b
   assert.equal(node.parameters.sheetName.value, '0');
 }
 
-console.log('Pinterest content research passed source, aggregation, evidence, output, idempotency, and sanitization tests.');
+console.log('Pinterest content research passed source, evidence, output, idempotency, and sanitization tests.');

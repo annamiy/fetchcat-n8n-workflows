@@ -716,30 +716,6 @@ const sourceRows = pins.map((pin) => {
     researchKey: pins[0].researchDate + '|' + config.niche.toLowerCase() + '|' + pin.query.toLowerCase() + '|' + pin.pinId
   };
 });
-const aggregate = (field, type) => {
-  const map = new Map();
-  for (const pin of pins) {
-    const name = String(pin[field] || '').trim();
-    if (!name) continue;
-    const key = name.toLowerCase();
-    const row = map.get(key) || { type, name, appearances: 0, topTenAppearances: 0, bestPosition: Infinity, examplePinUrl: pin.pinUrl };
-    row.appearances += 1;
-    if (pin.position <= 10) row.topTenAppearances += 1;
-    row.bestPosition = Math.min(row.bestPosition, pin.position);
-    map.set(key, row);
-  }
-  return [...map.values()];
-};
-let publicSources = [...aggregate('creatorName', 'Creator'), ...aggregate('domain', 'Domain')]
-  .sort((a, b) => b.topTenAppearances - a.topTenAppearances || b.appearances - a.appearances || a.bestPosition - b.bestPosition)
-  .slice(0, 50);
-if (publicSources.length === 0) publicSources = [{ type: 'Availability', name: 'Pinterest did not expose public creator or domain data', appearances: 0, topTenAppearances: 0, bestPosition: null, examplePinUrl: pins[0].pinUrl }];
-publicSources = publicSources.map((row, index) => ({
-    researchAt: researchSerial, niche: config.niche, ...row,
-    examplePin: '=HYPERLINK("' + escapeFormula(row.examplePinUrl) + '","View pin")',
-    researchKey: pins[0].researchDate + '|' + config.niche.toLowerCase() + '|' + row.type.toLowerCase() + '|' + row.name.toLowerCase(),
-    sortOrder: index + 1
-  }));
 const stopWords = new Set('a an and are as at be by for from how in into is it of on or that the this to with you your pinterest pin ideas'.split(' '));
 const phraseCounts = new Map();
 for (const pin of pins) {
@@ -769,7 +745,7 @@ const stats = {
   videoPins: pins.filter((pin) => pin.isVideo).length,
   pinsWithSaveData: pins.filter((pin) => pin.saveCount !== null).length
 };
-return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stats, recurringPhrases, publicSources: publicSources.slice(0, 20).map(({ type, name, appearances, topTenAppearances, bestPosition }) => ({ type, name, appearances, topTenAppearances, bestPosition })), pins: compactPins } } }];`
+return [{ json: { stats, sourceRows, pins, researchPacket: { stats, recurringPhrases, pins: compactPins } } }];`
   }),
   node('51000000-', 11, '3. Analyze Content Landscape and Opportunities', '@n8n/n8n-nodes-langchain.openAi', 2.3, [-320, 80], openAiParameters(
     '=Research niche: {{ $json.stats.niche }}\n\nAnalyze this Pinterest evidence:\n{{ JSON.stringify($json.researchPacket) }}',
@@ -809,24 +785,10 @@ return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stat
     },
     options: {}
   }),
-  { ...node('51000000-', 15, 'Prepare Public Source Rows', 'n8n-nodes-base.code', 2, [880, 80], {
-    jsCode: "return $('Validate Evidence and Build Report').first().json.publicSources.map((row) => ({ json: row }));"
-  }), executeOnce: true },
-  node('51000000-', 16, '5. Save Public Source Summary', 'n8n-nodes-base.googleSheets', 4.7, [1120, 80], {
-    operation: 'appendOrUpdate', documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
-    sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Sources' },
-    columns: { mappingMode: 'defineBelow', matchingColumns: ['Research key'], value: {
-      'Research at': '={{ $json.researchAt }}', Niche: '={{ $json.niche }}', Type: '={{ $json.type }}', Name: '={{ $json.name }}', Appearances: '={{ $json.appearances }}',
-      'Top 10 appearances': '={{ $json.topTenAppearances }}', 'Best position': '={{ $json.bestPosition }}', 'Example pin': '={{ $json.examplePin }}', 'Research key': '={{ $json.researchKey }}'
-    }, schema: ['Research at', 'Niche', 'Type', 'Name', 'Appearances', 'Top 10 appearances', 'Best position', 'Example pin', 'Research key'].map((field) => ({
-      id: field, displayName: field, required: false, defaultMatch: field === 'Research key', display: true,
-      type: ['Research at', 'Appearances', 'Top 10 appearances', 'Best position'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
-    })), attemptToConvertTypes: false, convertFieldsToString: false }, options: {}
-  }),
-  { ...node('51000000-', 17, 'Prepare Research Brief Rows', 'n8n-nodes-base.code', 2, [1360, 80], {
+  { ...node('51000000-', 17, 'Prepare Research Brief Rows', 'n8n-nodes-base.code', 2, [880, 80], {
     jsCode: "return $('Validate Evidence and Build Report').first().json.briefRows.map((row) => ({ json: row }));"
   }), executeOnce: true },
-  node('51000000-', 18, '6. Save Research Brief', 'n8n-nodes-base.googleSheets', 4.7, [1600, 80], {
+  node('51000000-', 18, '5. Save Research Brief', 'n8n-nodes-base.googleSheets', 4.7, [1120, 80], {
     operation: 'appendOrUpdate', documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
     sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Research Brief' },
     columns: { mappingMode: 'defineBelow', matchingColumns: ['Research key'], value: {
@@ -837,9 +799,9 @@ return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stat
       type: ['Research at', 'Matching pins', 'Sort order'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
     })), attemptToConvertTypes: false, convertFieldsToString: false }, options: {}
   }),
-  { ...node('51000000-', 19, 'Research Complete', 'n8n-nodes-base.code', 2, [1840, 80], {
+  { ...node('51000000-', 19, 'Research Complete', 'n8n-nodes-base.code', 2, [1360, 80], {
     jsCode: String.raw`const report = $('Validate Evidence and Build Report').first().json;
-return [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, publicSourceRows: report.publicSources.length, themeRows: report.analysis.themes.length, underrepresentedAngles: report.analysis.underrepresentedAngles.length, contentTests: report.analysis.contentTests.length, discardedInvalidCitations: report.analysis.discardedInvalidCitations || 0, note: 'Findings describe the supplied Pinterest results. Search-expansion ideas are unvalidated brainstorming prompts, not Pinterest keyword or demand data.' } }];`
+return [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, themeRows: report.analysis.themes.length, underrepresentedAngles: report.analysis.underrepresentedAngles.length, contentTests: report.analysis.contentTests.length, discardedInvalidCitations: report.analysis.discardedInvalidCitations || 0, note: 'Findings describe the supplied Pinterest results. Search-expansion ideas are unvalidated brainstorming prompts, not Pinterest keyword or demand data.' } }];`
   }), executeOnce: true },
   sticky('51000000-', 21, 'Workflow Overview', [-2240, -400], 400, 1100, `## Pinterest Content Opportunity Research
 
@@ -848,15 +810,14 @@ return [{ json: { status: 'Pinterest content opportunity research saved', ...rep
 1. Accepts a niche and one to five Pinterest search phrases.
 2. Runs \`fetch_cat/pinterest-search-scraper\` for up to 500 public pins per search.
 3. Saves every source pin with its position, creator, board, domain, format, and public metrics.
-4. Aggregates public creators and domains when Pinterest exposes them.
-5. Uses one structured AI request to identify themes, underrepresented angles, and five production-ready content briefs.
-6. Removes invalid citations, rejects unsupported findings, and saves the report to three Google Sheet tabs.
+4. Uses one structured AI request to identify themes, underrepresented angles, and five production-ready content briefs.
+5. Removes invalid citations, rejects unsupported findings, and saves the evidence and report to two Google Sheet tabs.
 
 ### Setup
 
 - [ ] Edit the niche, searches, locale, country, and result limit in **1. Set Your Research Niche**.
 - [ ] Connect Apify HTTP Header Auth in **2. Collect Pinterest Results with FetchCat**.
-- [ ] Create \`Pins\`, \`Sources\`, and \`Research Brief\` tabs with the documented headers.
+- [ ] Create \`Pins\` and \`Research Brief\` tabs with the documented headers.
 - [ ] Select the same spreadsheet and matching tab in each Google Sheets node.
 - [ ] Connect OpenAI in **3. Analyze Content Landscape and Opportunities**.
 - [ ] Run manually and inspect the source pins before acting on recommendations.
@@ -866,9 +827,9 @@ return [{ json: { status: 'Pinterest content opportunity research saved', ...rep
 Themes and underrepresented angles are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. Suggested search expansions are clearly marked as unvalidated brainstorming prompts. Nothing measures Pinterest search volume, trend growth, clicks, sales, or demand.`, 1),
   sticky('51000000-', 22, 'Configure niche', [-1808, -224], 528, 400, '## Configure niche\n\nEnter one clear research niche and one to five searches. The default collects 100 pins per search; raise it to 500 only when the extra breadth is useful.', 7),
   sticky('51000000-', 23, 'Collect and normalize', [-1280, -224], 528, 400, '## Collect and normalize\n\nFetchCat collects public Pinterest results. The workflow validates IDs, URLs, positions, titles, descriptions, creators, boards, domains, formats, and available save data.', 7),
-  sticky('51000000-', 24, 'Build evidence', [-752, -224], 528, 400, '## Build evidence\n\nCreates source rows, available public source counts, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.', 7),
+  sticky('51000000-', 24, 'Build evidence', [-752, -224], 528, 400, '## Build evidence\n\nCreates source rows, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.', 7),
   sticky('51000000-', 25, 'Analyze and validate', [-224, -224], 528, 400, '## Analyze and validate\n\nOpenAI proposes themes, underrepresented angles, and production briefs using supplied pin IDs. Invalid citations are removed; a finding with no supplied evidence or malformed output stops the workflow before any Sheet write.', 7),
-  sticky('51000000-', 26, 'Save research', [304, -224], 1392, 400, '## Save research\n\nWrites source pins, available public source aggregates, and the readable brief to separate tabs. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.', 7)
+  sticky('51000000-', 26, 'Save research', [304, -224], 1152, 400, '## Save research\n\nWrites source pins and the readable brief to separate tabs. Creator, board, domain, and destination fields remain on each pin when Pinterest exposes them. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.', 7)
 ];
 
 const pinterestResearchWorkflow = workflow(
@@ -885,11 +846,9 @@ const pinterestResearchWorkflow = workflow(
     ['Keep Only Supplied Evidence Citations', 'Validate Evidence and Build Report'],
     ['Validate Evidence and Build Report', 'Prepare Pin Rows'],
     ['Prepare Pin Rows', '4. Save Source Pins'],
-    ['4. Save Source Pins', 'Prepare Public Source Rows'],
-    ['Prepare Public Source Rows', '5. Save Public Source Summary'],
-    ['5. Save Public Source Summary', 'Prepare Research Brief Rows'],
-    ['Prepare Research Brief Rows', '6. Save Research Brief'],
-    ['6. Save Research Brief', 'Research Complete']
+    ['4. Save Source Pins', 'Prepare Research Brief Rows'],
+    ['Prepare Research Brief Rows', '5. Save Research Brief'],
+    ['5. Save Research Brief', 'Research Complete']
   ])
 );
 
@@ -1366,7 +1325,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'FtsA7YTDVGAJ83XiS',
       actorSlug: 'fetch_cat/pinterest-search-scraper',
-      version: '1.1.0',
+      version: '1.2.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets'],
       testLimits: { actorItems: 50, apifyBackedExecutions: 3, budgetUsd: 3.33 },

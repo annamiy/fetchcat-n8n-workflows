@@ -6,14 +6,12 @@ produce an evidence-linked research brief.
 
 For example, `female cycling` can return up to the configured result limit, reveal
 recurring content themes and underrepresented angles, and produce five production-ready
-content briefs. When Pinterest exposes creator and domain fields, the workflow summarizes
-those public sources too. It does not present search-result evidence as Pinterest
-search volume or demand.
+content briefs. It does not present search-result evidence as Pinterest search volume
+or demand.
 
 ## What You Get
 
 - A `Pins` tab containing every source result and its search position.
-- A `Sources` tab summarizing creators and domains when Pinterest exposes them.
 - A `Research Brief` tab containing a summary, leading themes, underrepresented
   angles, and exactly five production-ready content tests.
 - Each content test includes a proposed pin title, visual concept, format, audience
@@ -26,14 +24,11 @@ search volume or demand.
 ## Setup
 
 1. Import `workflow.json` into n8n Cloud or self-hosted n8n.
-2. Create one Google spreadsheet with three tabs and these row-one headers:
+2. Create one Google spreadsheet with two tabs and these row-one headers:
 
    `Pins`: `Research at`, `Niche`, `Search`, `Position`, `Pin`, `Title`,
    `Description`, `Creator`, `Board`, `Domain`, `Destination`, `Image`, `Format`,
    `Saves`, `Repins`, `Pinterest pin ID`, `Research key`.
-
-   `Sources`: `Research at`, `Niche`, `Type`, `Name`, `Appearances`,
-   `Top 10 appearances`, `Best position`, `Example pin`, `Research key`.
 
    `Research Brief`: `Research at`, `Niche`, `Section`, `Finding`, `Evidence`,
    `Matching pins`, `Sort order`, `Research key`.
@@ -53,8 +48,7 @@ search volume or demand.
 
 ## How Analysis Works
 
-The workflow deterministically counts creators, domains, top-ten appearances,
-formats, and recurring phrases. It then sends a bounded evidence packet to one
+The workflow deterministically counts formats and recurring phrases. It then sends a bounded evidence packet to one
 structured `gpt-5.4-mini` request. Invalid citations are removed, while a finding with
 no supplied evidence or malformed output stops the workflow before any Sheet write.
 Observed phrases come from the supplied pins. Suggested search expansions are
@@ -71,11 +65,12 @@ The report describes the Pinterest results returned for the searches you supplie
 It can support content-landscape research, visible source research, visual SEO, and
 content planning. It does not discover Pinterest autocomplete keywords, provide monthly search volume, or
 prove trend growth, engagement, clicks, sales, or demand. Save and repin counts remain
-blank when Pinterest does not expose them publicly. If Pinterest withholds all public
-creator and domain metadata, the Sources tab records that limitation explicitly.
+blank when Pinterest does not expose them publicly. Creator, board, domain, and
+destination fields stay on each `Pins` row when available; no separate source summary
+is promised.
 
 ## QA
 
 Test valid source collection, fewer-than-ten-pin failure, duplicate pin removal,
-public source aggregation, malformed AI output, invented evidence IDs, all three Sheet
-writes, same-day reruns, export/reimport, inactive state, and secret scanning.
+malformed AI output, invented evidence IDs, both Sheet writes, same-day reruns,
+export/reimport, inactive state, and secret scanning.

@@ -101,7 +101,7 @@ for (const slug of workflowSlugs()) {
     if (!metadata.actorSlug || !readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
     const usesDataTableLedger = serialized.includes('n8n-nodes-base.dataTable');
     const usesSheetsUpsert = slug === 'pinterest-content-opportunity-research'
-      && workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate').length === 3;
+      && workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate').length === 2;
     if (!usesDataTableLedger && !usesSheetsUpsert) fail(slug, 'does not use durable destination-backed upserts or a Data Table ledger');
     if (usesDataTableLedger) {
       const tableCreateNodes = workflow.nodes.filter((entry) =>
