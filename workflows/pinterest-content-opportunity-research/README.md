@@ -5,8 +5,8 @@ for a niche, preserve every source pin, summarize the visible content landscape,
 produce an evidence-linked research brief.
 
 For example, `female cycling` can return up to the configured result limit, reveal
-recurring content themes and defensible content gaps, and produce five specific ideas
-to test. When Pinterest exposes creator and domain fields, the workflow summarizes
+recurring content themes and underrepresented angles, and produce five production-ready
+content briefs. When Pinterest exposes creator and domain fields, the workflow summarizes
 those public sources too. It does not present search-result evidence as Pinterest
 search volume or demand.
 
@@ -14,8 +14,11 @@ search volume or demand.
 
 - A `Pins` tab containing every source result and its search position.
 - A `Sources` tab summarizing creators and domains when Pinterest exposes them.
-- A `Research Brief` tab containing a summary, leading themes, content gaps, and
-  exactly five practical content tests.
+- A `Research Brief` tab containing a summary, leading themes, underrepresented
+  angles, and exactly five production-ready content tests.
+- Each content test includes a proposed pin title, visual concept, format, audience
+  problem, differentiating angle, destination content, observed phrases, and clearly
+  labeled unvalidated search-expansion ideas.
 - Direct links from every finding to supplied Pinterest pins.
 - Stable research keys, so rerunning the same niche on the same day updates rows
   instead of duplicating them.
@@ -41,7 +44,7 @@ search volume or demand.
 5. Add `fetch_cat/pinterest-search-scraper` to your Apify account. Create HTTP
    Header Auth with header `Authorization` and value `Bearer YOUR_APIFY_TOKEN`, then
    select it in `2. Collect Pinterest Results with FetchCat`.
-6. Connect OpenAI in `3. Analyze Content Landscape and Gaps`.
+6. Connect OpenAI in `3. Analyze Content Landscape and Opportunities`.
 7. Edit `1. Set Your Research Niche`. Enter a niche and one to five exact Pinterest
    search phrases. The default is 100 pins per search; the supported maximum is 500.
    Public detail enrichment is enabled by default because creator, board, domain, and
@@ -52,8 +55,11 @@ search volume or demand.
 
 The workflow deterministically counts creators, domains, top-ten appearances,
 formats, and recurring phrases. It then sends a bounded evidence packet to one
-structured `gpt-5.4-mini` request. AI findings must cite real supplied pin IDs;
-invented IDs or malformed output stop the workflow before any Sheet write.
+structured `gpt-5.4-mini` request. Invalid citations are removed, while a finding with
+no supplied evidence or malformed output stops the workflow before any Sheet write.
+Observed phrases come from the supplied pins. Suggested search expansions are
+brainstorming prompts and are labeled as unvalidated rather than presented as
+Pinterest keywords.
 
 Large result sets remain useful even when not every description fits in the bounded
 AI packet: every normalized pin is still written to `Pins`, while the summary reports

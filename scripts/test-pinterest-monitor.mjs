@@ -88,24 +88,40 @@ const analysis = {
     matchTerms: index % 2 === 0 ? ['cycling outfit', 'bib shorts'] : ['beginner road', 'bike fit'],
     evidencePinIds: index % 2 === 0 ? ['pin-1', 'pin-3'] : ['pin-7', 'pin-9']
   })),
-  contentGaps: Array.from({ length: 3 }, (_, index) => ({
-    gap: `Evidence-backed gap ${index + 1}`,
-    whyItMatters: 'Existing results address the topic only broadly.',
-    opportunity: 'Publish a narrower practical guide.',
+  underrepresentedAngles: Array.from({ length: 3 }, (_, index) => ({
+    angle: `Underrepresented angle ${index + 1}`,
+    sampleObservation: 'The supplied sample addresses the topic only broadly.',
+    contentOpportunity: 'Publish a narrower practical guide.',
     evidencePinIds: ['pin-2', 'pin-8']
   })),
   contentTests: Array.from({ length: 5 }, (_, index) => ({
-    title: `Female cycling content test ${index + 1}`,
+    proposedPinTitle: `Female cycling content test ${index + 1}`,
+    visualConcept: 'A clear side-by-side equipment comparison with readable labels.',
     format: index % 2 === 0 ? 'Checklist pin' : 'Video guide',
-    audienceNeed: 'Help beginners make a specific cycling decision.',
-    differentiation: 'Use practical examples and clear comparisons.',
+    audienceProblem: 'Help beginners make a specific cycling decision.',
+    differentiatingAngle: 'Use practical examples and clear comparisons.',
+    destinationContent: 'A detailed beginner guide with a decision checklist.',
+    observedPhrases: ['cycling outfit', 'bib shorts'],
+    suggestedSearchExpansions: ['female cycling beginner checklist', 'women cycling comfort guide'],
     evidencePinIds: [`pin-${index + 1}`]
   }))
 };
 
+const filterAnalysis = (value) => runCode(
+  code('Keep Only Supplied Evidence Citations'),
+  { first: () => ({ json: { output_text: JSON.stringify(value) } }) },
+  (name) => {
+    assert.equal(name, 'Build Research Evidence');
+    return { first: () => ({ json: evidence }) };
+  }
+)[0].json;
+
+const filteredAnalysis = filterAnalysis(analysis);
+assert.equal(filteredAnalysis.discardedInvalidCitations, 0);
+
 const report = runCode(
   code('Validate Evidence and Build Report'),
-  { first: () => ({ json: { output_text: JSON.stringify(analysis) } }) },
+  { first: () => ({ json: filteredAnalysis }) },
   (name) => {
     assert.equal(name, 'Build Research Evidence');
     return { first: () => ({ json: evidence }) };
@@ -113,16 +129,21 @@ const report = runCode(
 )[0].json;
 assert.equal(report.briefRows.length, 13);
 assert.equal(report.briefRows.filter((row) => row.section === 'Leading theme').length, 4);
+assert.equal(report.briefRows.filter((row) => row.section === 'Underrepresented angle').length, 3);
 assert.equal(report.briefRows.filter((row) => row.section === 'Content test').length, 5);
 assert.ok(report.briefRows.some((row) => row.evidence.includes('https://www.pinterest.com/pin/')));
+assert.ok(report.briefRows.some((row) => row.finding.includes('Unvalidated search-expansion ideas:')));
+assert.ok(report.briefRows.some((row) => row.finding.includes('Destination content:')));
+
+const mixedCitationAnalysis = structuredClone(analysis);
+mixedCitationAnalysis.contentTests[0].evidencePinIds = ['pin-1', 'invented-pin'];
+const filteredMixedAnalysis = filterAnalysis(mixedCitationAnalysis);
+assert.equal(filteredMixedAnalysis.discardedInvalidCitations, 1);
+assert.deepEqual(filteredMixedAnalysis.contentTests[0].evidencePinIds, ['pin-1']);
 
 const invalidAnalysis = structuredClone(analysis);
 invalidAnalysis.contentTests[0].evidencePinIds = ['invented-pin'];
-assert.throws(() => runCode(
-  code('Validate Evidence and Build Report'),
-  { first: () => ({ json: { output_text: JSON.stringify(invalidAnalysis) } }) },
-  () => ({ first: () => ({ json: evidence }) })
-), /was not supplied/);
+assert.throws(() => filterAnalysis(invalidAnalysis), /cites no supplied pins/);
 
 const liveLike = structuredClone(workflow);
 for (const node of liveLike.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets')) {

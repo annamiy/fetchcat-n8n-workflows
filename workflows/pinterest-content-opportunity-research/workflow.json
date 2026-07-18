@@ -181,7 +181,7 @@
         "simplify": true,
         "builtInTools": {},
         "options": {
-          "instructions": "Analyze only the supplied Pinterest results. Identify recurring content themes, defensible content gaps, and five practical content tests. Every evidencePinId must exactly match a supplied pinId. Use concise natural English. matchTerms must be literal phrases that can be counted in supplied titles or descriptions. Never claim search volume, trend growth, engagement, clicks, sales, or demand. Return the strict schema.",
+          "instructions": "Analyze only the supplied Pinterest results. Identify recurring content themes, underrepresented angles in this sample, and five production-ready content tests. Every evidencePinId must exactly match a supplied pinId. matchTerms and observedPhrases must be literal phrases found in supplied titles or descriptions. suggestedSearchExpansions are brainstorming prompts, not verified Pinterest keywords, and must never be described as popular, trending, high-volume, or demanded. Use concise natural English. Never claim search volume, trend growth, engagement, clicks, sales, or demand. Return the strict schema.",
           "maxTokens": 7000,
           "reasoning": {
             "reasoningOptions": {
@@ -195,15 +195,15 @@
               "type": "json_schema",
               "verbosity": "low",
               "name": "pinterest_content_opportunity_research",
-              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"executiveSummary\",\"themes\",\"contentGaps\",\"contentTests\"],\"properties\":{\"executiveSummary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":1200},\"themes\":{\"type\":\"array\",\"minItems\":4,\"maxItems\":8,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"name\",\"insight\",\"matchTerms\",\"evidencePinIds\"],\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":100},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"matchTerms\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":2,\"maxLength\":80}},\"evidencePinIds\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":6,\"items\":{\"type\":\"string\",\"minLength\":1}}}}},\"contentGaps\":{\"type\":\"array\",\"minItems\":3,\"maxItems\":5,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"gap\",\"whyItMatters\",\"opportunity\",\"evidencePinIds\"],\"properties\":{\"gap\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"whyItMatters\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"opportunity\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"evidencePinIds\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":6,\"items\":{\"type\":\"string\",\"minLength\":1}}}}},\"contentTests\":{\"type\":\"array\",\"minItems\":5,\"maxItems\":5,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"title\",\"format\",\"audienceNeed\",\"differentiation\",\"evidencePinIds\"],\"properties\":{\"title\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"format\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":100},\"audienceNeed\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":350},\"differentiation\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":350},\"evidencePinIds\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":5,\"items\":{\"type\":\"string\",\"minLength\":1}}}}}}}",
-              "description": "Analyze only the supplied Pinterest results. Identify recurring content themes, defensible content gaps, and five practical content tests. Every evidencePinId must exactly match a supplied pinId. Use concise natural English. matchTerms must be literal phrases that can be counted in supplied titles or descriptions. Never claim search volume, trend growth, engagement, clicks, sales, or demand. Return the strict schema.",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"executiveSummary\",\"themes\",\"underrepresentedAngles\",\"contentTests\"],\"properties\":{\"executiveSummary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":1200},\"themes\":{\"type\":\"array\",\"minItems\":4,\"maxItems\":8,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"name\",\"insight\",\"matchTerms\",\"evidencePinIds\"],\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":100},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"matchTerms\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":8,\"items\":{\"type\":\"string\",\"minLength\":2,\"maxLength\":80}},\"evidencePinIds\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":6,\"items\":{\"type\":\"string\",\"minLength\":1}}}}},\"underrepresentedAngles\":{\"type\":\"array\",\"minItems\":3,\"maxItems\":5,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"angle\",\"sampleObservation\",\"contentOpportunity\",\"evidencePinIds\"],\"properties\":{\"angle\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"sampleObservation\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"contentOpportunity\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"evidencePinIds\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":6,\"items\":{\"type\":\"string\",\"minLength\":1}}}}},\"contentTests\":{\"type\":\"array\",\"minItems\":5,\"maxItems\":5,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"proposedPinTitle\",\"visualConcept\",\"format\",\"audienceProblem\",\"differentiatingAngle\",\"destinationContent\",\"observedPhrases\",\"suggestedSearchExpansions\",\"evidencePinIds\"],\"properties\":{\"proposedPinTitle\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180},\"visualConcept\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":350},\"format\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":100},\"audienceProblem\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":350},\"differentiatingAngle\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":350},\"destinationContent\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":350},\"observedPhrases\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":6,\"items\":{\"type\":\"string\",\"minLength\":2,\"maxLength\":80}},\"suggestedSearchExpansions\":{\"type\":\"array\",\"minItems\":2,\"maxItems\":6,\"items\":{\"type\":\"string\",\"minLength\":2,\"maxLength\":100}},\"evidencePinIds\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":5,\"items\":{\"type\":\"string\",\"minLength\":1}}}}}}}",
+              "description": "Analyze only the supplied Pinterest results. Identify recurring content themes, underrepresented angles in this sample, and five production-ready content tests. Every evidencePinId must exactly match a supplied pinId. matchTerms and observedPhrases must be literal phrases found in supplied titles or descriptions. suggestedSearchExpansions are brainstorming prompts, not verified Pinterest keywords, and must never be described as popular, trending, high-volume, or demanded. Use concise natural English. Never claim search volume, trend growth, engagement, clicks, sales, or demand. Return the strict schema.",
               "strict": true
             }
           }
         }
       },
       "id": "51000000-0000-0000-4000-8000-000000000011",
-      "name": "3. Analyze Content Landscape and Gaps",
+      "name": "3. Analyze Content Landscape and Opportunities",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
@@ -213,14 +213,27 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst evidence = $('Build Research Evidence').first().json;\nconst parsed = parseStructured($input.first().json, ['executiveSummary', 'themes', 'contentGaps', 'contentTests']);\nif (!parsed || !Array.isArray(parsed.themes) || !Array.isArray(parsed.contentGaps) || !Array.isArray(parsed.contentTests) || parsed.contentTests.length !== 5) throw new Error('OpenAI returned an invalid Pinterest research report.');\nconst byId = new Map(evidence.pins.map((pin) => [String(pin.pinId), pin]));\nconst validateEvidence = (items) => {\n  for (const item of items) {\n    if (!Array.isArray(item.evidencePinIds) || item.evidencePinIds.length === 0) throw new Error('A Pinterest finding has no evidence pins.');\n    if (item.evidencePinIds.some((pinId) => !byId.has(String(pinId)))) throw new Error('OpenAI cited a Pinterest pin that was not supplied.');\n  }\n};\nvalidateEvidence(parsed.themes); validateEvidence(parsed.contentGaps); validateEvidence(parsed.contentTests);\nconst linkEvidence = (ids) => ids.map((id) => byId.get(String(id))).map((pin) => pin.title + ' - ' + pin.pinUrl).join('\\n');\nconst allText = evidence.pins.map((pin) => (pin.title + ' ' + pin.description).toLowerCase());\nconst briefRows = [];\nconst add = (section, finding, evidenceText, matchingPins, order) => briefRows.push({ section, finding, evidence: evidenceText, matchingPins, sortOrder: order });\nadd('Summary', parsed.executiveSummary, evidence.stats.totalPins + ' source pins across ' + evidence.stats.searches.length + ' search phrase(s).', evidence.stats.totalPins, 1);\nparsed.themes.forEach((theme, index) => {\n  const terms = theme.matchTerms.map((term) => String(term).toLowerCase());\n  const count = allText.filter((text) => terms.some((term) => text.includes(term))).length;\n  add('Leading theme', theme.name + ': ' + theme.insight, 'Matched terms: ' + theme.matchTerms.join(', ') + '\\n' + linkEvidence(theme.evidencePinIds), count, 100 + index);\n});\nparsed.contentGaps.forEach((gap, index) => add('Content gap', gap.gap + ': ' + gap.whyItMatters + '\\nOpportunity: ' + gap.opportunity, linkEvidence(gap.evidencePinIds), null, 200 + index));\nparsed.contentTests.forEach((test, index) => add('Content test', test.title + ' [' + test.format + ']\\nAudience need: ' + test.audienceNeed + '\\nDifferentiation: ' + test.differentiation, linkEvidence(test.evidencePinIds), null, 300 + index));\nconst researchSerial = evidence.sourceRows[0].researchAt;\nconst dateKey = evidence.pins[0].researchDate;\nbriefRows.forEach((row) => { row.researchAt = researchSerial; row.niche = evidence.stats.niche; row.researchKey = dateKey + '|' + evidence.stats.niche.toLowerCase() + '|' + row.section.toLowerCase() + '|' + row.sortOrder; });\nreturn [{ json: { ...evidence, analysis: parsed, briefRows } }];"
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst evidence = $('Build Research Evidence').first().json;\nconst parsed = parseStructured($input.first().json, ['executiveSummary', 'themes', 'underrepresentedAngles', 'contentTests']);\nif (!parsed) throw new Error('OpenAI returned an invalid Pinterest research report.');\nconst suppliedIds = new Set(evidence.pins.map((pin) => String(pin.pinId)));\nlet discardedInvalidCitations = 0;\nfor (const item of [...parsed.themes, ...parsed.underrepresentedAngles, ...parsed.contentTests]) {\n  if (!Array.isArray(item.evidencePinIds) || item.evidencePinIds.length === 0) throw new Error('A Pinterest finding has no evidence pins.');\n  const validIds = [...new Set(item.evidencePinIds.map(String).filter((pinId) => suppliedIds.has(pinId)))];\n  discardedInvalidCitations += item.evidencePinIds.length - validIds.length;\n  if (validIds.length === 0) throw new Error('A Pinterest finding cites no supplied pins.');\n  item.evidencePinIds = validIds;\n}\nreturn [{ json: { ...parsed, discardedInvalidCitations } }];"
+      },
+      "id": "51000000-0000-0000-4000-8000-000000000020",
+      "name": "Keep Only Supplied Evidence Citations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    const preferred = ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data'];\n    for (const key of preferred) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) {\n        const found = visit(value[key]);\n        if (found) return found;\n      }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\n\nconst evidence = $('Build Research Evidence').first().json;\nconst parsed = parseStructured($input.first().json, ['executiveSummary', 'themes', 'underrepresentedAngles', 'contentTests']);\nif (!parsed || !Array.isArray(parsed.themes) || !Array.isArray(parsed.underrepresentedAngles) || !Array.isArray(parsed.contentTests) || parsed.contentTests.length !== 5) throw new Error('OpenAI returned an invalid Pinterest research report.');\nconst byId = new Map(evidence.pins.map((pin) => [String(pin.pinId), pin]));\nconst validateEvidence = (items) => {\n  for (const item of items) {\n    if (!Array.isArray(item.evidencePinIds) || item.evidencePinIds.length === 0) throw new Error('A Pinterest finding has no evidence pins.');\n    if (item.evidencePinIds.some((pinId) => !byId.has(String(pinId)))) throw new Error('OpenAI cited a Pinterest pin that was not supplied.');\n  }\n};\nvalidateEvidence(parsed.themes); validateEvidence(parsed.underrepresentedAngles); validateEvidence(parsed.contentTests);\nconst linkEvidence = (ids) => ids.map((id) => byId.get(String(id))).map((pin) => pin.title + ' - ' + pin.pinUrl).join('\\n');\nconst allText = evidence.pins.map((pin) => (pin.title + ' ' + pin.description).toLowerCase());\nconst briefRows = [];\nconst add = (section, finding, evidenceText, matchingPins, order) => briefRows.push({ section, finding, evidence: evidenceText, matchingPins, sortOrder: order });\nadd('Summary', parsed.executiveSummary, evidence.stats.totalPins + ' source pins across ' + evidence.stats.searches.length + ' search phrase(s).', evidence.stats.totalPins, 1);\nparsed.themes.forEach((theme, index) => {\n  const terms = theme.matchTerms.map((term) => String(term).toLowerCase());\n  const count = allText.filter((text) => terms.some((term) => text.includes(term))).length;\n  add('Leading theme', theme.name + ': ' + theme.insight, 'Matched terms: ' + theme.matchTerms.join(', ') + '\\n' + linkEvidence(theme.evidencePinIds), count, 100 + index);\n});\nparsed.underrepresentedAngles.forEach((angle, index) => add('Underrepresented angle', angle.angle + '\\nSample observation: ' + angle.sampleObservation + '\\nContent opportunity: ' + angle.contentOpportunity, linkEvidence(angle.evidencePinIds), null, 200 + index));\nparsed.contentTests.forEach((test, index) => add('Content test', 'Proposed pin title: ' + test.proposedPinTitle + '\\nFormat: ' + test.format + '\\nVisual concept: ' + test.visualConcept + '\\nAudience problem: ' + test.audienceProblem + '\\nDifferentiating angle: ' + test.differentiatingAngle + '\\nDestination content: ' + test.destinationContent + '\\nObserved phrases: ' + test.observedPhrases.join(', ') + '\\nUnvalidated search-expansion ideas: ' + test.suggestedSearchExpansions.join(', '), linkEvidence(test.evidencePinIds), null, 300 + index));\nconst researchSerial = evidence.sourceRows[0].researchAt;\nconst dateKey = evidence.pins[0].researchDate;\nbriefRows.forEach((row) => { row.researchAt = researchSerial; row.niche = evidence.stats.niche; row.researchKey = dateKey + '|' + evidence.stats.niche.toLowerCase() + '|' + row.section.toLowerCase() + '|' + row.sortOrder; });\nreturn [{ json: { ...evidence, analysis: parsed, briefRows } }];"
       },
       "id": "51000000-0000-0000-4000-8000-000000000012",
       "name": "Validate Evidence and Build Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -80,
+        160,
         80
       ]
     },
@@ -233,7 +246,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        160,
+        400,
         80
       ]
     },
@@ -440,7 +453,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        400,
+        640,
         80
       ]
     },
@@ -453,7 +466,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        640,
+        880,
         80
       ],
       "executeOnce": true
@@ -581,7 +594,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        880,
+        1120,
         80
       ]
     },
@@ -594,7 +607,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
+        1360,
         80
       ],
       "executeOnce": true
@@ -712,20 +725,20 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1360,
+        1600,
         80
       ]
     },
     {
       "parameters": {
-        "jsCode": "const report = $('Validate Evidence and Build Report').first().json;\nreturn [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, publicSourceRows: report.publicSources.length, themeRows: report.analysis.themes.length, contentGaps: report.analysis.contentGaps.length, contentTests: report.analysis.contentTests.length, note: 'Findings describe the supplied Pinterest results and do not represent search volume or demand.' } }];"
+        "jsCode": "const report = $('Validate Evidence and Build Report').first().json;\nreturn [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, publicSourceRows: report.publicSources.length, themeRows: report.analysis.themes.length, underrepresentedAngles: report.analysis.underrepresentedAngles.length, contentTests: report.analysis.contentTests.length, discardedInvalidCitations: report.analysis.discardedInvalidCitations || 0, note: 'Findings describe the supplied Pinterest results. Search-expansion ideas are unvalidated brainstorming prompts, not Pinterest keyword or demand data.' } }];"
       },
       "id": "51000000-0000-0000-4000-8000-000000000019",
       "name": "Research Complete",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1600,
+        1840,
         80
       ],
       "executeOnce": true
@@ -734,7 +747,7 @@
       "parameters": {
         "width": 400,
         "height": 1100,
-        "content": "## Pinterest Content Opportunity Research\n\n### How it works\n\n1. Accepts a niche and one to five Pinterest search phrases.\n2. Runs `fetch_cat/pinterest-search-scraper` for up to 500 public pins per search.\n3. Saves every source pin with its position, creator, board, domain, format, and public metrics.\n4. Aggregates public creators and domains when Pinterest exposes them.\n5. Uses one structured AI request to identify themes, content gaps, and five practical tests.\n6. Rejects invented evidence IDs and saves the report to three Google Sheet tabs.\n\n### Setup\n\n- [ ] Edit the niche, searches, locale, country, and result limit in **1. Set Your Research Niche**.\n- [ ] Connect Apify HTTP Header Auth in **2. Collect Pinterest Results with FetchCat**.\n- [ ] Create `Pins`, `Sources`, and `Research Brief` tabs with the documented headers.\n- [ ] Select the same spreadsheet and matching tab in each Google Sheets node.\n- [ ] Connect OpenAI in **3. Analyze Content Landscape and Gaps**.\n- [ ] Run manually and inspect the source pins before acting on recommendations.\n\n### Interpretation\n\nThemes and gaps are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. They do not measure Pinterest search volume, trend growth, clicks, sales, or demand.",
+        "content": "## Pinterest Content Opportunity Research\n\n### How it works\n\n1. Accepts a niche and one to five Pinterest search phrases.\n2. Runs `fetch_cat/pinterest-search-scraper` for up to 500 public pins per search.\n3. Saves every source pin with its position, creator, board, domain, format, and public metrics.\n4. Aggregates public creators and domains when Pinterest exposes them.\n5. Uses one structured AI request to identify themes, underrepresented angles, and five production-ready content briefs.\n6. Removes invalid citations, rejects unsupported findings, and saves the report to three Google Sheet tabs.\n\n### Setup\n\n- [ ] Edit the niche, searches, locale, country, and result limit in **1. Set Your Research Niche**.\n- [ ] Connect Apify HTTP Header Auth in **2. Collect Pinterest Results with FetchCat**.\n- [ ] Create `Pins`, `Sources`, and `Research Brief` tabs with the documented headers.\n- [ ] Select the same spreadsheet and matching tab in each Google Sheets node.\n- [ ] Connect OpenAI in **3. Analyze Content Landscape and Opportunities**.\n- [ ] Run manually and inspect the source pins before acting on recommendations.\n\n### Interpretation\n\nThemes and underrepresented angles are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. Suggested search expansions are clearly marked as unvalidated brainstorming prompts. Nothing measures Pinterest search volume, trend growth, clicks, sales, or demand.",
         "color": 1
       },
       "id": "51000000-0000-0000-4000-8000-000000000021",
@@ -798,7 +811,7 @@
       "parameters": {
         "width": 528,
         "height": 400,
-        "content": "## Analyze and validate\n\nOpenAI proposes themes, gaps, and tests using supplied pin IDs. Invalid citations or malformed structured output stop the workflow before any Sheet write.",
+        "content": "## Analyze and validate\n\nOpenAI proposes themes, underrepresented angles, and production briefs using supplied pin IDs. Invalid citations are removed; a finding with no supplied evidence or malformed output stops the workflow before any Sheet write.",
         "color": 7
       },
       "id": "51000000-0000-0000-4000-8000-000000000025",
@@ -887,14 +900,25 @@
       "main": [
         [
           {
-            "node": "3. Analyze Content Landscape and Gaps",
+            "node": "3. Analyze Content Landscape and Opportunities",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "3. Analyze Content Landscape and Gaps": {
+    "3. Analyze Content Landscape and Opportunities": {
+      "main": [
+        [
+          {
+            "node": "Keep Only Supplied Evidence Citations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Only Supplied Evidence Citations": {
       "main": [
         [
           {

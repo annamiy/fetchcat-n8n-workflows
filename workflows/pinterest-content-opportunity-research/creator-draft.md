@@ -9,7 +9,9 @@ public sources, and produces an evidence-linked research brief.
 
 For example, enter `female cycling` and request up to 500 public results. The output
 shows how many pins Pinterest returned, which formats and phrases recur, what the
-existing results under-serve, and five concrete content ideas to test. When Pinterest
+existing results underrepresent, and five production-ready content briefs. Each brief
+includes a proposed pin title, visual concept, audience problem, differentiating angle,
+destination content, observed phrases, and unvalidated search-expansion ideas. When Pinterest
 exposes creator or destination fields, the workflow summarizes those sources too.
 
 ## Who is it for?
@@ -29,7 +31,8 @@ exposes creator or destination fields, the workflow summarizes those sources too
    position.
 5. Builds a bounded evidence packet and analyzes it in one structured OpenAI call.
 6. Rejects findings that cite pin IDs absent from the supplied source data.
-7. Saves source pins, available public source aggregates, and the readable brief to
+7. Clearly separates observed phrases from unvalidated search-expansion ideas.
+8. Saves source pins, available public source aggregates, and the readable brief to
    separate Google Sheet tabs.
 
 Public detail enrichment is enabled by default. Pinterest can still withhold creator,

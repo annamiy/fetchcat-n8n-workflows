@@ -539,7 +539,7 @@ const linkedInWorkflow = workflow(
 const pinterestResearchSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['executiveSummary', 'themes', 'contentGaps', 'contentTests'],
+  required: ['executiveSummary', 'themes', 'underrepresentedAngles', 'contentTests'],
   properties: {
     executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
     themes: {
@@ -555,15 +555,15 @@ const pinterestResearchSchema = {
         }
       }
     },
-    contentGaps: {
+    underrepresentedAngles: {
       type: 'array', minItems: 3, maxItems: 5,
       items: {
         type: 'object', additionalProperties: false,
-        required: ['gap', 'whyItMatters', 'opportunity', 'evidencePinIds'],
+        required: ['angle', 'sampleObservation', 'contentOpportunity', 'evidencePinIds'],
         properties: {
-          gap: { type: 'string', minLength: 1, maxLength: 180 },
-          whyItMatters: { type: 'string', minLength: 1, maxLength: 500 },
-          opportunity: { type: 'string', minLength: 1, maxLength: 500 },
+          angle: { type: 'string', minLength: 1, maxLength: 180 },
+          sampleObservation: { type: 'string', minLength: 1, maxLength: 500 },
+          contentOpportunity: { type: 'string', minLength: 1, maxLength: 500 },
           evidencePinIds: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', minLength: 1 } }
         }
       }
@@ -572,12 +572,16 @@ const pinterestResearchSchema = {
       type: 'array', minItems: 5, maxItems: 5,
       items: {
         type: 'object', additionalProperties: false,
-        required: ['title', 'format', 'audienceNeed', 'differentiation', 'evidencePinIds'],
+        required: ['proposedPinTitle', 'visualConcept', 'format', 'audienceProblem', 'differentiatingAngle', 'destinationContent', 'observedPhrases', 'suggestedSearchExpansions', 'evidencePinIds'],
         properties: {
-          title: { type: 'string', minLength: 1, maxLength: 180 },
+          proposedPinTitle: { type: 'string', minLength: 1, maxLength: 180 },
+          visualConcept: { type: 'string', minLength: 1, maxLength: 350 },
           format: { type: 'string', minLength: 1, maxLength: 100 },
-          audienceNeed: { type: 'string', minLength: 1, maxLength: 350 },
-          differentiation: { type: 'string', minLength: 1, maxLength: 350 },
+          audienceProblem: { type: 'string', minLength: 1, maxLength: 350 },
+          differentiatingAngle: { type: 'string', minLength: 1, maxLength: 350 },
+          destinationContent: { type: 'string', minLength: 1, maxLength: 350 },
+          observedPhrases: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', minLength: 2, maxLength: 80 } },
+          suggestedSearchExpansions: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', minLength: 2, maxLength: 100 } },
           evidencePinIds: { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string', minLength: 1 } }
         }
       }
@@ -767,20 +771,23 @@ const stats = {
 };
 return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stats, recurringPhrases, publicSources: publicSources.slice(0, 20).map(({ type, name, appearances, topTenAppearances, bestPosition }) => ({ type, name, appearances, topTenAppearances, bestPosition })), pins: compactPins } } }];`
   }),
-  node('51000000-', 11, '3. Analyze Content Landscape and Gaps', '@n8n/n8n-nodes-langchain.openAi', 2.3, [-320, 80], openAiParameters(
+  node('51000000-', 11, '3. Analyze Content Landscape and Opportunities', '@n8n/n8n-nodes-langchain.openAi', 2.3, [-320, 80], openAiParameters(
     '=Research niche: {{ $json.stats.niche }}\n\nAnalyze this Pinterest evidence:\n{{ JSON.stringify($json.researchPacket) }}',
     'pinterest_content_opportunity_research',
     pinterestResearchSchema,
-    'Analyze only the supplied Pinterest results. Identify recurring content themes, defensible content gaps, and five practical content tests. Every evidencePinId must exactly match a supplied pinId. Use concise natural English. matchTerms must be literal phrases that can be counted in supplied titles or descriptions. Never claim search volume, trend growth, engagement, clicks, sales, or demand. Return the strict schema.',
+    'Analyze only the supplied Pinterest results. Identify recurring content themes, underrepresented angles in this sample, and five production-ready content tests. Every evidencePinId must exactly match a supplied pinId. matchTerms and observedPhrases must be literal phrases found in supplied titles or descriptions. suggestedSearchExpansions are brainstorming prompts, not verified Pinterest keywords, and must never be described as popular, trending, high-volume, or demanded. Use concise natural English. Never claim search volume, trend growth, engagement, clicks, sales, or demand. Return the strict schema.',
     7000
   )),
-  node('51000000-', 12, 'Validate Evidence and Build Report', 'n8n-nodes-base.code', 2, [-80, 80], {
-    jsCode: `${parseStructured}\nconst evidence = $('Build Research Evidence').first().json;\nconst parsed = parseStructured($input.first().json, ['executiveSummary', 'themes', 'contentGaps', 'contentTests']);\nif (!parsed || !Array.isArray(parsed.themes) || !Array.isArray(parsed.contentGaps) || !Array.isArray(parsed.contentTests) || parsed.contentTests.length !== 5) throw new Error('OpenAI returned an invalid Pinterest research report.');\nconst byId = new Map(evidence.pins.map((pin) => [String(pin.pinId), pin]));\nconst validateEvidence = (items) => {\n  for (const item of items) {\n    if (!Array.isArray(item.evidencePinIds) || item.evidencePinIds.length === 0) throw new Error('A Pinterest finding has no evidence pins.');\n    if (item.evidencePinIds.some((pinId) => !byId.has(String(pinId)))) throw new Error('OpenAI cited a Pinterest pin that was not supplied.');\n  }\n};\nvalidateEvidence(parsed.themes); validateEvidence(parsed.contentGaps); validateEvidence(parsed.contentTests);\nconst linkEvidence = (ids) => ids.map((id) => byId.get(String(id))).map((pin) => pin.title + ' - ' + pin.pinUrl).join('\\n');\nconst allText = evidence.pins.map((pin) => (pin.title + ' ' + pin.description).toLowerCase());\nconst briefRows = [];\nconst add = (section, finding, evidenceText, matchingPins, order) => briefRows.push({ section, finding, evidence: evidenceText, matchingPins, sortOrder: order });\nadd('Summary', parsed.executiveSummary, evidence.stats.totalPins + ' source pins across ' + evidence.stats.searches.length + ' search phrase(s).', evidence.stats.totalPins, 1);\nparsed.themes.forEach((theme, index) => {\n  const terms = theme.matchTerms.map((term) => String(term).toLowerCase());\n  const count = allText.filter((text) => terms.some((term) => text.includes(term))).length;\n  add('Leading theme', theme.name + ': ' + theme.insight, 'Matched terms: ' + theme.matchTerms.join(', ') + '\\n' + linkEvidence(theme.evidencePinIds), count, 100 + index);\n});\nparsed.contentGaps.forEach((gap, index) => add('Content gap', gap.gap + ': ' + gap.whyItMatters + '\\nOpportunity: ' + gap.opportunity, linkEvidence(gap.evidencePinIds), null, 200 + index));\nparsed.contentTests.forEach((test, index) => add('Content test', test.title + ' [' + test.format + ']\\nAudience need: ' + test.audienceNeed + '\\nDifferentiation: ' + test.differentiation, linkEvidence(test.evidencePinIds), null, 300 + index));\nconst researchSerial = evidence.sourceRows[0].researchAt;\nconst dateKey = evidence.pins[0].researchDate;\nbriefRows.forEach((row) => { row.researchAt = researchSerial; row.niche = evidence.stats.niche; row.researchKey = dateKey + '|' + evidence.stats.niche.toLowerCase() + '|' + row.section.toLowerCase() + '|' + row.sortOrder; });\nreturn [{ json: { ...evidence, analysis: parsed, briefRows } }];`
+  node('51000000-', 20, 'Keep Only Supplied Evidence Citations', 'n8n-nodes-base.code', 2, [-80, 80], {
+    jsCode: `${parseStructured}\nconst evidence = $('Build Research Evidence').first().json;\nconst parsed = parseStructured($input.first().json, ['executiveSummary', 'themes', 'underrepresentedAngles', 'contentTests']);\nif (!parsed) throw new Error('OpenAI returned an invalid Pinterest research report.');\nconst suppliedIds = new Set(evidence.pins.map((pin) => String(pin.pinId)));\nlet discardedInvalidCitations = 0;\nfor (const item of [...parsed.themes, ...parsed.underrepresentedAngles, ...parsed.contentTests]) {\n  if (!Array.isArray(item.evidencePinIds) || item.evidencePinIds.length === 0) throw new Error('A Pinterest finding has no evidence pins.');\n  const validIds = [...new Set(item.evidencePinIds.map(String).filter((pinId) => suppliedIds.has(pinId)))];\n  discardedInvalidCitations += item.evidencePinIds.length - validIds.length;\n  if (validIds.length === 0) throw new Error('A Pinterest finding cites no supplied pins.');\n  item.evidencePinIds = validIds;\n}\nreturn [{ json: { ...parsed, discardedInvalidCitations } }];`
   }),
-  node('51000000-', 13, 'Prepare Pin Rows', 'n8n-nodes-base.code', 2, [160, 80], {
+  node('51000000-', 12, 'Validate Evidence and Build Report', 'n8n-nodes-base.code', 2, [160, 80], {
+    jsCode: `${parseStructured}\nconst evidence = $('Build Research Evidence').first().json;\nconst parsed = parseStructured($input.first().json, ['executiveSummary', 'themes', 'underrepresentedAngles', 'contentTests']);\nif (!parsed || !Array.isArray(parsed.themes) || !Array.isArray(parsed.underrepresentedAngles) || !Array.isArray(parsed.contentTests) || parsed.contentTests.length !== 5) throw new Error('OpenAI returned an invalid Pinterest research report.');\nconst byId = new Map(evidence.pins.map((pin) => [String(pin.pinId), pin]));\nconst validateEvidence = (items) => {\n  for (const item of items) {\n    if (!Array.isArray(item.evidencePinIds) || item.evidencePinIds.length === 0) throw new Error('A Pinterest finding has no evidence pins.');\n    if (item.evidencePinIds.some((pinId) => !byId.has(String(pinId)))) throw new Error('OpenAI cited a Pinterest pin that was not supplied.');\n  }\n};\nvalidateEvidence(parsed.themes); validateEvidence(parsed.underrepresentedAngles); validateEvidence(parsed.contentTests);\nconst linkEvidence = (ids) => ids.map((id) => byId.get(String(id))).map((pin) => pin.title + ' - ' + pin.pinUrl).join('\\n');\nconst allText = evidence.pins.map((pin) => (pin.title + ' ' + pin.description).toLowerCase());\nconst briefRows = [];\nconst add = (section, finding, evidenceText, matchingPins, order) => briefRows.push({ section, finding, evidence: evidenceText, matchingPins, sortOrder: order });\nadd('Summary', parsed.executiveSummary, evidence.stats.totalPins + ' source pins across ' + evidence.stats.searches.length + ' search phrase(s).', evidence.stats.totalPins, 1);\nparsed.themes.forEach((theme, index) => {\n  const terms = theme.matchTerms.map((term) => String(term).toLowerCase());\n  const count = allText.filter((text) => terms.some((term) => text.includes(term))).length;\n  add('Leading theme', theme.name + ': ' + theme.insight, 'Matched terms: ' + theme.matchTerms.join(', ') + '\\n' + linkEvidence(theme.evidencePinIds), count, 100 + index);\n});\nparsed.underrepresentedAngles.forEach((angle, index) => add('Underrepresented angle', angle.angle + '\\nSample observation: ' + angle.sampleObservation + '\\nContent opportunity: ' + angle.contentOpportunity, linkEvidence(angle.evidencePinIds), null, 200 + index));\nparsed.contentTests.forEach((test, index) => add('Content test', 'Proposed pin title: ' + test.proposedPinTitle + '\\nFormat: ' + test.format + '\\nVisual concept: ' + test.visualConcept + '\\nAudience problem: ' + test.audienceProblem + '\\nDifferentiating angle: ' + test.differentiatingAngle + '\\nDestination content: ' + test.destinationContent + '\\nObserved phrases: ' + test.observedPhrases.join(', ') + '\\nUnvalidated search-expansion ideas: ' + test.suggestedSearchExpansions.join(', '), linkEvidence(test.evidencePinIds), null, 300 + index));\nconst researchSerial = evidence.sourceRows[0].researchAt;\nconst dateKey = evidence.pins[0].researchDate;\nbriefRows.forEach((row) => { row.researchAt = researchSerial; row.niche = evidence.stats.niche; row.researchKey = dateKey + '|' + evidence.stats.niche.toLowerCase() + '|' + row.section.toLowerCase() + '|' + row.sortOrder; });\nreturn [{ json: { ...evidence, analysis: parsed, briefRows } }];`
+  }),
+  node('51000000-', 13, 'Prepare Pin Rows', 'n8n-nodes-base.code', 2, [400, 80], {
     jsCode: 'return $json.sourceRows.map((row) => ({ json: row }));'
   }),
-  node('51000000-', 14, '4. Save Source Pins', 'n8n-nodes-base.googleSheets', 4.7, [400, 80], {
+  node('51000000-', 14, '4. Save Source Pins', 'n8n-nodes-base.googleSheets', 4.7, [640, 80], {
     operation: 'appendOrUpdate',
     documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
     sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Pins' },
@@ -802,10 +809,10 @@ return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stat
     },
     options: {}
   }),
-  { ...node('51000000-', 15, 'Prepare Public Source Rows', 'n8n-nodes-base.code', 2, [640, 80], {
+  { ...node('51000000-', 15, 'Prepare Public Source Rows', 'n8n-nodes-base.code', 2, [880, 80], {
     jsCode: "return $('Validate Evidence and Build Report').first().json.publicSources.map((row) => ({ json: row }));"
   }), executeOnce: true },
-  node('51000000-', 16, '5. Save Public Source Summary', 'n8n-nodes-base.googleSheets', 4.7, [880, 80], {
+  node('51000000-', 16, '5. Save Public Source Summary', 'n8n-nodes-base.googleSheets', 4.7, [1120, 80], {
     operation: 'appendOrUpdate', documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
     sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Sources' },
     columns: { mappingMode: 'defineBelow', matchingColumns: ['Research key'], value: {
@@ -816,10 +823,10 @@ return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stat
       type: ['Research at', 'Appearances', 'Top 10 appearances', 'Best position'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
     })), attemptToConvertTypes: false, convertFieldsToString: false }, options: {}
   }),
-  { ...node('51000000-', 17, 'Prepare Research Brief Rows', 'n8n-nodes-base.code', 2, [1120, 80], {
+  { ...node('51000000-', 17, 'Prepare Research Brief Rows', 'n8n-nodes-base.code', 2, [1360, 80], {
     jsCode: "return $('Validate Evidence and Build Report').first().json.briefRows.map((row) => ({ json: row }));"
   }), executeOnce: true },
-  node('51000000-', 18, '6. Save Research Brief', 'n8n-nodes-base.googleSheets', 4.7, [1360, 80], {
+  node('51000000-', 18, '6. Save Research Brief', 'n8n-nodes-base.googleSheets', 4.7, [1600, 80], {
     operation: 'appendOrUpdate', documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
     sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Research Brief' },
     columns: { mappingMode: 'defineBelow', matchingColumns: ['Research key'], value: {
@@ -830,9 +837,9 @@ return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stat
       type: ['Research at', 'Matching pins', 'Sort order'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
     })), attemptToConvertTypes: false, convertFieldsToString: false }, options: {}
   }),
-  { ...node('51000000-', 19, 'Research Complete', 'n8n-nodes-base.code', 2, [1600, 80], {
+  { ...node('51000000-', 19, 'Research Complete', 'n8n-nodes-base.code', 2, [1840, 80], {
     jsCode: String.raw`const report = $('Validate Evidence and Build Report').first().json;
-return [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, publicSourceRows: report.publicSources.length, themeRows: report.analysis.themes.length, contentGaps: report.analysis.contentGaps.length, contentTests: report.analysis.contentTests.length, note: 'Findings describe the supplied Pinterest results and do not represent search volume or demand.' } }];`
+return [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, publicSourceRows: report.publicSources.length, themeRows: report.analysis.themes.length, underrepresentedAngles: report.analysis.underrepresentedAngles.length, contentTests: report.analysis.contentTests.length, discardedInvalidCitations: report.analysis.discardedInvalidCitations || 0, note: 'Findings describe the supplied Pinterest results. Search-expansion ideas are unvalidated brainstorming prompts, not Pinterest keyword or demand data.' } }];`
   }), executeOnce: true },
   sticky('51000000-', 21, 'Workflow Overview', [-2240, -400], 400, 1100, `## Pinterest Content Opportunity Research
 
@@ -842,8 +849,8 @@ return [{ json: { status: 'Pinterest content opportunity research saved', ...rep
 2. Runs \`fetch_cat/pinterest-search-scraper\` for up to 500 public pins per search.
 3. Saves every source pin with its position, creator, board, domain, format, and public metrics.
 4. Aggregates public creators and domains when Pinterest exposes them.
-5. Uses one structured AI request to identify themes, content gaps, and five practical tests.
-6. Rejects invented evidence IDs and saves the report to three Google Sheet tabs.
+5. Uses one structured AI request to identify themes, underrepresented angles, and five production-ready content briefs.
+6. Removes invalid citations, rejects unsupported findings, and saves the report to three Google Sheet tabs.
 
 ### Setup
 
@@ -851,16 +858,16 @@ return [{ json: { status: 'Pinterest content opportunity research saved', ...rep
 - [ ] Connect Apify HTTP Header Auth in **2. Collect Pinterest Results with FetchCat**.
 - [ ] Create \`Pins\`, \`Sources\`, and \`Research Brief\` tabs with the documented headers.
 - [ ] Select the same spreadsheet and matching tab in each Google Sheets node.
-- [ ] Connect OpenAI in **3. Analyze Content Landscape and Gaps**.
+- [ ] Connect OpenAI in **3. Analyze Content Landscape and Opportunities**.
 - [ ] Run manually and inspect the source pins before acting on recommendations.
 
 ### Interpretation
 
-Themes and gaps are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. They do not measure Pinterest search volume, trend growth, clicks, sales, or demand.`, 1),
+Themes and underrepresented angles are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. Suggested search expansions are clearly marked as unvalidated brainstorming prompts. Nothing measures Pinterest search volume, trend growth, clicks, sales, or demand.`, 1),
   sticky('51000000-', 22, 'Configure niche', [-1808, -224], 528, 400, '## Configure niche\n\nEnter one clear research niche and one to five searches. The default collects 100 pins per search; raise it to 500 only when the extra breadth is useful.', 7),
   sticky('51000000-', 23, 'Collect and normalize', [-1280, -224], 528, 400, '## Collect and normalize\n\nFetchCat collects public Pinterest results. The workflow validates IDs, URLs, positions, titles, descriptions, creators, boards, domains, formats, and available save data.', 7),
   sticky('51000000-', 24, 'Build evidence', [-752, -224], 528, 400, '## Build evidence\n\nCreates source rows, available public source counts, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.', 7),
-  sticky('51000000-', 25, 'Analyze and validate', [-224, -224], 528, 400, '## Analyze and validate\n\nOpenAI proposes themes, gaps, and tests using supplied pin IDs. Invalid citations or malformed structured output stop the workflow before any Sheet write.', 7),
+  sticky('51000000-', 25, 'Analyze and validate', [-224, -224], 528, 400, '## Analyze and validate\n\nOpenAI proposes themes, underrepresented angles, and production briefs using supplied pin IDs. Invalid citations are removed; a finding with no supplied evidence or malformed output stops the workflow before any Sheet write.', 7),
   sticky('51000000-', 26, 'Save research', [304, -224], 1392, 400, '## Save research\n\nWrites source pins, available public source aggregates, and the readable brief to separate tabs. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.', 7)
 ];
 
@@ -873,8 +880,9 @@ const pinterestResearchWorkflow = workflow(
     ['Build FetchCat Research Input', '2. Collect Pinterest Results with FetchCat'],
     ['2. Collect Pinterest Results with FetchCat', 'Normalize and Deduplicate Pins'],
     ['Normalize and Deduplicate Pins', 'Build Research Evidence'],
-    ['Build Research Evidence', '3. Analyze Content Landscape and Gaps'],
-    ['3. Analyze Content Landscape and Gaps', 'Validate Evidence and Build Report'],
+    ['Build Research Evidence', '3. Analyze Content Landscape and Opportunities'],
+    ['3. Analyze Content Landscape and Opportunities', 'Keep Only Supplied Evidence Citations'],
+    ['Keep Only Supplied Evidence Citations', 'Validate Evidence and Build Report'],
     ['Validate Evidence and Build Report', 'Prepare Pin Rows'],
     ['Prepare Pin Rows', '4. Save Source Pins'],
     ['4. Save Source Pins', 'Prepare Public Source Rows'],
@@ -1358,7 +1366,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'FtsA7YTDVGAJ83XiS',
       actorSlug: 'fetch_cat/pinterest-search-scraper',
-      version: '1.0.0',
+      version: '1.1.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Google Sheets'],
       testLimits: { actorItems: 50, apifyBackedExecutions: 3, budgetUsd: 3.33 },
