@@ -100,10 +100,9 @@ for (const slug of workflowSlugs()) {
     if (!metadata.actorId || !serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
     if (!metadata.actorSlug || !readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
     const usesDataTableLedger = serialized.includes('n8n-nodes-base.dataTable');
-    const usesSheetsHistory = slug === 'pinterest-keyword-rank-tracker'
-      && workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'read')
-      && workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate');
-    if (!usesDataTableLedger && !usesSheetsHistory) fail(slug, 'does not use durable destination-backed history or a Data Table ledger');
+    const usesSheetsUpsert = slug === 'pinterest-content-opportunity-research'
+      && workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate').length === 3;
+    if (!usesDataTableLedger && !usesSheetsUpsert) fail(slug, 'does not use durable destination-backed upserts or a Data Table ledger');
     if (usesDataTableLedger) {
       const tableCreateNodes = workflow.nodes.filter((entry) =>
         entry.type === 'n8n-nodes-base.dataTable'
@@ -208,7 +207,7 @@ for (const slug of workflowSlugs()) {
   if (!/^\d+\.\d+\.\d+$/.test(metadata.version ?? '')) fail(slug, 'metadata version is not semantic');
   if (metadata.minimumN8nVersion !== '2.26.8') fail(slug, 'minimum n8n version must be 2.26.8');
   if (!releaseStates.has(metadata.releaseState)) fail(slug, 'invalid release state');
-  const actorItemLimit = slug === 'pinterest-keyword-rank-tracker' ? 50 : 10;
+  const actorItemLimit = slug === 'pinterest-content-opportunity-research' ? 50 : 10;
   if (metadata.testLimits?.actorItems > actorItemLimit) fail(slug, `Actor test item limit exceeds ${actorItemLimit}`);
   if (metadata.workflowKind === 'actor-template' && metadata.testLimits?.actorItems < 1) fail(slug, 'Actor workflow must test at least one item');
   if (metadata.testLimits?.apifyBackedExecutions > 3) fail(slug, 'Apify-backed test execution limit exceeds 3');

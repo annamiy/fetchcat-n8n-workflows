@@ -1,0 +1,14 @@
+{
+  "description": "Synthetic Pinterest results for public-source aggregation and evidence-validation tests.",
+  "config": {
+    "niche": "female cycling",
+    "searches": ["female cycling", "women road cycling"],
+    "maxResultsPerSearch": 100,
+    "locale": "en-US",
+    "country": "US"
+  },
+  "items": [
+    { "query": "female cycling", "position": 1, "pinId": "synthetic-pin-001", "pinUrl": "https://www.pinterest.com/pin/100000000000000001/", "title": "Women's cycling outfit guide", "description": "Practical jersey and bib shorts advice.", "creatorName": "Cycling Studio", "domain": "cycling.example", "isVideo": false },
+    { "query": "female cycling", "position": 2, "pinId": "synthetic-pin-002", "pinUrl": "https://www.pinterest.com/pin/100000000000000002/", "title": "Beginner bike fit for women", "description": "Bike fit, saddle, and comfort guidance.", "creatorName": "Road Skills", "domain": "fitness.example", "isVideo": true }
+  ]
+}

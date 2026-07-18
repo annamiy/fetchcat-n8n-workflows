@@ -9,7 +9,7 @@ and is designed to fail closed before writing to an external service.
 | Workflow | Actor | Destinations | State |
 | --- | --- | --- | --- |
 | [LinkedIn Job Match Digest](workflows/linkedin-job-match-digest/) | `fetch_cat/linkedin-jobs-scraper` | Google Sheets, Slack | QA passed |
-| [Track Pinterest Keyword Rankings Weekly](workflows/pinterest-keyword-rank-tracker/) | `fetch_cat/pinterest-search-scraper` | Google Sheets | QA passed |
+| [Pinterest Content Opportunity Research](workflows/pinterest-content-opportunity-research/) | `fetch_cat/pinterest-search-scraper` | OpenAI, Google Sheets | QA passed |
 | [YouTube Research Brief to Notion](workflows/youtube-research-brief-to-notion/) | `fetch_cat/youtube-transcript-scraper` | Notion | QA passed |
 | [Reddit Buying-Intent Alerts](workflows/reddit-buying-intent-alerts/) | `fetch_cat/reddit-scraper` | Telegram | QA passed |
 | [Private Workflow Error Alerts](workflows/shared-error-notifications/) | Companion workflow | Telegram | QA passed |

@@ -536,33 +536,82 @@ const linkedInWorkflow = workflow(
   ])
 );
 
-const pinterestRankTrackerNodes = [
+const pinterestResearchSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['executiveSummary', 'themes', 'contentGaps', 'contentTests'],
+  properties: {
+    executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
+    themes: {
+      type: 'array', minItems: 4, maxItems: 8,
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['name', 'insight', 'matchTerms', 'evidencePinIds'],
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 100 },
+          insight: { type: 'string', minLength: 1, maxLength: 500 },
+          matchTerms: { type: 'array', minItems: 2, maxItems: 8, items: { type: 'string', minLength: 2, maxLength: 80 } },
+          evidencePinIds: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    contentGaps: {
+      type: 'array', minItems: 3, maxItems: 5,
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['gap', 'whyItMatters', 'opportunity', 'evidencePinIds'],
+        properties: {
+          gap: { type: 'string', minLength: 1, maxLength: 180 },
+          whyItMatters: { type: 'string', minLength: 1, maxLength: 500 },
+          opportunity: { type: 'string', minLength: 1, maxLength: 500 },
+          evidencePinIds: { type: 'array', minItems: 2, maxItems: 6, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    contentTests: {
+      type: 'array', minItems: 5, maxItems: 5,
+      items: {
+        type: 'object', additionalProperties: false,
+        required: ['title', 'format', 'audienceNeed', 'differentiation', 'evidencePinIds'],
+        properties: {
+          title: { type: 'string', minLength: 1, maxLength: 180 },
+          format: { type: 'string', minLength: 1, maxLength: 100 },
+          audienceNeed: { type: 'string', minLength: 1, maxLength: 350 },
+          differentiation: { type: 'string', minLength: 1, maxLength: 350 },
+          evidencePinIds: { type: 'array', minItems: 1, maxItems: 5, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    }
+  }
+};
+
+const pinterestResearchNodes = [
   node('51000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1760, 80], {}),
-  node('51000000-', 2, 'Weekly Schedule', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1760, -96], {
-    rule: { interval: [{ field: 'weeks', weeksInterval: 1, triggerAtDay: [1], triggerAtHour: 9, triggerAtMinute: 0 }] }
-  }),
-  node('51000000-', 3, '1. Set Your Pinterest Searches', 'n8n-nodes-base.set', 3.4, [-1520, 0], {
+  node('51000000-', 3, '1. Set Your Research Niche', 'n8n-nodes-base.set', 3.4, [-1520, 80], {
     mode: 'manual',
     duplicateItem: false,
     assignments: { assignments: [
-      { id: 'pinterest-queries', name: 'queries', value: 'small balcony garden ideas, balcony vegetable garden, vertical garden for balcony, apartment herb garden, small patio garden ideas', type: 'string' },
+      { id: 'pinterest-niche', name: 'niche', value: 'female cycling', type: 'string' },
+      { id: 'pinterest-queries', name: 'searches', value: 'female cycling', type: 'string' },
       { id: 'pinterest-locale', name: 'locale', value: 'en-US', type: 'string' },
       { id: 'pinterest-country', name: 'country', value: 'US', type: 'string' },
-      { id: 'pinterest-limit', name: 'maxResultsPerQuery', value: 10, type: 'number' },
-      { id: 'pinterest-details', name: 'includePinDetails', value: false, type: 'boolean' }
+      { id: 'pinterest-limit', name: 'maxResultsPerSearch', value: 100, type: 'number' },
+      { id: 'pinterest-details', name: 'includePinDetails', value: true, type: 'boolean' }
     ] },
     options: {}
   }),
-  node('51000000-', 4, 'Build FetchCat Search Input', 'n8n-nodes-base.code', 2, [-1280, 0], {
+  node('51000000-', 4, 'Build FetchCat Research Input', 'n8n-nodes-base.code', 2, [-1280, 80], {
     jsCode: String.raw`const input = $input.first()?.json;
-if (!input) throw new Error('Configure 1. Set Your Pinterest Searches.');
-const queries = String(input.queries || '').split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
-if (queries.length < 1 || queries.length > 10) throw new Error('Configure between one and ten Pinterest searches, separated by commas or new lines.');
-if (new Set(queries.map((query) => query.toLowerCase())).size !== queries.length) throw new Error('Pinterest searches must be unique.');
-if (queries.some((query) => query.length < 2 || query.length > 150)) throw new Error('Each Pinterest search must contain 2 to 150 characters.');
-const maxResultsPerQuery = Math.max(5, Math.min(Number(input.maxResultsPerQuery) || 10, 50));
+if (!input) throw new Error('Configure 1. Set Your Research Niche.');
+const niche = String(input.niche || '').trim();
+if (niche.length < 2 || niche.length > 120) throw new Error('Research niche must contain 2 to 120 characters.');
+const queries = String(input.searches || niche).split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
+if (queries.length < 1 || queries.length > 5) throw new Error('Configure between one and five search phrases, separated by commas or new lines.');
+if (new Set(queries.map((query) => query.toLowerCase())).size !== queries.length) throw new Error('Search phrases must be unique.');
+if (queries.some((query) => query.length < 2 || query.length > 150)) throw new Error('Each search phrase must contain 2 to 150 characters.');
+const maxResultsPerQuery = Math.max(20, Math.min(Number(input.maxResultsPerSearch) || 100, 500));
 return [{ json: {
-  config: { queries, maxResultsPerQuery },
+  config: { niche, queries, maxResultsPerQuery },
   actorInput: {
     queries,
     maxResultsPerQuery,
@@ -572,7 +621,7 @@ return [{ json: {
   }
 } }];`
   }),
-  node('51000000-', 5, '2. Search Pinterest with FetchCat', 'n8n-nodes-base.httpRequest', 4.3, [-1040, 0], {
+  node('51000000-', 5, '2. Collect Pinterest Results with FetchCat', 'n8n-nodes-base.httpRequest', 4.3, [-1040, 80], {
     method: 'POST',
     url: 'https://api.apify.com/v2/acts/FtsA7YTDVGAJ83XiS/run-sync-get-dataset-items',
     authentication: 'genericCredentialType',
@@ -591,14 +640,14 @@ return [{ json: {
     jsonBody: '={{ $json.actorInput }}',
     options: { timeout: 310000, response: { response: { responseFormat: 'json' } } }
   }),
-  node('51000000-', 9, 'Normalize Current Rankings', 'n8n-nodes-base.code', 2, [-800, 0], {
-    jsCode: String.raw`const config = $('Build FetchCat Search Input').first().json.config;
+  node('51000000-', 9, 'Normalize and Deduplicate Pins', 'n8n-nodes-base.code', 2, [-800, 80], {
+    jsCode: String.raw`const config = $('Build FetchCat Research Input').first().json.config;
 const payload = $input.all().flatMap((item) => {
   const value = item.json?.data ?? item.json;
   return Array.isArray(value) ? value : [value];
 });
-const snapshotAt = new Date().toISOString();
-const snapshotDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Lisbon' });
+const researchAt = new Date().toISOString();
+const researchDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Lisbon' });
 const unique = new Map();
 for (const pin of payload) {
   const pinId = String(pin.pinId || '').trim();
@@ -611,216 +660,228 @@ for (const pin of payload) {
   const rawTitle = String(pin.title || '').trim();
   const description = String(pin.description || '').trim();
   unique.set(key, {
-    snapshotDate,
-    snapshotAt,
+    researchDate,
+    researchAt,
     query,
     pinId,
     position,
     title: (!rawTitle || ['pin', 'pinterest'].includes(rawTitle.toLowerCase()) ? description : rawTitle).slice(0, 220) || 'Untitled Pinterest pin',
     pinUrl,
+    description: description.slice(0, 1000),
     imageUrl: String(pin.imageUrl || pin.thumbnailUrl || '').trim(),
     creatorName: String(pin.creatorName || pin.creatorUsername || '').trim(),
+    boardName: String(pin.boardName || '').trim(),
     domain: String(pin.domain || '').trim(),
+    outboundUrl: String(pin.outboundUrl || '').trim(),
+    isVideo: Boolean(pin.isVideo),
     saveCount: pin.saveCount !== null && pin.saveCount !== undefined && pin.saveCount !== '' && Number.isFinite(Number(pin.saveCount)) ? Number(pin.saveCount) : null,
     repinCount: pin.repinCount !== null && pin.repinCount !== undefined && pin.repinCount !== '' && Number.isFinite(Number(pin.repinCount)) ? Number(pin.repinCount) : null
   });
 }
-const rankings = [...unique.values()].sort((a, b) => a.query.localeCompare(b.query) || a.position - b.position);
-const returnedQueries = new Set(rankings.map((row) => row.query.toLowerCase()));
+const pins = [...unique.values()].sort((a, b) => a.query.localeCompare(b.query) || a.position - b.position);
+const returnedQueries = new Set(pins.map((row) => row.query.toLowerCase()));
 const emptyQueries = config.queries.filter((query) => !returnedQueries.has(query.toLowerCase()));
 if (emptyQueries.length) throw new Error('Pinterest returned no usable pins for: ' + emptyQueries.join(', ') + '. Refine those searches and retry.');
-return rankings.map((json) => ({ json }));`
+if (pins.length < 10) throw new Error('Pinterest returned fewer than ten usable pins. Broaden the research niche and retry.');
+return pins.map((json) => ({ json }));`
   }),
-  { ...node('51000000-', 10, 'Read Earlier Rankings from Google Sheets', 'n8n-nodes-base.googleSheets', 4.7, [-560, 0], {
-    operation: 'read',
-    documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
-    sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Pinterest Search' },
-    options: {}
-  }), alwaysOutputData: true, executeOnce: true },
-  node('51000000-', 11, '3. Compare Weekly Rankings', 'n8n-nodes-base.code', 2, [-320, 0], {
-    jsCode: String.raw`const current = $('Normalize Current Rankings').all().map((item) => item.json);
-if (current.length === 0) return [];
-const currentDate = current[0].snapshotDate;
-const querySet = new Set(current.map((row) => row.query.toLowerCase()));
-const fromSheetsDate = (value) => {
-  if (typeof value === 'number' && Number.isFinite(value)) return new Date((value - 25569) * 86400000).toISOString().slice(0, 10);
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : '';
-};
-const historical = $input.all().map((item) => item.json).map((row) => ({
-  snapshotDate: fromSheetsDate(row['Snapshot at']),
-  query: String(row.Query || '').trim(),
-  pinId: String(row['Pinterest pin ID'] || '').trim(),
-  position: Number(row.Position),
-  title: String(row.Title || '').trim(),
-  creatorName: String(row.Creator || '').trim(),
-  domain: String(row.Domain || '').trim()
-})).filter((row) => row.snapshotDate && row.snapshotDate < currentDate && row.query && row.pinId && querySet.has(row.query.toLowerCase()));
-const latestDateByQuery = new Map();
-for (const row of historical) {
-  const query = row.query.toLowerCase();
-  if (!latestDateByQuery.has(query) || row.snapshotDate > latestDateByQuery.get(query)) latestDateByQuery.set(query, row.snapshotDate);
-}
-const previousByKey = new Map();
-for (const row of historical) {
-  const query = row.query.toLowerCase();
-  if (row.snapshotDate === latestDateByQuery.get(query) && Number.isFinite(row.position) && row.position > 0) previousByKey.set(query + '|' + row.pinId, row);
-}
-const observedDatesByKey = new Map();
-for (const row of historical) {
-  if (!Number.isFinite(row.position) || row.position < 1) continue;
-  const key = row.query.toLowerCase() + '|' + row.pinId;
-  if (!observedDatesByKey.has(key)) observedDatesByKey.set(key, new Set());
-  observedDatesByKey.get(key).add(row.snapshotDate);
-}
-const currentKeys = new Set();
-const counts = { firstSnapshot: 0, new: 0, movedUp: 0, movedDown: 0, unchanged: 0, noLongerVisible: 0 };
+  node('51000000-', 10, 'Build Research Evidence', 'n8n-nodes-base.code', 2, [-560, 80], {
+    jsCode: String.raw`const pins = $input.all().map((item) => item.json);
+const config = $('Build FetchCat Research Input').first().json.config;
 const sheetsEpochOffset = 25569;
-const snapshotSerial = new Date(current[0].snapshotAt).getTime() / 86400000 + sheetsEpochOffset;
+const researchSerial = new Date(pins[0].researchAt).getTime() / 86400000 + sheetsEpochOffset;
 const escapeFormula = (value) => String(value || '').replace(/"/g, '""');
-const rows = current.map((pin) => {
-  const key = pin.query.toLowerCase() + '|' + pin.pinId;
-  currentKeys.add(key);
-  const previous = previousByKey.get(key);
-  const hasPreviousSnapshot = latestDateByQuery.has(pin.query.toLowerCase());
-  const movement = previous ? previous.position - pin.position : null;
-  const status = !hasPreviousSnapshot ? 'First snapshot' : !previous ? 'New in search results' : movement > 0 ? 'Moved up' : movement < 0 ? 'Moved down' : 'Unchanged';
-  if (status === 'First snapshot') counts.firstSnapshot += 1;
-  else if (status === 'New in search results') counts.new += 1;
-  else if (status === 'Moved up') counts.movedUp += 1;
-  else if (status === 'Moved down') counts.movedDown += 1;
-  else counts.unchanged += 1;
+const sourceRows = pins.map((pin) => {
   return {
-    snapshotAt: snapshotSerial,
+    researchAt: researchSerial,
+    niche: config.niche,
     query: pin.query,
     position: pin.position,
-    previousPosition: previous?.position ?? null,
-    movement,
-    status,
     pinLink: '=HYPERLINK("' + escapeFormula(pin.pinUrl) + '","View pin")',
     title: pin.title,
+    description: pin.description,
     creator: pin.creatorName,
+    board: pin.boardName,
     domain: pin.domain,
+    destinationLink: pin.outboundUrl ? '=HYPERLINK("' + escapeFormula(pin.outboundUrl) + '","Open destination")' : '',
     imageLink: pin.imageUrl ? '=HYPERLINK("' + escapeFormula(pin.imageUrl) + '","View image")' : '',
+    format: pin.isVideo ? 'Video' : 'Image',
     saves: pin.saveCount,
     repins: pin.repinCount,
     pinId: pin.pinId,
-    snapshotKey: currentDate + '|' + key
+    researchKey: pins[0].researchDate + '|' + config.niche.toLowerCase() + '|' + pin.query.toLowerCase() + '|' + pin.pinId
   };
 });
-for (const [key, previous] of previousByKey) {
-  if (currentKeys.has(key)) continue;
-  counts.noLongerVisible += 1;
-  rows.push({
-    snapshotAt: snapshotSerial,
-    query: previous.query,
-    position: null,
-    previousPosition: previous.position,
-    movement: null,
-    status: 'No longer visible',
-    pinLink: '',
-    title: previous.title,
-    creator: previous.creatorName,
-    domain: previous.domain,
-    imageLink: '',
-    saves: null,
-    repins: null,
-    pinId: previous.pinId,
-    snapshotKey: currentDate + '|' + key
-  });
+const aggregate = (field, type) => {
+  const map = new Map();
+  for (const pin of pins) {
+    const name = String(pin[field] || '').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    const row = map.get(key) || { type, name, appearances: 0, topTenAppearances: 0, bestPosition: Infinity, examplePinUrl: pin.pinUrl };
+    row.appearances += 1;
+    if (pin.position <= 10) row.topTenAppearances += 1;
+    row.bestPosition = Math.min(row.bestPosition, pin.position);
+    map.set(key, row);
+  }
+  return [...map.values()];
+};
+let publicSources = [...aggregate('creatorName', 'Creator'), ...aggregate('domain', 'Domain')]
+  .sort((a, b) => b.topTenAppearances - a.topTenAppearances || b.appearances - a.appearances || a.bestPosition - b.bestPosition)
+  .slice(0, 50);
+if (publicSources.length === 0) publicSources = [{ type: 'Availability', name: 'Pinterest did not expose public creator or domain data', appearances: 0, topTenAppearances: 0, bestPosition: null, examplePinUrl: pins[0].pinUrl }];
+publicSources = publicSources.map((row, index) => ({
+    researchAt: researchSerial, niche: config.niche, ...row,
+    examplePin: '=HYPERLINK("' + escapeFormula(row.examplePinUrl) + '","View pin")',
+    researchKey: pins[0].researchDate + '|' + config.niche.toLowerCase() + '|' + row.type.toLowerCase() + '|' + row.name.toLowerCase(),
+    sortOrder: index + 1
+  }));
+const stopWords = new Set('a an and are as at be by for from how in into is it of on or that the this to with you your pinterest pin ideas'.split(' '));
+const phraseCounts = new Map();
+for (const pin of pins) {
+  const words = (pin.title + ' ' + pin.description).toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((word) => word.length > 2 && !stopWords.has(word));
+  const phrases = new Set();
+  for (let i = 0; i < words.length - 1; i += 1) phrases.add(words[i] + ' ' + words[i + 1]);
+  for (const phrase of phrases) phraseCounts.set(phrase, (phraseCounts.get(phrase) || 0) + 1);
 }
-rows.sort((a, b) => a.query.localeCompare(b.query) || (Number(a.position) || 999999) - (Number(b.position) || 999999));
-return [{ json: { snapshotDate: currentDate, trackedQueries: [...querySet], previousSnapshotDates: [...new Set(latestDateByQuery.values())].sort(), counts, rows } }];`
+const recurringPhrases = [...phraseCounts].filter(([, count]) => count >= 2).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([phrase, count]) => ({ phrase, pins: count }));
+const compactPins = [];
+let packetSize = 0;
+for (const pin of pins) {
+  const compact = { pinId: pin.pinId, query: pin.query, position: pin.position, title: pin.title.slice(0, 180), description: pin.description.slice(0, 260), creator: pin.creatorName, domain: pin.domain, format: pin.isVideo ? 'Video' : 'Image' };
+  const size = JSON.stringify(compact).length;
+  if (packetSize + size > 105000) break;
+  compactPins.push(compact);
+  packetSize += size;
+}
+const stats = {
+  niche: config.niche,
+  searches: config.queries,
+  totalPins: pins.length,
+  analyzedPins: compactPins.length,
+  uniqueCreators: new Set(pins.map((pin) => pin.creatorName).filter(Boolean).map((value) => value.toLowerCase())).size,
+  uniqueDomains: new Set(pins.map((pin) => pin.domain).filter(Boolean).map((value) => value.toLowerCase())).size,
+  imagePins: pins.filter((pin) => !pin.isVideo).length,
+  videoPins: pins.filter((pin) => pin.isVideo).length,
+  pinsWithSaveData: pins.filter((pin) => pin.saveCount !== null).length
+};
+return [{ json: { stats, sourceRows, publicSources, pins, researchPacket: { stats, recurringPhrases, publicSources: publicSources.slice(0, 20).map(({ type, name, appearances, topTenAppearances, bestPosition }) => ({ type, name, appearances, topTenAppearances, bestPosition })), pins: compactPins } } }];`
   }),
-  node('51000000-', 12, 'Prepare Ranking Rows', 'n8n-nodes-base.code', 2, [-80, 0], {
-    jsCode: 'return $json.rows.map((row) => ({ json: row }));'
+  node('51000000-', 11, '3. Analyze Content Landscape and Gaps', '@n8n/n8n-nodes-langchain.openAi', 2.3, [-320, 80], openAiParameters(
+    '=Research niche: {{ $json.stats.niche }}\n\nAnalyze this Pinterest evidence:\n{{ JSON.stringify($json.researchPacket) }}',
+    'pinterest_content_opportunity_research',
+    pinterestResearchSchema,
+    'Analyze only the supplied Pinterest results. Identify recurring content themes, defensible content gaps, and five practical content tests. Every evidencePinId must exactly match a supplied pinId. Use concise natural English. matchTerms must be literal phrases that can be counted in supplied titles or descriptions. Never claim search volume, trend growth, engagement, clicks, sales, or demand. Return the strict schema.',
+    7000
+  )),
+  node('51000000-', 12, 'Validate Evidence and Build Report', 'n8n-nodes-base.code', 2, [-80, 80], {
+    jsCode: `${parseStructured}\nconst evidence = $('Build Research Evidence').first().json;\nconst parsed = parseStructured($input.first().json, ['executiveSummary', 'themes', 'contentGaps', 'contentTests']);\nif (!parsed || !Array.isArray(parsed.themes) || !Array.isArray(parsed.contentGaps) || !Array.isArray(parsed.contentTests) || parsed.contentTests.length !== 5) throw new Error('OpenAI returned an invalid Pinterest research report.');\nconst byId = new Map(evidence.pins.map((pin) => [String(pin.pinId), pin]));\nconst validateEvidence = (items) => {\n  for (const item of items) {\n    if (!Array.isArray(item.evidencePinIds) || item.evidencePinIds.length === 0) throw new Error('A Pinterest finding has no evidence pins.');\n    if (item.evidencePinIds.some((pinId) => !byId.has(String(pinId)))) throw new Error('OpenAI cited a Pinterest pin that was not supplied.');\n  }\n};\nvalidateEvidence(parsed.themes); validateEvidence(parsed.contentGaps); validateEvidence(parsed.contentTests);\nconst linkEvidence = (ids) => ids.map((id) => byId.get(String(id))).map((pin) => pin.title + ' - ' + pin.pinUrl).join('\\n');\nconst allText = evidence.pins.map((pin) => (pin.title + ' ' + pin.description).toLowerCase());\nconst briefRows = [];\nconst add = (section, finding, evidenceText, matchingPins, order) => briefRows.push({ section, finding, evidence: evidenceText, matchingPins, sortOrder: order });\nadd('Summary', parsed.executiveSummary, evidence.stats.totalPins + ' source pins across ' + evidence.stats.searches.length + ' search phrase(s).', evidence.stats.totalPins, 1);\nparsed.themes.forEach((theme, index) => {\n  const terms = theme.matchTerms.map((term) => String(term).toLowerCase());\n  const count = allText.filter((text) => terms.some((term) => text.includes(term))).length;\n  add('Leading theme', theme.name + ': ' + theme.insight, 'Matched terms: ' + theme.matchTerms.join(', ') + '\\n' + linkEvidence(theme.evidencePinIds), count, 100 + index);\n});\nparsed.contentGaps.forEach((gap, index) => add('Content gap', gap.gap + ': ' + gap.whyItMatters + '\\nOpportunity: ' + gap.opportunity, linkEvidence(gap.evidencePinIds), null, 200 + index));\nparsed.contentTests.forEach((test, index) => add('Content test', test.title + ' [' + test.format + ']\\nAudience need: ' + test.audienceNeed + '\\nDifferentiation: ' + test.differentiation, linkEvidence(test.evidencePinIds), null, 300 + index));\nconst researchSerial = evidence.sourceRows[0].researchAt;\nconst dateKey = evidence.pins[0].researchDate;\nbriefRows.forEach((row) => { row.researchAt = researchSerial; row.niche = evidence.stats.niche; row.researchKey = dateKey + '|' + evidence.stats.niche.toLowerCase() + '|' + row.section.toLowerCase() + '|' + row.sortOrder; });\nreturn [{ json: { ...evidence, analysis: parsed, briefRows } }];`
   }),
-  node('51000000-', 13, '4. Save Rankings to Google Sheets', 'n8n-nodes-base.googleSheets', 4.7, [160, 0], {
+  node('51000000-', 13, 'Prepare Pin Rows', 'n8n-nodes-base.code', 2, [160, 80], {
+    jsCode: 'return $json.sourceRows.map((row) => ({ json: row }));'
+  }),
+  node('51000000-', 14, '4. Save Source Pins', 'n8n-nodes-base.googleSheets', 4.7, [400, 80], {
     operation: 'appendOrUpdate',
     documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
-    sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Pinterest Search' },
+    sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Pins' },
     columns: {
       mappingMode: 'defineBelow',
-      matchingColumns: ['Snapshot key'],
+      matchingColumns: ['Research key'],
       value: {
-        'Snapshot at': '={{ $json.snapshotAt }}', Query: '={{ $json.query }}', Position: '={{ $json.position }}',
-        'Previous position': '={{ $json.previousPosition }}', Movement: '={{ $json.movement }}', Status: '={{ $json.status }}',
-        Pin: '={{ $json.pinLink }}', Title: '={{ $json.title }}', Creator: '={{ $json.creator }}', Domain: '={{ $json.domain }}',
-        Image: '={{ $json.imageLink }}', Saves: '={{ $json.saves }}', Repins: '={{ $json.repins }}',
-        'Pinterest pin ID': '={{ $json.pinId }}', 'Snapshot key': '={{ $json.snapshotKey }}'
+        'Research at': '={{ $json.researchAt }}', Niche: '={{ $json.niche }}', Search: '={{ $json.query }}', Position: '={{ $json.position }}',
+        Pin: '={{ $json.pinLink }}', Title: '={{ $json.title }}', Description: '={{ $json.description }}', Creator: '={{ $json.creator }}', Board: '={{ $json.board }}', Domain: '={{ $json.domain }}',
+        Destination: '={{ $json.destinationLink }}', Image: '={{ $json.imageLink }}', Format: '={{ $json.format }}', Saves: '={{ $json.saves }}', Repins: '={{ $json.repins }}',
+        'Pinterest pin ID': '={{ $json.pinId }}', 'Research key': '={{ $json.researchKey }}'
       },
-      schema: ['Snapshot at', 'Query', 'Position', 'Previous position', 'Movement', 'Status', 'Pin', 'Title', 'Creator', 'Domain', 'Image', 'Saves', 'Repins', 'Pinterest pin ID', 'Snapshot key'].map((field) => ({
-        id: field, displayName: field, required: false, defaultMatch: field === 'Snapshot key', display: true,
-        type: ['Snapshot at', 'Position', 'Previous position', 'Movement', 'Saves', 'Repins'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
+      schema: ['Research at', 'Niche', 'Search', 'Position', 'Pin', 'Title', 'Description', 'Creator', 'Board', 'Domain', 'Destination', 'Image', 'Format', 'Saves', 'Repins', 'Pinterest pin ID', 'Research key'].map((field) => ({
+        id: field, displayName: field, required: false, defaultMatch: field === 'Research key', display: true,
+        type: ['Research at', 'Position', 'Saves', 'Repins'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
       })),
       attemptToConvertTypes: false,
       convertFieldsToString: false
     },
     options: {}
   }),
-  node('51000000-', 14, 'Weekly Ranking Summary', 'n8n-nodes-base.code', 2, [400, 0], {
-    jsCode: String.raw`const result = $('3. Compare Weekly Rankings').first().json;
-const counts = result.counts;
-const hasHistory = result.previousSnapshotDates.length > 0;
-return [{ json: {
-  status: hasHistory ? 'Pinterest rankings updated' : 'Pinterest ranking baseline saved',
-  snapshotDate: result.snapshotDate,
-  trackedQueries: result.trackedQueries.length,
-  rowsSaved: result.rows.length,
-  changes: {
-    firstSnapshot: counts.firstSnapshot,
-    newInSearchResults: counts.new,
-    movedUp: counts.movedUp,
-    movedDown: counts.movedDown,
-    unchanged: counts.unchanged,
-    noLongerVisible: counts.noLongerVisible
-  },
-  note: 'Rank changes describe these Pinterest search results only; they are not search-volume or demand trends.'
-} }];`
+  { ...node('51000000-', 15, 'Prepare Public Source Rows', 'n8n-nodes-base.code', 2, [640, 80], {
+    jsCode: "return $('Validate Evidence and Build Report').first().json.publicSources.map((row) => ({ json: row }));"
+  }), executeOnce: true },
+  node('51000000-', 16, '5. Save Public Source Summary', 'n8n-nodes-base.googleSheets', 4.7, [880, 80], {
+    operation: 'appendOrUpdate', documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
+    sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Sources' },
+    columns: { mappingMode: 'defineBelow', matchingColumns: ['Research key'], value: {
+      'Research at': '={{ $json.researchAt }}', Niche: '={{ $json.niche }}', Type: '={{ $json.type }}', Name: '={{ $json.name }}', Appearances: '={{ $json.appearances }}',
+      'Top 10 appearances': '={{ $json.topTenAppearances }}', 'Best position': '={{ $json.bestPosition }}', 'Example pin': '={{ $json.examplePin }}', 'Research key': '={{ $json.researchKey }}'
+    }, schema: ['Research at', 'Niche', 'Type', 'Name', 'Appearances', 'Top 10 appearances', 'Best position', 'Example pin', 'Research key'].map((field) => ({
+      id: field, displayName: field, required: false, defaultMatch: field === 'Research key', display: true,
+      type: ['Research at', 'Appearances', 'Top 10 appearances', 'Best position'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
+    })), attemptToConvertTypes: false, convertFieldsToString: false }, options: {}
   }),
-  sticky('51000000-', 21, 'Workflow Overview', [-2240, -320], 400, 960, `## Track Pinterest Keyword Rankings Weekly
+  { ...node('51000000-', 17, 'Prepare Research Brief Rows', 'n8n-nodes-base.code', 2, [1120, 80], {
+    jsCode: "return $('Validate Evidence and Build Report').first().json.briefRows.map((row) => ({ json: row }));"
+  }), executeOnce: true },
+  node('51000000-', 18, '6. Save Research Brief', 'n8n-nodes-base.googleSheets', 4.7, [1360, 80], {
+    operation: 'appendOrUpdate', documentId: { __rl: true, mode: 'id', value: '0000000000000000000000000000000000000000000' },
+    sheetName: { __rl: true, mode: 'id', value: '0', cachedResultName: 'Research Brief' },
+    columns: { mappingMode: 'defineBelow', matchingColumns: ['Research key'], value: {
+      'Research at': '={{ $json.researchAt }}', Niche: '={{ $json.niche }}', Section: '={{ $json.section }}', Finding: '={{ $json.finding }}', Evidence: '={{ $json.evidence }}',
+      'Matching pins': '={{ $json.matchingPins }}', 'Sort order': '={{ $json.sortOrder }}', 'Research key': '={{ $json.researchKey }}'
+    }, schema: ['Research at', 'Niche', 'Section', 'Finding', 'Evidence', 'Matching pins', 'Sort order', 'Research key'].map((field) => ({
+      id: field, displayName: field, required: false, defaultMatch: field === 'Research key', display: true,
+      type: ['Research at', 'Matching pins', 'Sort order'].includes(field) ? 'number' : 'string', canBeUsedToMatch: true
+    })), attemptToConvertTypes: false, convertFieldsToString: false }, options: {}
+  }),
+  { ...node('51000000-', 19, 'Research Complete', 'n8n-nodes-base.code', 2, [1600, 80], {
+    jsCode: String.raw`const report = $('Validate Evidence and Build Report').first().json;
+return [{ json: { status: 'Pinterest content opportunity research saved', ...report.stats, publicSourceRows: report.publicSources.length, themeRows: report.analysis.themes.length, contentGaps: report.analysis.contentGaps.length, contentTests: report.analysis.contentTests.length, note: 'Findings describe the supplied Pinterest results and do not represent search volume or demand.' } }];`
+  }), executeOnce: true },
+  sticky('51000000-', 21, 'Workflow Overview', [-2240, -400], 400, 1100, `## Pinterest Content Opportunity Research
 
 ### How it works
 
-1. Runs manually or every Monday morning.
-2. Searches Pinterest with \`fetch_cat/pinterest-search-scraper\` for one to ten configured keywords.
-3. Reads earlier snapshots directly from Google Sheets.
-4. Labels every current result as first snapshot, new, moved up, moved down, or unchanged.
-5. Adds pins that disappeared from the latest results as no longer visible.
-6. Upserts the dated snapshot by Snapshot key, making same-day reruns safe.
+1. Accepts a niche and one to five Pinterest search phrases.
+2. Runs \`fetch_cat/pinterest-search-scraper\` for up to 500 public pins per search.
+3. Saves every source pin with its position, creator, board, domain, format, and public metrics.
+4. Aggregates public creators and domains when Pinterest exposes them.
+5. Uses one structured AI request to identify themes, content gaps, and five practical tests.
+6. Rejects invented evidence IDs and saves the report to three Google Sheet tabs.
 
 ### Setup
 
-- [ ] Edit the searches, locale, country, result limit, and optional detail enrichment in **1. Set Your Pinterest Searches**.
-- [ ] Create HTTP Header Auth with \`Authorization: Bearer YOUR_APIFY_TOKEN\` and select it in **2. Search Pinterest with FetchCat**.
-- [ ] Create a Google Sheet tab named \`Pinterest Search\` with the documented fifteen headers; freeze row one and format \`Snapshot at\` as Date time.
-- [ ] Select the same spreadsheet and tab in both Google Sheets nodes.
-- [ ] Run manually once to save a baseline, then activate the weekly schedule.
+- [ ] Edit the niche, searches, locale, country, and result limit in **1. Set Your Research Niche**.
+- [ ] Connect Apify HTTP Header Auth in **2. Collect Pinterest Results with FetchCat**.
+- [ ] Create \`Pins\`, \`Sources\`, and \`Research Brief\` tabs with the documented headers.
+- [ ] Select the same spreadsheet and matching tab in each Google Sheets node.
+- [ ] Connect OpenAI in **3. Analyze Content Landscape and Gaps**.
+- [ ] Run manually and inspect the source pins before acting on recommendations.
 
 ### Interpretation
 
-Positive Movement means a pin moved closer to rank one. Rank changes describe only the supplied Pinterest search results. They do not prove search volume, popularity, clicks, sales, or demand. Missing saves and repins remain blank.`, 1),
-  sticky('51000000-', 22, 'Start and configure', [-1808, -256], 576, 432, '## Start and configure\n\nRuns manually or weekly. Edit one clearly numbered node with one to ten searches, locale, country, result limit, and optional pin-detail enrichment.', 7),
-  sticky('51000000-', 23, 'Validate and collect', [-1328, -128], 432, 304, '## Validate and collect\n\nAccepts comma-separated or line-separated searches, rejects duplicates, caps costs, and waits up to five minutes for `fetch_cat/pinterest-search-scraper` to return clean dataset items.', 7),
-  sticky('51000000-', 24, 'Normalize and load history', [-848, -128], 432, 304, '## Normalize and load history\n\nValidates pin IDs, URLs, queries, and positions, then reads the same Google Sheet for earlier dated rankings. No separate database is required.', 7),
-  sticky('51000000-', 25, 'Compare weekly rankings', [-368, -128], 432, 304, '## Compare weekly rankings\n\nCompares each query with its latest earlier snapshot and prepares readable statuses, numeric movement, links, metadata, and disappeared results.', 7),
-  sticky('51000000-', 26, 'Save and summarize', [112, -128], 432, 304, '## Save and summarize\n\nUpserts rows by dated Snapshot key and returns a compact count of new, rising, falling, unchanged, and no-longer-visible pins.', 7)
+Themes and gaps are grounded in cited pins. Matching counts use literal terms found in titles and descriptions. They do not measure Pinterest search volume, trend growth, clicks, sales, or demand.`, 1),
+  sticky('51000000-', 22, 'Configure niche', [-1808, -224], 528, 400, '## Configure niche\n\nEnter one clear research niche and one to five searches. The default collects 100 pins per search; raise it to 500 only when the extra breadth is useful.', 7),
+  sticky('51000000-', 23, 'Collect and normalize', [-1280, -224], 528, 400, '## Collect and normalize\n\nFetchCat collects public Pinterest results. The workflow validates IDs, URLs, positions, titles, descriptions, creators, boards, domains, formats, and available save data.', 7),
+  sticky('51000000-', 24, 'Build evidence', [-752, -224], 528, 400, '## Build evidence\n\nCreates source rows, available public source counts, recurring phrases, and a bounded evidence packet. Large result sets are capped before the single AI request.', 7),
+  sticky('51000000-', 25, 'Analyze and validate', [-224, -224], 528, 400, '## Analyze and validate\n\nOpenAI proposes themes, gaps, and tests using supplied pin IDs. Invalid citations or malformed structured output stop the workflow before any Sheet write.', 7),
+  sticky('51000000-', 26, 'Save research', [304, -224], 1392, 400, '## Save research\n\nWrites source pins, available public source aggregates, and the readable brief to separate tabs. Date-and-niche keys make same-day reruns update existing research instead of duplicating it.', 7)
 ];
 
-const pinterestRankTrackerWorkflow = workflow(
-  'Track Pinterest Keyword Rankings Weekly with Apify and Google Sheets',
-  pinterestRankTrackerNodes,
+const pinterestResearchWorkflow = workflow(
+  'Analyze Pinterest Content Opportunities with Apify, OpenAI and Google Sheets',
+  pinterestResearchNodes,
   connectionMap([
-    ['Manual Trigger', '1. Set Your Pinterest Searches'],
-    ['Weekly Schedule', '1. Set Your Pinterest Searches'],
-    ['1. Set Your Pinterest Searches', 'Build FetchCat Search Input'],
-    ['Build FetchCat Search Input', '2. Search Pinterest with FetchCat'],
-    ['2. Search Pinterest with FetchCat', 'Normalize Current Rankings'],
-    ['Normalize Current Rankings', 'Read Earlier Rankings from Google Sheets'],
-    ['Read Earlier Rankings from Google Sheets', '3. Compare Weekly Rankings'],
-    ['3. Compare Weekly Rankings', 'Prepare Ranking Rows'],
-    ['Prepare Ranking Rows', '4. Save Rankings to Google Sheets'],
-    ['4. Save Rankings to Google Sheets', 'Weekly Ranking Summary']
+    ['Manual Trigger', '1. Set Your Research Niche'],
+    ['1. Set Your Research Niche', 'Build FetchCat Research Input'],
+    ['Build FetchCat Research Input', '2. Collect Pinterest Results with FetchCat'],
+    ['2. Collect Pinterest Results with FetchCat', 'Normalize and Deduplicate Pins'],
+    ['Normalize and Deduplicate Pins', 'Build Research Evidence'],
+    ['Build Research Evidence', '3. Analyze Content Landscape and Gaps'],
+    ['3. Analyze Content Landscape and Gaps', 'Validate Evidence and Build Report'],
+    ['Validate Evidence and Build Report', 'Prepare Pin Rows'],
+    ['Prepare Pin Rows', '4. Save Source Pins'],
+    ['4. Save Source Pins', 'Prepare Public Source Rows'],
+    ['Prepare Public Source Rows', '5. Save Public Source Summary'],
+    ['5. Save Public Source Summary', 'Prepare Research Brief Rows'],
+    ['Prepare Research Brief Rows', '6. Save Research Brief'],
+    ['6. Save Research Brief', 'Research Complete']
   ])
 );
 
@@ -1289,17 +1350,17 @@ const definitions = [
     }
   },
   {
-    slug: 'pinterest-keyword-rank-tracker',
-    workflow: pinterestRankTrackerWorkflow,
+    slug: 'pinterest-content-opportunity-research',
+    workflow: pinterestResearchWorkflow,
     metadata: {
-      slug: 'pinterest-keyword-rank-tracker',
-      title: 'Track Pinterest Keyword Rankings Weekly with Apify and Google Sheets',
+      slug: 'pinterest-content-opportunity-research',
+      title: 'Analyze Pinterest Content Opportunities with Apify, OpenAI and Google Sheets',
       workflowKind: 'actor-template',
       actorId: 'FtsA7YTDVGAJ83XiS',
       actorSlug: 'fetch_cat/pinterest-search-scraper',
       version: '1.0.0',
       minimumN8nVersion: '2.26.8',
-      integrations: ['Apify', 'Google Sheets'],
+      integrations: ['Apify', 'OpenAI', 'Google Sheets'],
       testLimits: { actorItems: 50, apifyBackedExecutions: 3, budgetUsd: 3.33 },
       releaseState: 'qa-passed'
     }
