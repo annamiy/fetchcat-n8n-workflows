@@ -1,10 +1,14 @@
 {
-  "description": "Assertions for a search where only the first synthetic listing matches the configured brand and size.",
+  "description": "Assertions for a women's search where only the first synthetic listing matches the configured brand, combined size, and color.",
   "assertions": [
     "The default schedule is hourly and the default Actor result limit is 10.",
     "Configuration accepts 1 through 50 results and rejects values outside that range.",
     "The first successful run records current matching IDs without sending Telegram when sendFirstRunAlerts is false.",
-    "Only unseen listings matching the configured price, brand, and size filters reach Telegram.",
+    "Audience accepts Any, Women, Men, Girls, or Boys and changes the Actor search query.",
+    "A configured size M, 38, or 10 matches Vinted's combined size M / 38 / 10 without matching unrelated values.",
+    "Color words are matched against listing titles and multiple configured colors use OR logic.",
+    "Numeric brandIds and catalogIds are passed to the Actor for exact marketplace-side filtering.",
+    "Only unseen listings matching the configured price, brand, size, and color filters reach Telegram.",
     "Telegram messages contain human-readable listing details and direct links in groups of at most five.",
     "An immediate duplicate rerun creates no Telegram writes.",
     "A Telegram failure does not commit listing IDs to the delivery ledger.",

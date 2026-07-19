@@ -2,8 +2,9 @@
 
 Monitor one focused Vinted search and receive Telegram alerts when previously
 unseen matching listings appear. This workflow runs
-`fetch_cat/vinted-search-scraper` newest-first, applies price, brand, and size
-filters, and uses n8n Data Tables to prevent duplicate notifications.
+`fetch_cat/vinted-search-scraper` newest-first, applies audience, price, brand,
+size, and color-keyword filters, and uses n8n Data Tables to prevent duplicate
+notifications.
 
 The default schedule is hourly with 10 results per run. You can configure the
 Schedule Trigger from every 15 minutes through once per day and choose between
@@ -19,7 +20,7 @@ workflow does not flood Telegram with existing listings.
 ## How it works
 
 1. Runs manually or on the schedule you select.
-2. Validates the Vinted domain, search, price range, filters, and result limit.
+2. Validates the Vinted domain, search, audience, price range, filters, and result limit.
 3. Runs the FetchCat Vinted Search Scraper through Cloud-compatible HTTP nodes.
 4. Filters malformed and nonmatching results.
 5. Checks each listing ID against a durable delivery ledger.

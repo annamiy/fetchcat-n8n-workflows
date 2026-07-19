@@ -2,7 +2,8 @@
 
 Runs the [FetchCat Vinted Search Scraper](https://apify.com/fetch_cat/vinted-search-scraper)
 (`fetch_cat/vinted-search-scraper`) on a configurable schedule and sends only
-previously unseen matching listings to Telegram. It is designed for buyers and
+previously unseen matching listings to Telegram. It supports audience, brand,
+size, color-keyword, and price controls for buyers and
 collectors who want to monitor one focused Vinted search without repeatedly
 refreshing saved results.
 
@@ -21,12 +22,22 @@ not require OpenAI.
    interval from 15 minutes through one day.
 3. Open `2. Configure Vinted Search` and set:
    - `searchText`: the product, style, or model to find.
+   - `audience`: `Any`, `Women`, `Men`, `Girls`, or `Boys`. The workflow adds
+     this term to the Vinted search query.
    - `domain`: the relevant public marketplace, such as `www.vinted.fr`,
      `www.vinted.de`, or `www.vinted.co.uk`.
    - `minimumPrice` and `maximumPrice`: numeric price limits in the marketplace
      currency.
-   - `allowedBrands`: optional comma-separated exact brand names.
-   - `allowedSizes`: optional comma-separated exact sizes.
+   - `allowedBrands`: optional comma-separated brand names, matched
+     case-insensitively against Vinted's brand field.
+   - `allowedSizes`: optional comma-separated sizes. A value such as `M`, `38`,
+     or `10` matches Vinted's combined size `M / 38 / 10`.
+   - `allowedColors`: optional comma-separated color words matched against the
+     listing title. Multiple values use OR logic.
+   - `brandIds`: optional comma-separated numeric Vinted brand IDs for exact
+     marketplace-side filtering.
+   - `catalogIds`: optional comma-separated numeric Vinted catalog IDs. Use
+     these when you need strict category or audience filtering.
    - `maxResults`: an integer from 1 to 50; the default is 10.
    - `sendFirstRunAlerts`: normally leave this off so setup creates a quiet
      baseline. Turn it on only when you intentionally want current results.
@@ -45,7 +56,7 @@ not require OpenAI.
 flowchart LR
   T[Manual or scheduled trigger] --> C[Validate one Vinted search]
   C --> A[Run FetchCat Vinted Search Scraper]
-  A --> F[Apply price, brand, and size filters]
+  A --> F[Apply audience, price, brand, size, and color filters]
   F --> D[Keep IDs absent from delivery ledger]
   D --> B{First run?}
   B -->|Yes| Q[Record quiet baseline]
@@ -54,7 +65,7 @@ flowchart LR
 ```
 
 - Search state is scoped to the complete configuration. Changing the domain,
-  query, price range, brand allowlist, or size allowlist creates a new baseline.
+  query, audience, price range, or any allowlist creates a new baseline.
 - Telegram messages contain title, price, brand, size, condition, seller,
   engagement counters when available, and a direct listing link.
 - Listings are grouped five per message to stay readable and within Telegram's
@@ -85,8 +96,12 @@ every 30 minutes uses about 1,440; every 15 minutes uses about 2,880.
   successful workflow run.
 - A result limit that is lower than the number of listings added between runs
   can miss older additions that fall outside the newest returned page.
-- Brand and size filters use exact case-insensitive matches against values
-  returned by Vinted. Marketplace field availability varies by country.
+- Audience terms improve Vinted search relevance, but exact audience/category
+  filtering requires the optional Vinted `catalogIds` field.
+- Brand names use Vinted's structured brand field. Sizes use its structured
+  size field with token-aware matching. Color is not returned as structured
+  metadata by this Actor, so color filtering checks whole words in titles and
+  may omit listings whose sellers did not name the color.
 - The Actor returns and charges for dataset rows before n8n removes previously
   delivered IDs.
 

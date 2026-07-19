@@ -260,6 +260,10 @@ for (const slug of workflowSlugs()) {
     }
     if (serialized.includes('@n8n/n8n-nodes-langchain')) fail(slug, 'must not require an AI model');
     if (!serialized.includes('FetchCat Vinted Monitor State')) fail(slug, 'must create durable first-run state');
+    for (const control of ['audience', 'allowedBrands', 'allowedSizes', 'allowedColors', 'brandIds', 'catalogIds']) {
+      if (!serialized.includes(`\"name\":\"${control}\"`) && !serialized.includes(`\"name\": \"${control}\"`)) fail(slug, `missing Vinted control ${control}`);
+    }
+    if (!serialized.includes('M / 38 / 10')) fail(slug, 'must document token-aware combined-size matching');
   }
 
   if (metadata.slug !== slug) fail(slug, 'metadata slug does not match directory');

@@ -109,7 +109,13 @@
             {
               "id": "vinted-search",
               "name": "searchText",
-              "value": "women cycling jersey",
+              "value": "cycling jersey",
+              "type": "string"
+            },
+            {
+              "id": "vinted-audience",
+              "name": "audience",
+              "value": "Women",
               "type": "string"
             },
             {
@@ -143,6 +149,24 @@
               "type": "string"
             },
             {
+              "id": "vinted-colors",
+              "name": "allowedColors",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "vinted-brand-ids",
+              "name": "brandIds",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "vinted-catalog-ids",
+              "name": "catalogIds",
+              "value": "",
+              "type": "string"
+            },
+            {
               "id": "vinted-results",
               "name": "maxResults",
               "value": 10,
@@ -169,7 +193,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first()?.json || {};\nconst searchText = String(input.searchText || '').trim();\nconst domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\\/\\//, '').replace(/\\/$/, '');\nconst minimumPrice = Number(input.minimumPrice ?? 0);\nconst maximumPrice = Number(input.maximumPrice ?? 0);\nconst maxResults = Number(input.maxResults ?? 10);\nconst sendFirstRunAlerts = input.sendFirstRunAlerts === true;\nconst parseList = (value) => String(value || '').split(',').map((entry) => entry.trim().toLowerCase()).filter(Boolean);\nconst allowedBrands = parseList(input.allowedBrands);\nconst allowedSizes = parseList(input.allowedSizes);\nif (searchText.length < 2 || searchText.length > 200) throw new Error('Search text must be 2 to 200 characters.');\nif (!/^www\\.vinted\\.[a-z.]{2,10}$/.test(domain)) throw new Error('Use a public Vinted domain such as www.vinted.fr, www.vinted.de, or www.vinted.co.uk.');\nif (!Number.isFinite(minimumPrice) || minimumPrice < 0) throw new Error('Minimum price must be zero or greater.');\nif (!Number.isFinite(maximumPrice) || maximumPrice <= 0 || maximumPrice < minimumPrice) throw new Error('Maximum price must be greater than or equal to minimum price.');\nif (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 50) throw new Error('Maximum results must be an integer from 1 to 50.');\nconst monitorKey = [domain, searchText.toLowerCase(), minimumPrice, maximumPrice, [...allowedBrands].sort().join(','), [...allowedSizes].sort().join(',')].join('|');\nreturn [{ json: {\n  searchText, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes,\n  maxResults, sendFirstRunAlerts, monitorKey,\n  actorInput: {\n    searchText,\n    domain,\n    priceMin: minimumPrice,\n    priceMax: maximumPrice,\n    maxItems: maxResults,\n    order: 'newest_first',\n    includeSeller: true\n  }\n} }];"
+        "jsCode": "const input = $input.first()?.json || {};\nconst searchText = String(input.searchText || '').trim();\nconst domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\\/\\//, '').replace(/\\/$/, '');\nconst minimumPrice = Number(input.minimumPrice ?? 0);\nconst maximumPrice = Number(input.maximumPrice ?? 0);\nconst maxResults = Number(input.maxResults ?? 10);\nconst sendFirstRunAlerts = input.sendFirstRunAlerts === true;\nconst normalize = (value) => String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst parseList = (value) => String(value || '').split(',').map(normalize).filter(Boolean);\nconst parseIds = (value, label) => {\n  const ids = String(value || '').split(',').map((entry) => entry.trim()).filter(Boolean).map(Number);\n  if (ids.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error(label + ' must contain comma-separated positive numeric Vinted IDs.');\n  return [...new Set(ids)];\n};\nconst audienceMap = { any: 'Any', women: 'Women', men: 'Men', girls: 'Girls', boys: 'Boys' };\nconst audience = audienceMap[normalize(input.audience || 'Any')];\nconst allowedBrands = parseList(input.allowedBrands);\nconst allowedSizes = parseList(input.allowedSizes);\nconst allowedColors = parseList(input.allowedColors);\nconst brandIds = parseIds(input.brandIds, 'Brand IDs');\nconst catalogIds = parseIds(input.catalogIds, 'Catalog IDs');\nif (searchText.length < 2 || searchText.length > 200) throw new Error('Search text must be 2 to 200 characters.');\nif (!audience) throw new Error('Audience must be Any, Women, Men, Girls, or Boys.');\nif (!/^www\\.vinted\\.[a-z.]{2,10}$/.test(domain)) throw new Error('Use a public Vinted domain such as www.vinted.fr, www.vinted.de, or www.vinted.co.uk.');\nif (!Number.isFinite(minimumPrice) || minimumPrice < 0) throw new Error('Minimum price must be zero or greater.');\nif (!Number.isFinite(maximumPrice) || maximumPrice <= 0 || maximumPrice < minimumPrice) throw new Error('Maximum price must be greater than or equal to minimum price.');\nif (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 50) throw new Error('Maximum results must be an integer from 1 to 50.');\nconst audienceTerm = audience === 'Any' ? '' : audience.toLowerCase();\nconst searchTerms = new Set(normalize(searchText).split(' ').filter(Boolean));\nconst actorSearchText = audienceTerm && !searchTerms.has(audienceTerm) ? searchText + ' ' + audienceTerm : searchText;\nconst monitorKey = [domain, normalize(searchText), audience, minimumPrice, maximumPrice, [...allowedBrands].sort().join(','), [...allowedSizes].sort().join(','), [...allowedColors].sort().join(','), [...brandIds].sort((a, b) => a - b).join(','), [...catalogIds].sort((a, b) => a - b).join(',')].join('|');\nreturn [{ json: {\n  searchText, actorSearchText, audience, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes, allowedColors, brandIds, catalogIds,\n  maxResults, sendFirstRunAlerts, monitorKey,\n  actorInput: {\n    searchText: actorSearchText,\n    domain,\n    priceMin: minimumPrice,\n    priceMax: maximumPrice,\n    maxItems: maxResults,\n    order: 'newest_first',\n    includeSeller: true,\n    ...(brandIds.length ? { brandIds } : {}),\n    ...(catalogIds.length ? { catalogIds } : {})\n  }\n} }];"
       },
       "id": "50000000-0000-0000-4000-8000-000000000006",
       "name": "Validate Search Configuration",
@@ -296,7 +320,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Validate Search Configuration').first().json;\nconst state = $('Load Monitor State').first()?.json || {};\nconst rawListings = $input.all().flatMap((item) => {\n  let payload = item.json?.data ?? item.json;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }\n  }\n  return Array.isArray(payload) ? payload : [payload];\n}).slice(0, config.maxResults);\nconst normalized = [];\nfor (const listing of rawListings) {\n  const id = String(listing.id || '').trim();\n  const title = String(listing.title || '').trim();\n  const url = String(listing.url || '').trim();\n  const priceAmount = Number(listing.priceAmount);\n  const brand = String(listing.brandTitle || '').trim();\n  const size = String(listing.sizeTitle || '').trim();\n  if (!id || !title || !/^https:\\/\\//.test(url) || !Number.isFinite(priceAmount)) continue;\n  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;\n  if (config.allowedBrands.length && !config.allowedBrands.includes(brand.toLowerCase())) continue;\n  if (config.allowedSizes.length && !config.allowedSizes.includes(size.toLowerCase())) continue;\n  normalized.push({ json: {\n    listingId: id,\n    itemKey: config.monitorKey + '|' + id,\n    monitorKey: config.monitorKey,\n    isFirstRun: !state.initializedAt,\n    sendFirstRunAlerts: config.sendFirstRunAlerts,\n    title,\n    priceAmount,\n    currency: String(listing.currency || ''),\n    brand: brand || 'Brand not specified',\n    size: size || 'Size not specified',\n    condition: String(listing.status || 'Condition not specified'),\n    seller: String(listing.sellerLogin || 'Seller not specified'),\n    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,\n    viewCount: Number.isFinite(Number(listing.viewCount)) ? Number(listing.viewCount) : null,\n    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',\n    url,\n    scrapedAt: String(listing.scrapedAt || '')\n  } });\n}\nreturn normalized;"
+        "jsCode": "const config = $('Validate Search Configuration').first().json;\nconst state = $('Load Monitor State').first()?.json || {};\nconst rawListings = $input.all().flatMap((item) => {\n  let payload = item.json?.data ?? item.json;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }\n  }\n  return Array.isArray(payload) ? payload : [payload];\n}).slice(0, config.maxResults);\nconst normalized = [];\nconst normalize = (value) => String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst containsPhrase = (text, phrase) => (' ' + text + ' ').includes(' ' + phrase + ' ');\nfor (const listing of rawListings) {\n  const id = String(listing.id || '').trim();\n  const title = String(listing.title || '').trim();\n  const url = String(listing.url || '').trim();\n  const priceAmount = Number(listing.priceAmount);\n  const brand = String(listing.brandTitle || '').trim();\n  const size = String(listing.sizeTitle || '').trim();\n  const normalizedTitle = normalize(title);\n  const normalizedBrand = normalize(brand);\n  const normalizedSize = normalize(size);\n  const sizeParts = new Set([normalizedSize, ...String(size || '').split(/[\\/,;|()[\\]]+/).map(normalize).filter(Boolean)]);\n  const matchedColors = config.allowedColors.filter((color) => containsPhrase(normalizedTitle, color));\n  if (!id || !title || !/^https:\\/\\//.test(url) || !Number.isFinite(priceAmount)) continue;\n  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;\n  if (config.allowedBrands.length && !config.allowedBrands.includes(normalizedBrand)) continue;\n  if (config.allowedSizes.length && !config.allowedSizes.some((allowedSize) => sizeParts.has(allowedSize))) continue;\n  if (config.allowedColors.length && matchedColors.length === 0) continue;\n  normalized.push({ json: {\n    listingId: id,\n    itemKey: config.monitorKey + '|' + id,\n    monitorKey: config.monitorKey,\n    isFirstRun: !state.initializedAt,\n    sendFirstRunAlerts: config.sendFirstRunAlerts,\n    title,\n    priceAmount,\n    currency: String(listing.currency || ''),\n    brand: brand || 'Brand not specified',\n    size: size || 'Size not specified',\n    matchedColors,\n    audience: config.audience,\n    searchText: config.searchText,\n    condition: String(listing.status || 'Condition not specified'),\n    seller: String(listing.sellerLogin || 'Seller not specified'),\n    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,\n    viewCount: Number.isFinite(Number(listing.viewCount)) ? Number(listing.viewCount) : null,\n    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',\n    url,\n    scrapedAt: String(listing.scrapedAt || '')\n  } });\n}\nreturn normalized;"
       },
       "id": "50000000-0000-0000-4000-8000-000000000010",
       "name": "Normalize and Filter Listings",
@@ -532,7 +556,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst all = $json.listings;\nconst messages = [];\nfor (let offset = 0; offset < all.length; offset += 5) {\n  const chunk = all.slice(offset, offset + 5);\n  const lines = chunk.map((listing, index) => {\n    const position = offset + index + 1;\n    const price = listing.priceAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + (listing.currency ? ' ' + listing.currency : '');\n    const engagement = [listing.viewCount === null ? null : listing.viewCount + ' views', listing.favoriteCount === null ? null : listing.favoriteCount + ' favorites'].filter(Boolean).join(' | ');\n    return position + '. <b>' + escapeHtml(listing.title.slice(0, 110)) + '</b>\\n' +\n      '<b>Price:</b> ' + escapeHtml(price) + '\\n' +\n      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) + '\\n' +\n      '<b>Condition:</b> ' + escapeHtml(listing.condition) + ' | <b>Seller:</b> ' + escapeHtml(listing.seller) +\n      (engagement ? '\\n' + escapeHtml(engagement) : '') + '\\n' +\n      '<a href=\"' + escapeHtml(listing.url) + '\">Open Vinted listing</a>';\n  });\n  const heading = offset === 0\n    ? '<b>' + all.length + ' new Vinted ' + (all.length === 1 ? 'match' : 'matches') + '</b>'\n    : '<b>Vinted matches continued</b>';\n  messages.push({ json: { telegramMessage: heading + '\\n\\n' + lines.join('\\n\\n') } });\n}\nreturn messages;"
+        "jsCode": "const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst all = $json.listings;\nconst config = $('Validate Search Configuration').first().json;\nconst messages = [];\nfor (let offset = 0; offset < all.length; offset += 5) {\n  const chunk = all.slice(offset, offset + 5);\n  const lines = chunk.map((listing, index) => {\n    const position = offset + index + 1;\n    const price = listing.priceAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + (listing.currency ? ' ' + listing.currency : '');\n    const engagement = [listing.viewCount === null ? null : listing.viewCount + ' views', listing.favoriteCount === null ? null : listing.favoriteCount + ' favorites'].filter(Boolean).join(' | ');\n    return position + '. <b>' + escapeHtml(listing.title.slice(0, 110)) + '</b>\\n' +\n      '<b>Price:</b> ' + escapeHtml(price) + '\\n' +\n      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) +\n      (listing.matchedColors.length ? ' | <b>Color:</b> ' + escapeHtml(listing.matchedColors.join(', ')) : '') + '\\n' +\n      '<b>Condition:</b> ' + escapeHtml(listing.condition) + ' | <b>Seller:</b> ' + escapeHtml(listing.seller) +\n      (engagement ? '\\n' + escapeHtml(engagement) : '') + '\\n' +\n      '<a href=\"' + escapeHtml(listing.url) + '\">Open Vinted listing</a>';\n  });\n  const heading = offset === 0\n    ? '<b>' + all.length + ' new Vinted ' + (all.length === 1 ? 'match' : 'matches') + '</b>'\n    : '<b>Vinted matches continued</b>';\n  const criteria = offset === 0 ? '\\n<b>Search:</b> ' + escapeHtml(config.searchText) + ' | <b>Audience:</b> ' + escapeHtml(config.audience) : '';\n  messages.push({ json: { telegramMessage: heading + criteria + '\\n\\n' + lines.join('\\n\\n') } });\n}\nreturn messages;"
       },
       "id": "50000000-0000-0000-4000-8000-000000000017",
       "name": "Build Telegram Alerts",
@@ -650,8 +674,8 @@
     {
       "parameters": {
         "width": 1160,
-        "height": 560,
-        "content": "## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery and monitor-state tables, validates your search, runs the FetchCat Actor newest-first, applies optional brand and size filters, and compares listing IDs with the durable delivery ledger. The first run records a quiet baseline by default. Later runs send compact Telegram messages in groups of five and commit IDs only after Telegram succeeds.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, verify the quiet baseline, then activate the workflow.",
+        "height": 590,
+        "content": "## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery and monitor-state tables, validates your search, runs the FetchCat Actor newest-first, applies optional audience, brand, size, and color filters, and compares listing IDs with the durable delivery ledger. The first run records a quiet baseline by default. Later runs send compact Telegram messages in groups of five and commit IDs only after Telegram succeeds.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, audience, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, verify the quiet baseline, then activate the workflow.",
         "color": 1
       },
       "id": "50000000-0000-0000-4000-8000-000000000021",
@@ -682,8 +706,8 @@
     {
       "parameters": {
         "width": 720,
-        "height": 430,
-        "content": "## Configure one saved search\n\nSet a country domain, price range, result count, and optional comma-separated brand or size allowlists. Changing search criteria creates a new quiet baseline. Keep `sendFirstRunAlerts` off unless you intentionally want current results.",
+        "height": 490,
+        "content": "## Configure one saved search\n\nChoose an audience and optional brand, size, and color filters. Size `M` matches `M / 38 / 10`; color uses listing titles. Numeric Vinted `brandIds` and `catalogIds` provide marketplace-side filtering. Changing criteria creates a new quiet baseline.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000023",
@@ -692,7 +716,7 @@
       "typeVersion": 1,
       "position": [
         -1160,
-        -220
+        -250
       ]
     },
     {

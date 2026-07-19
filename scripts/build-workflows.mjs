@@ -1276,12 +1276,16 @@ const vintedNodes = [
     mode: 'manual',
     duplicateItem: false,
     assignments: { assignments: [
-      { id: 'vinted-search', name: 'searchText', value: 'women cycling jersey', type: 'string' },
+      { id: 'vinted-search', name: 'searchText', value: 'cycling jersey', type: 'string' },
+      { id: 'vinted-audience', name: 'audience', value: 'Women', type: 'string' },
       { id: 'vinted-domain', name: 'domain', value: 'www.vinted.fr', type: 'string' },
       { id: 'vinted-min-price', name: 'minimumPrice', value: 0, type: 'number' },
       { id: 'vinted-max-price', name: 'maximumPrice', value: 50, type: 'number' },
       { id: 'vinted-brands', name: 'allowedBrands', value: '', type: 'string' },
       { id: 'vinted-sizes', name: 'allowedSizes', value: '', type: 'string' },
+      { id: 'vinted-colors', name: 'allowedColors', value: '', type: 'string' },
+      { id: 'vinted-brand-ids', name: 'brandIds', value: '', type: 'string' },
+      { id: 'vinted-catalog-ids', name: 'catalogIds', value: '', type: 'string' },
       { id: 'vinted-results', name: 'maxResults', value: 10, type: 'number' },
       { id: 'vinted-first-run', name: 'sendFirstRunAlerts', value: false, type: 'boolean' }
     ] },
@@ -1295,26 +1299,43 @@ const minimumPrice = Number(input.minimumPrice ?? 0);
 const maximumPrice = Number(input.maximumPrice ?? 0);
 const maxResults = Number(input.maxResults ?? 10);
 const sendFirstRunAlerts = input.sendFirstRunAlerts === true;
-const parseList = (value) => String(value || '').split(',').map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+const normalize = (value) => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const parseList = (value) => String(value || '').split(',').map(normalize).filter(Boolean);
+const parseIds = (value, label) => {
+  const ids = String(value || '').split(',').map((entry) => entry.trim()).filter(Boolean).map(Number);
+  if (ids.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error(label + ' must contain comma-separated positive numeric Vinted IDs.');
+  return [...new Set(ids)];
+};
+const audienceMap = { any: 'Any', women: 'Women', men: 'Men', girls: 'Girls', boys: 'Boys' };
+const audience = audienceMap[normalize(input.audience || 'Any')];
 const allowedBrands = parseList(input.allowedBrands);
 const allowedSizes = parseList(input.allowedSizes);
+const allowedColors = parseList(input.allowedColors);
+const brandIds = parseIds(input.brandIds, 'Brand IDs');
+const catalogIds = parseIds(input.catalogIds, 'Catalog IDs');
 if (searchText.length < 2 || searchText.length > 200) throw new Error('Search text must be 2 to 200 characters.');
+if (!audience) throw new Error('Audience must be Any, Women, Men, Girls, or Boys.');
 if (!/^www\.vinted\.[a-z.]{2,10}$/.test(domain)) throw new Error('Use a public Vinted domain such as www.vinted.fr, www.vinted.de, or www.vinted.co.uk.');
 if (!Number.isFinite(minimumPrice) || minimumPrice < 0) throw new Error('Minimum price must be zero or greater.');
 if (!Number.isFinite(maximumPrice) || maximumPrice <= 0 || maximumPrice < minimumPrice) throw new Error('Maximum price must be greater than or equal to minimum price.');
 if (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 50) throw new Error('Maximum results must be an integer from 1 to 50.');
-const monitorKey = [domain, searchText.toLowerCase(), minimumPrice, maximumPrice, [...allowedBrands].sort().join(','), [...allowedSizes].sort().join(',')].join('|');
+const audienceTerm = audience === 'Any' ? '' : audience.toLowerCase();
+const searchTerms = new Set(normalize(searchText).split(' ').filter(Boolean));
+const actorSearchText = audienceTerm && !searchTerms.has(audienceTerm) ? searchText + ' ' + audienceTerm : searchText;
+const monitorKey = [domain, normalize(searchText), audience, minimumPrice, maximumPrice, [...allowedBrands].sort().join(','), [...allowedSizes].sort().join(','), [...allowedColors].sort().join(','), [...brandIds].sort((a, b) => a - b).join(','), [...catalogIds].sort((a, b) => a - b).join(',')].join('|');
 return [{ json: {
-  searchText, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes,
+  searchText, actorSearchText, audience, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes, allowedColors, brandIds, catalogIds,
   maxResults, sendFirstRunAlerts, monitorKey,
   actorInput: {
-    searchText,
+    searchText: actorSearchText,
     domain,
     priceMin: minimumPrice,
     priceMax: maximumPrice,
     maxItems: maxResults,
     order: 'newest_first',
-    includeSeller: true
+    includeSeller: true,
+    ...(brandIds.length ? { brandIds } : {}),
+    ...(catalogIds.length ? { catalogIds } : {})
   }
 } }];`
   }),
@@ -1364,6 +1385,8 @@ const rawListings = $input.all().flatMap((item) => {
   return Array.isArray(payload) ? payload : [payload];
 }).slice(0, config.maxResults);
 const normalized = [];
+const normalize = (value) => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const containsPhrase = (text, phrase) => (' ' + text + ' ').includes(' ' + phrase + ' ');
 for (const listing of rawListings) {
   const id = String(listing.id || '').trim();
   const title = String(listing.title || '').trim();
@@ -1371,10 +1394,16 @@ for (const listing of rawListings) {
   const priceAmount = Number(listing.priceAmount);
   const brand = String(listing.brandTitle || '').trim();
   const size = String(listing.sizeTitle || '').trim();
+  const normalizedTitle = normalize(title);
+  const normalizedBrand = normalize(brand);
+  const normalizedSize = normalize(size);
+  const sizeParts = new Set([normalizedSize, ...String(size || '').split(/[\/,;|()[\]]+/).map(normalize).filter(Boolean)]);
+  const matchedColors = config.allowedColors.filter((color) => containsPhrase(normalizedTitle, color));
   if (!id || !title || !/^https:\/\//.test(url) || !Number.isFinite(priceAmount)) continue;
   if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;
-  if (config.allowedBrands.length && !config.allowedBrands.includes(brand.toLowerCase())) continue;
-  if (config.allowedSizes.length && !config.allowedSizes.includes(size.toLowerCase())) continue;
+  if (config.allowedBrands.length && !config.allowedBrands.includes(normalizedBrand)) continue;
+  if (config.allowedSizes.length && !config.allowedSizes.some((allowedSize) => sizeParts.has(allowedSize))) continue;
+  if (config.allowedColors.length && matchedColors.length === 0) continue;
   normalized.push({ json: {
     listingId: id,
     itemKey: config.monitorKey + '|' + id,
@@ -1386,6 +1415,9 @@ for (const listing of rawListings) {
     currency: String(listing.currency || ''),
     brand: brand || 'Brand not specified',
     size: size || 'Size not specified',
+    matchedColors,
+    audience: config.audience,
+    searchText: config.searchText,
     condition: String(listing.status || 'Condition not specified'),
     seller: String(listing.sellerLogin || 'Seller not specified'),
     favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,
@@ -1443,6 +1475,7 @@ return [{ json: {
   node('50000000-', 17, 'Build Telegram Alerts', 'n8n-nodes-base.code', 2, [1040, 260], {
     jsCode: String.raw`const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const all = $json.listings;
+const config = $('Validate Search Configuration').first().json;
 const messages = [];
 for (let offset = 0; offset < all.length; offset += 5) {
   const chunk = all.slice(offset, offset + 5);
@@ -1452,7 +1485,8 @@ for (let offset = 0; offset < all.length; offset += 5) {
     const engagement = [listing.viewCount === null ? null : listing.viewCount + ' views', listing.favoriteCount === null ? null : listing.favoriteCount + ' favorites'].filter(Boolean).join(' | ');
     return position + '. <b>' + escapeHtml(listing.title.slice(0, 110)) + '</b>\n' +
       '<b>Price:</b> ' + escapeHtml(price) + '\n' +
-      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) + '\n' +
+      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) +
+      (listing.matchedColors.length ? ' | <b>Color:</b> ' + escapeHtml(listing.matchedColors.join(', ')) : '') + '\n' +
       '<b>Condition:</b> ' + escapeHtml(listing.condition) + ' | <b>Seller:</b> ' + escapeHtml(listing.seller) +
       (engagement ? '\n' + escapeHtml(engagement) : '') + '\n' +
       '<a href="' + escapeHtml(listing.url) + '">Open Vinted listing</a>';
@@ -1460,7 +1494,8 @@ for (let offset = 0; offset < all.length; offset += 5) {
   const heading = offset === 0
     ? '<b>' + all.length + ' new Vinted ' + (all.length === 1 ? 'match' : 'matches') + '</b>'
     : '<b>Vinted matches continued</b>';
-  messages.push({ json: { telegramMessage: heading + '\n\n' + lines.join('\n\n') } });
+  const criteria = offset === 0 ? '\n<b>Search:</b> ' + escapeHtml(config.searchText) + ' | <b>Audience:</b> ' + escapeHtml(config.audience) : '';
+  messages.push({ json: { telegramMessage: heading + criteria + '\n\n' + lines.join('\n\n') } });
 }
 return messages;`
   }),
@@ -1476,9 +1511,9 @@ return messages;`
     jsCode: String.raw`return $('Build Alert Batch').first().json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));`
   }),
   node('50000000-', 20, 'Commit Delivered Listings', 'n8n-nodes-base.dataTable', 1.1, [1880, 300], ledgerInsertParameters('Telegram')),
-  sticky('50000000-', 21, 'Workflow Overview', [-1840, -820], 1160, 560, '## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery and monitor-state tables, validates your search, runs the FetchCat Actor newest-first, applies optional brand and size filters, and compares listing IDs with the durable delivery ledger. The first run records a quiet baseline by default. Later runs send compact Telegram messages in groups of five and commit IDs only after Telegram succeeds.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, verify the quiet baseline, then activate the workflow.' , 1),
+  sticky('50000000-', 21, 'Workflow Overview', [-1840, -820], 1160, 590, '## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery and monitor-state tables, validates your search, runs the FetchCat Actor newest-first, applies optional audience, brand, size, and color filters, and compares listing IDs with the durable delivery ledger. The first run records a quiet baseline by default. Later runs send compact Telegram messages in groups of five and commit IDs only after Telegram succeeds.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, audience, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, verify the quiet baseline, then activate the workflow.' , 1),
   sticky('50000000-', 22, 'Trigger and State Notes', [-1880, -220], 700, 430, '## Choose timing and create state\n\nThe default schedule is hourly. Edit the Schedule Trigger for 15 or 30 minutes, 6 or 12 hours, or once daily. Both Data Tables are created automatically and reused safely.'),
-  sticky('50000000-', 23, 'Configuration Notes', [-1160, -220], 720, 430, '## Configure one saved search\n\nSet a country domain, price range, result count, and optional comma-separated brand or size allowlists. Changing search criteria creates a new quiet baseline. Keep `sendFirstRunAlerts` off unless you intentionally want current results.'),
+  sticky('50000000-', 23, 'Configuration Notes', [-1160, -250], 720, 490, '## Configure one saved search\n\nChoose an audience and optional brand, size, and color filters. Size `M` matches `M / 38 / 10`; color uses listing titles. Numeric Vinted `brandIds` and `catalogIds` provide marketplace-side filtering. Changing criteria creates a new quiet baseline.'),
   sticky('50000000-', 24, 'Scraper Notes', [-440, -220], 700, 430, '## Run FetchCat and normalize listings\n\nCloud-compatible HTTP Request nodes run `fetch_cat/vinted-search-scraper` newest-first and download its completed dataset. Invalid rows and listings outside the configured filters are rejected.'),
   sticky('50000000-', 25, 'Deduplication Notes', [280, -220], 700, 430, '## Keep only unseen matches\n\nThe delivery ledger is scoped to this workflow and exact search configuration. Empty runs stop here. The first successful search records a baseline instead of flooding Telegram with existing listings.'),
   sticky('50000000-', 26, 'Baseline Notes', [1000, -360], 1100, 370, '## Establish the first-run baseline\n\nExisting result IDs are recorded, then the monitor is marked initialized. No Telegram message is sent. A failed ledger write leaves initialization incomplete so the run can be retried.'),
@@ -1626,7 +1661,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'F1GAwbqJ9xc9h7P87',
       actorSlug: 'fetch_cat/vinted-search-scraper',
-      version: '1.0.0',
+      version: '1.1.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'Telegram', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

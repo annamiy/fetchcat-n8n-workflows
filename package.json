@@ -10,13 +10,14 @@
   "scripts": {
     "build": "node scripts/build-workflows.mjs",
     "test:pinterest": "node scripts/test-pinterest-monitor.mjs",
+    "test:vinted": "node scripts/test-vinted-monitor.mjs",
     "validate": "node scripts/validate.mjs",
     "sanitize": "node scripts/sanitize.mjs",
     "import": "node scripts/n8n-cli.mjs import",
     "execute": "node scripts/n8n-cli.mjs execute",
     "export": "node scripts/n8n-cli.mjs export",
     "package": "node scripts/package.mjs",
-    "check": "npm run build && git diff --exit-code && npm run validate && npm run test:pinterest"
+    "check": "npm run build && git diff --exit-code && npm run validate && npm run test:pinterest && npm run test:vinted"
   },
   "license": "MIT"
 }
