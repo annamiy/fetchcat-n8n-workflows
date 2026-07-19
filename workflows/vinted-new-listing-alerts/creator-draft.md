@@ -11,6 +11,10 @@ Schedule Trigger from every 15 minutes through once per day and choose between
 1 and 50 results. The first successful run quietly records a baseline so the
 workflow does not flood Telegram with existing listings.
 
+The editable example is prefilled for women's cycling jerseys from MAAP and
+Pas Normal Studios in sizes S or XS, with bilingual color keywords suitable for
+the default French marketplace.
+
 ## Who is it for?
 
 - Buyers looking for a specific model, brand, size, or collectible

@@ -41,6 +41,12 @@ not require OpenAI.
    - `maxResults`: an integer from 1 to 50; the default is 10.
    - `sendFirstRunAlerts`: normally leave this off so setup creates a quiet
      baseline. Turn it on only when you intentionally want current results.
+
+The included example monitors women's cycling jerseys from MAAP and Pas Normal
+Studios in sizes S or XS. Since its default marketplace is `www.vinted.fr`, the
+color list includes English and French terms such as `black, noir` and
+`yellow, jaune`. Replace these examples with words used by sellers in your
+selected marketplace.
 4. Create an HTTP Header Auth credential with header `Authorization` and value
    `Bearer YOUR_APIFY_TOKEN`. Select it in both Apify HTTP Request nodes.
 5. Connect a Telegram Bot credential in `4. Send New Listings to Telegram` and

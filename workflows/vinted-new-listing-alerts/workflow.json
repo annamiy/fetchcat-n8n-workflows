@@ -139,19 +139,19 @@
             {
               "id": "vinted-brands",
               "name": "allowedBrands",
-              "value": "",
+              "value": "MAAP, Pas Normal Studios, PNS",
               "type": "string"
             },
             {
               "id": "vinted-sizes",
               "name": "allowedSizes",
-              "value": "",
+              "value": "S, XS",
               "type": "string"
             },
             {
               "id": "vinted-colors",
               "name": "allowedColors",
-              "value": "",
+              "value": "blue, bleu, black, noir, white, blanc, multi, multicolor, multicolour, multicolore, red, rouge, yellow, jaune",
               "type": "string"
             },
             {
