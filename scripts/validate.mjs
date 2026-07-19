@@ -161,7 +161,9 @@ for (const slug of workflowSlugs()) {
   if (metadata.integrations.includes('OpenAI') && !serialized.includes('gpt-5.4-mini')) {
     fail(slug, 'does not pin gpt-5.4-mini');
   }
-  if (slug === 'pinterest-content-opportunity-research') validateAutoAnnotatedStickies(slug, workflow);
+  if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts'].includes(slug)) {
+    validateAutoAnnotatedStickies(slug, workflow);
+  }
   if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {
     const openAiNodes = workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi');
     if (openAiNodes.length !== 1) fail(slug, 'must use exactly one OpenAI batch node');
@@ -242,6 +244,22 @@ for (const slug of workflowSlugs()) {
   if (slug === 'youtube-research-brief-to-notion') {
     if (names.has('Manual QA Trigger') || names.has('Manual QA Input')) fail(slug, 'contains a QA-only public execution path');
     if (!fs.existsSync(path.join(dir, 'assets/form-preview.png'))) fail(slug, 'missing publication asset assets/form-preview.png');
+  }
+  if (slug === 'vinted-new-listing-alerts') {
+    if (!workflow.nodes.some((entry) => entry.name === '3. Search Vinted with FetchCat' && entry.type === 'n8n-nodes-base.httpRequest')) {
+      fail(slug, 'must use a Cloud-compatible HTTP Request node to run Apify');
+    }
+    if (!workflow.nodes.some((entry) => entry.name === '1. Choose Alert Frequency' && entry.type === 'n8n-nodes-base.scheduleTrigger')) {
+      fail(slug, 'must expose an editable schedule trigger');
+    }
+    if (!workflow.nodes.some((entry) => entry.name === '2. Configure Vinted Search' && entry.type === 'n8n-nodes-base.set')) {
+      fail(slug, 'must expose search configuration in a Set node');
+    }
+    if (workflow.nodes.some((entry) => entry.type === '@apify/n8n-nodes-apify.apify')) {
+      fail(slug, 'must not require a community node');
+    }
+    if (serialized.includes('@n8n/n8n-nodes-langchain')) fail(slug, 'must not require an AI model');
+    if (!serialized.includes('FetchCat Vinted Monitor State')) fail(slug, 'must create durable first-run state');
   }
 
   if (metadata.slug !== slug) fail(slug, 'metadata slug does not match directory');

@@ -12,6 +12,7 @@ and is designed to fail closed before writing to an external service.
 | [Pinterest Content Opportunity Research](workflows/pinterest-content-opportunity-research/) | `fetch_cat/pinterest-search-scraper` | OpenAI, Google Sheets | QA passed |
 | [YouTube Research Brief to Notion](workflows/youtube-research-brief-to-notion/) | `fetch_cat/youtube-transcript-scraper` | Notion | QA passed |
 | [Reddit Buying-Intent Alerts](workflows/reddit-buying-intent-alerts/) | `fetch_cat/reddit-scraper` | Telegram | QA passed |
+| [Vinted New-Listing Alerts](workflows/vinted-new-listing-alerts/) | `fetch_cat/vinted-search-scraper` | Telegram | QA passed |
 | [Private Workflow Error Alerts](workflows/shared-error-notifications/) | Companion workflow | Telegram | QA passed |
 
 All schedules are inactive in Git. Importing through the n8n CLI also forces them

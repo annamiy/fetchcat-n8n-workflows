@@ -1,0 +1,39 @@
+{
+  "description": "Synthetic Vinted Actor output for filtering, baseline, delivery, and formatting tests.",
+  "items": [
+    {
+      "id": 100000001,
+      "title": "Women's cycling jersey blue medium",
+      "priceAmount": 18,
+      "currency": "EUR",
+      "brandTitle": "Rapha",
+      "sizeTitle": "M",
+      "status": "Very good",
+      "url": "https://example.com/items/100000001",
+      "photoUrls": [
+        "https://example.com/images/100000001.jpg"
+      ],
+      "sellerLogin": "synthetic-seller",
+      "favoriteCount": 4,
+      "viewCount": 31,
+      "scrapedAt": "2026-07-19T12:00:00.000Z",
+      "searchText": "women cycling jersey"
+    },
+    {
+      "id": 100000002,
+      "title": "Men's cycling jersey black large",
+      "priceAmount": 22,
+      "currency": "EUR",
+      "brandTitle": "Example Brand",
+      "sizeTitle": "L",
+      "status": "Good",
+      "url": "https://example.com/items/100000002",
+      "photoUrls": [],
+      "sellerLogin": "example-seller",
+      "favoriteCount": 0,
+      "viewCount": 8,
+      "scrapedAt": "2026-07-19T12:00:00.000Z",
+      "searchText": "women cycling jersey"
+    }
+  ]
+}

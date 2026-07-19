@@ -1,0 +1,20 @@
+{
+  "slug": "vinted-new-listing-alerts",
+  "title": "Vinted New-Listing Alerts to Telegram",
+  "workflowKind": "actor-template",
+  "actorId": "F1GAwbqJ9xc9h7P87",
+  "actorSlug": "fetch_cat/vinted-search-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "Telegram",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "qa-passed"
+}

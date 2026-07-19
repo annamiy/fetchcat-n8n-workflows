@@ -1260,6 +1260,259 @@ const redditWorkflow = workflow(
   ])
 );
 
+const vintedStateColumns = [
+  { name: 'monitorKey', type: 'string' },
+  { name: 'initializedAt', type: 'date' }
+];
+
+const vintedNodes = [
+  node('50000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1840, 100], {}),
+  node('50000000-', 2, '1. Choose Alert Frequency', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1840, -100], {
+    rule: { interval: [{ field: 'hours', hoursInterval: 1 }] }
+  }),
+  node('50000000-', 3, 'Ensure Delivery Ledger', 'n8n-nodes-base.dataTable', 1.1, [-1600, 0], createTableParameters('FetchCat Delivery Ledger', ledgerColumns)),
+  node('50000000-', 4, 'Ensure Vinted Monitor State', 'n8n-nodes-base.dataTable', 1.1, [-1360, 0], createTableParameters('FetchCat Vinted Monitor State', vintedStateColumns)),
+  node('50000000-', 5, '2. Configure Vinted Search', 'n8n-nodes-base.set', 3.4, [-1120, 0], {
+    mode: 'manual',
+    duplicateItem: false,
+    assignments: { assignments: [
+      { id: 'vinted-search', name: 'searchText', value: 'women cycling jersey', type: 'string' },
+      { id: 'vinted-domain', name: 'domain', value: 'www.vinted.fr', type: 'string' },
+      { id: 'vinted-min-price', name: 'minimumPrice', value: 0, type: 'number' },
+      { id: 'vinted-max-price', name: 'maximumPrice', value: 50, type: 'number' },
+      { id: 'vinted-brands', name: 'allowedBrands', value: '', type: 'string' },
+      { id: 'vinted-sizes', name: 'allowedSizes', value: '', type: 'string' },
+      { id: 'vinted-results', name: 'maxResults', value: 10, type: 'number' },
+      { id: 'vinted-first-run', name: 'sendFirstRunAlerts', value: false, type: 'boolean' }
+    ] },
+    options: {}
+  }),
+  node('50000000-', 6, 'Validate Search Configuration', 'n8n-nodes-base.code', 2, [-880, 0], {
+    jsCode: String.raw`const input = $input.first()?.json || {};
+const searchText = String(input.searchText || '').trim();
+const domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+const minimumPrice = Number(input.minimumPrice ?? 0);
+const maximumPrice = Number(input.maximumPrice ?? 0);
+const maxResults = Number(input.maxResults ?? 10);
+const sendFirstRunAlerts = input.sendFirstRunAlerts === true;
+const parseList = (value) => String(value || '').split(',').map((entry) => entry.trim().toLowerCase()).filter(Boolean);
+const allowedBrands = parseList(input.allowedBrands);
+const allowedSizes = parseList(input.allowedSizes);
+if (searchText.length < 2 || searchText.length > 200) throw new Error('Search text must be 2 to 200 characters.');
+if (!/^www\.vinted\.[a-z.]{2,10}$/.test(domain)) throw new Error('Use a public Vinted domain such as www.vinted.fr, www.vinted.de, or www.vinted.co.uk.');
+if (!Number.isFinite(minimumPrice) || minimumPrice < 0) throw new Error('Minimum price must be zero or greater.');
+if (!Number.isFinite(maximumPrice) || maximumPrice <= 0 || maximumPrice < minimumPrice) throw new Error('Maximum price must be greater than or equal to minimum price.');
+if (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 50) throw new Error('Maximum results must be an integer from 1 to 50.');
+const monitorKey = [domain, searchText.toLowerCase(), minimumPrice, maximumPrice, [...allowedBrands].sort().join(','), [...allowedSizes].sort().join(',')].join('|');
+return [{ json: {
+  searchText, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes,
+  maxResults, sendFirstRunAlerts, monitorKey,
+  actorInput: {
+    searchText,
+    domain,
+    priceMin: minimumPrice,
+    priceMax: maximumPrice,
+    maxItems: maxResults,
+    order: 'newest_first',
+    includeSeller: true
+  }
+} }];`
+  }),
+  Object.assign(node('50000000-', 7, 'Load Monitor State', 'n8n-nodes-base.dataTable', 1.1, [-640, 0], {
+    resource: 'row',
+    operation: 'get',
+    dataTableId: dataTable('FetchCat Vinted Monitor State'),
+    returnAll: false,
+    limit: 1,
+    filters: { conditions: [{ keyName: 'monitorKey', condition: 'eq', keyValue: '={{ $json.monitorKey }}' }] }
+  }), { alwaysOutputData: true }),
+  node('50000000-', 8, '3. Search Vinted with FetchCat', 'n8n-nodes-base.httpRequest', 4.3, [-400, 0], {
+    method: 'POST',
+    url: 'https://api.apify.com/v2/acts/F1GAwbqJ9xc9h7P87/runs',
+    authentication: 'genericCredentialType',
+    genericAuthType: 'httpHeaderAuth',
+    sendHeaders: true,
+    headerParameters: { parameters: [{ name: 'Accept-Encoding', value: 'identity' }] },
+    sendQuery: true,
+    queryParameters: { parameters: [{ name: 'waitForFinish', value: '300' }] },
+    sendBody: true,
+    contentType: 'json',
+    specifyBody: 'json',
+    jsonBody: '={{ $("Validate Search Configuration").first().json.actorInput }}',
+    options: { timeout: 310000, response: { response: { responseFormat: 'json' } } }
+  }),
+  node('50000000-', 9, 'Get Vinted Search Results', 'n8n-nodes-base.httpRequest', 4.3, [-160, 0], {
+    method: 'GET',
+    url: '=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items',
+    authentication: 'genericCredentialType',
+    genericAuthType: 'httpHeaderAuth',
+    sendQuery: true,
+    queryParameters: { parameters: [
+      { name: 'clean', value: 'true' },
+      { name: 'limit', value: '={{ $("Validate Search Configuration").first().json.maxResults }}' }
+    ] },
+    options: { timeout: 60000, response: { response: { responseFormat: 'json' } } }
+  }),
+  node('50000000-', 10, 'Normalize and Filter Listings', 'n8n-nodes-base.code', 2, [80, 0], {
+    jsCode: String.raw`const config = $('Validate Search Configuration').first().json;
+const state = $('Load Monitor State').first()?.json || {};
+const rawListings = $input.all().flatMap((item) => {
+  let payload = item.json?.data ?? item.json;
+  if (typeof payload === 'string') {
+    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }
+  }
+  return Array.isArray(payload) ? payload : [payload];
+}).slice(0, config.maxResults);
+const normalized = [];
+for (const listing of rawListings) {
+  const id = String(listing.id || '').trim();
+  const title = String(listing.title || '').trim();
+  const url = String(listing.url || '').trim();
+  const priceAmount = Number(listing.priceAmount);
+  const brand = String(listing.brandTitle || '').trim();
+  const size = String(listing.sizeTitle || '').trim();
+  if (!id || !title || !/^https:\/\//.test(url) || !Number.isFinite(priceAmount)) continue;
+  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;
+  if (config.allowedBrands.length && !config.allowedBrands.includes(brand.toLowerCase())) continue;
+  if (config.allowedSizes.length && !config.allowedSizes.includes(size.toLowerCase())) continue;
+  normalized.push({ json: {
+    listingId: id,
+    itemKey: config.monitorKey + '|' + id,
+    monitorKey: config.monitorKey,
+    isFirstRun: !state.initializedAt,
+    sendFirstRunAlerts: config.sendFirstRunAlerts,
+    title,
+    priceAmount,
+    currency: String(listing.currency || ''),
+    brand: brand || 'Brand not specified',
+    size: size || 'Size not specified',
+    condition: String(listing.status || 'Condition not specified'),
+    seller: String(listing.sellerLogin || 'Seller not specified'),
+    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,
+    viewCount: Number.isFinite(Number(listing.viewCount)) ? Number(listing.viewCount) : null,
+    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',
+    url,
+    scrapedAt: String(listing.scrapedAt || '')
+  } });
+}
+return normalized;`
+  }),
+  node('50000000-', 11, 'Keep Undelivered Listings', 'n8n-nodes-base.dataTable', 1.1, [320, 0], ledgerCheckParameters('vinted-new-listing-alerts', '={{ $json.itemKey }}')),
+  node('50000000-', 12, 'Build Alert Batch', 'n8n-nodes-base.code', 2, [560, 0], {
+    jsCode: String.raw`const listings = $input.all().map((item) => item.json);
+if (listings.length === 0) return [];
+const first = listings[0];
+return [{ json: {
+  listings,
+  isBaseline: first.isFirstRun && !first.sendFirstRunAlerts,
+  monitorKey: first.monitorKey
+} }];`
+  }),
+  node('50000000-', 13, 'First Run Baseline?', 'n8n-nodes-base.if', 2.2, [800, 0], {
+    conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [
+      { id: 'vinted-baseline-condition', leftValue: '={{ $json.isBaseline }}', rightValue: true, operator: { type: 'boolean', operation: 'true', singleValue: true } }
+    ], combinator: 'and' },
+    options: {}
+  }),
+  node('50000000-', 14, 'Prepare Baseline Ledger', 'n8n-nodes-base.code', 2, [1040, -160], {
+    jsCode: String.raw`return $json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));`
+  }),
+  node('50000000-', 15, 'Store Baseline Listings', 'n8n-nodes-base.dataTable', 1.1, [1280, -160], ledgerInsertParameters('Baseline')),
+  node('50000000-', 16, 'Mark Monitor Initialized', 'n8n-nodes-base.dataTable', 1.1, [2160, 0], {
+    resource: 'row',
+    operation: 'upsert',
+    dataTableId: dataTable('FetchCat Vinted Monitor State'),
+    matchType: 'allConditions',
+    filters: { conditions: [{ keyName: 'monitorKey', condition: 'eq', keyValue: '={{ $("Validate Search Configuration").first().json.monitorKey }}' }] },
+    columns: {
+      mappingMode: 'defineBelow',
+      matchingColumns: [],
+      value: {
+        monitorKey: '={{ $("Validate Search Configuration").first().json.monitorKey }}',
+        initializedAt: '={{ $now.toISO() }}'
+      },
+      schema: [
+        { id: 'monitorKey', displayName: 'monitorKey', required: false, defaultMatch: true, display: true, type: 'string', canBeUsedToMatch: true },
+        { id: 'initializedAt', displayName: 'initializedAt', required: false, defaultMatch: false, display: true, type: 'dateTime', canBeUsedToMatch: true }
+      ],
+      attemptToConvertTypes: true,
+      convertFieldsToString: false
+    },
+    options: {}
+  }),
+  node('50000000-', 17, 'Build Telegram Alerts', 'n8n-nodes-base.code', 2, [1040, 260], {
+    jsCode: String.raw`const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const all = $json.listings;
+const messages = [];
+for (let offset = 0; offset < all.length; offset += 5) {
+  const chunk = all.slice(offset, offset + 5);
+  const lines = chunk.map((listing, index) => {
+    const position = offset + index + 1;
+    const price = listing.priceAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + (listing.currency ? ' ' + listing.currency : '');
+    const engagement = [listing.viewCount === null ? null : listing.viewCount + ' views', listing.favoriteCount === null ? null : listing.favoriteCount + ' favorites'].filter(Boolean).join(' | ');
+    return position + '. <b>' + escapeHtml(listing.title.slice(0, 110)) + '</b>\n' +
+      '<b>Price:</b> ' + escapeHtml(price) + '\n' +
+      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) + '\n' +
+      '<b>Condition:</b> ' + escapeHtml(listing.condition) + ' | <b>Seller:</b> ' + escapeHtml(listing.seller) +
+      (engagement ? '\n' + escapeHtml(engagement) : '') + '\n' +
+      '<a href="' + escapeHtml(listing.url) + '">Open Vinted listing</a>';
+  });
+  const heading = offset === 0
+    ? '<b>' + all.length + ' new Vinted ' + (all.length === 1 ? 'match' : 'matches') + '</b>'
+    : '<b>Vinted matches continued</b>';
+  messages.push({ json: { telegramMessage: heading + '\n\n' + lines.join('\n\n') } });
+}
+return messages;`
+  }),
+  node('50000000-', 18, '4. Send New Listings to Telegram', 'n8n-nodes-base.telegram', 1.2, [1280, 260], {
+    resource: 'message',
+    operation: 'sendMessage',
+    chatId: '-1000000000000',
+    text: '={{ $json.telegramMessage }}',
+    replyMarkup: 'none',
+    additionalFields: { appendAttribution: false, disable_notification: false, parse_mode: 'HTML' }
+  }),
+  node('50000000-', 19, 'Prepare Delivery Ledger', 'n8n-nodes-base.code', 2, [1600, 300], {
+    jsCode: String.raw`return $('Build Alert Batch').first().json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));`
+  }),
+  node('50000000-', 20, 'Commit Delivered Listings', 'n8n-nodes-base.dataTable', 1.1, [1880, 300], ledgerInsertParameters('Telegram')),
+  sticky('50000000-', 21, 'Workflow Overview', [-1840, -820], 1160, 560, '## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery and monitor-state tables, validates your search, runs the FetchCat Actor newest-first, applies optional brand and size filters, and compares listing IDs with the durable delivery ledger. The first run records a quiet baseline by default. Later runs send compact Telegram messages in groups of five and commit IDs only after Telegram succeeds.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, verify the quiet baseline, then activate the workflow.' , 1),
+  sticky('50000000-', 22, 'Trigger and State Notes', [-1880, -220], 700, 430, '## Choose timing and create state\n\nThe default schedule is hourly. Edit the Schedule Trigger for 15 or 30 minutes, 6 or 12 hours, or once daily. Both Data Tables are created automatically and reused safely.'),
+  sticky('50000000-', 23, 'Configuration Notes', [-1160, -220], 720, 430, '## Configure one saved search\n\nSet a country domain, price range, result count, and optional comma-separated brand or size allowlists. Changing search criteria creates a new quiet baseline. Keep `sendFirstRunAlerts` off unless you intentionally want current results.'),
+  sticky('50000000-', 24, 'Scraper Notes', [-440, -220], 700, 430, '## Run FetchCat and normalize listings\n\nCloud-compatible HTTP Request nodes run `fetch_cat/vinted-search-scraper` newest-first and download its completed dataset. Invalid rows and listings outside the configured filters are rejected.'),
+  sticky('50000000-', 25, 'Deduplication Notes', [280, -220], 700, 430, '## Keep only unseen matches\n\nThe delivery ledger is scoped to this workflow and exact search configuration. Empty runs stop here. The first successful search records a baseline instead of flooding Telegram with existing listings.'),
+  sticky('50000000-', 26, 'Baseline Notes', [1000, -360], 1100, 370, '## Establish the first-run baseline\n\nExisting result IDs are recorded, then the monitor is marked initialized. No Telegram message is sent. A failed ledger write leaves initialization incomplete so the run can be retried.'),
+  sticky('50000000-', 27, 'Delivery Notes', [1000, 40], 1100, 500, '## Send readable Telegram alerts\n\nNew matches are grouped five per message with title, price, brand, size, condition, seller, engagement, and a direct link. IDs are committed only after every Telegram message succeeds, keeping failed deliveries retryable.'),
+  sticky('50000000-', 28, 'Initialization Notes', [2120, -160], 360, 360, '## Save monitor state\n\nInitialization is written only after the baseline or Telegram delivery completes successfully.')
+];
+
+const vintedWorkflow = workflow(
+  'Vinted New-Listing Alerts to Telegram',
+  vintedNodes,
+  connectionMap([
+    ['Manual Trigger', 'Ensure Delivery Ledger'],
+    ['1. Choose Alert Frequency', 'Ensure Delivery Ledger'],
+    ['Ensure Delivery Ledger', 'Ensure Vinted Monitor State'],
+    ['Ensure Vinted Monitor State', '2. Configure Vinted Search'],
+    ['2. Configure Vinted Search', 'Validate Search Configuration'],
+    ['Validate Search Configuration', 'Load Monitor State'],
+    ['Load Monitor State', '3. Search Vinted with FetchCat'],
+    ['3. Search Vinted with FetchCat', 'Get Vinted Search Results'],
+    ['Get Vinted Search Results', 'Normalize and Filter Listings'],
+    ['Normalize and Filter Listings', 'Keep Undelivered Listings'],
+    ['Keep Undelivered Listings', 'Build Alert Batch'],
+    ['Build Alert Batch', 'First Run Baseline?'],
+    ['First Run Baseline?', 'Prepare Baseline Ledger'],
+    ['Prepare Baseline Ledger', 'Store Baseline Listings'],
+    ['Store Baseline Listings', 'Mark Monitor Initialized'],
+    ['First Run Baseline?', 'Build Telegram Alerts', 0, 1],
+    ['Build Telegram Alerts', '4. Send New Listings to Telegram'],
+    ['4. Send New Listings to Telegram', 'Prepare Delivery Ledger'],
+    ['Prepare Delivery Ledger', 'Commit Delivered Listings'],
+    ['Commit Delivered Listings', 'Mark Monitor Initialized']
+  ])
+);
+
 const errorNodes = [
   node('40000000-', 1, 'Workflow Error Trigger', 'n8n-nodes-base.errorTrigger', 1, [-440, 0], {}),
   node('40000000-', 2, 'Format Private Alert', 'n8n-nodes-base.code', 2, [-200, 0], {
@@ -1361,6 +1614,22 @@ const definitions = [
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Telegram', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.33 },
+      releaseState: 'qa-passed'
+    }
+  },
+  {
+    slug: 'vinted-new-listing-alerts',
+    workflow: vintedWorkflow,
+    metadata: {
+      slug: 'vinted-new-listing-alerts',
+      title: 'Vinted New-Listing Alerts to Telegram',
+      workflowKind: 'actor-template',
+      actorId: 'F1GAwbqJ9xc9h7P87',
+      actorSlug: 'fetch_cat/vinted-search-scraper',
+      version: '1.0.0',
+      minimumN8nVersion: '2.26.8',
+      integrations: ['Apify', 'Telegram', 'n8n Data Tables'],
+      testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },
       releaseState: 'qa-passed'
     }
   },

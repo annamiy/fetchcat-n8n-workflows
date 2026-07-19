@@ -1,0 +1,1005 @@
+{
+  "name": "Vinted New-Listing Alerts to Telegram",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "50000000-0000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000002",
+      "name": "1. Choose Alert Frequency",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1840,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Delivery Ledger",
+        "columns": {
+          "column": [
+            {
+              "name": "workflowSlug",
+              "type": "string"
+            },
+            {
+              "name": "itemKey",
+              "type": "string"
+            },
+            {
+              "name": "destination",
+              "type": "string"
+            },
+            {
+              "name": "deliveredAt",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000003",
+      "name": "Ensure Delivery Ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Vinted Monitor State",
+        "columns": {
+          "column": [
+            {
+              "name": "monitorKey",
+              "type": "string"
+            },
+            {
+              "name": "initializedAt",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000004",
+      "name": "Ensure Vinted Monitor State",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "vinted-search",
+              "name": "searchText",
+              "value": "women cycling jersey",
+              "type": "string"
+            },
+            {
+              "id": "vinted-domain",
+              "name": "domain",
+              "value": "www.vinted.fr",
+              "type": "string"
+            },
+            {
+              "id": "vinted-min-price",
+              "name": "minimumPrice",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "vinted-max-price",
+              "name": "maximumPrice",
+              "value": 50,
+              "type": "number"
+            },
+            {
+              "id": "vinted-brands",
+              "name": "allowedBrands",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "vinted-sizes",
+              "name": "allowedSizes",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "vinted-results",
+              "name": "maxResults",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "vinted-first-run",
+              "name": "sendFirstRunAlerts",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000005",
+      "name": "2. Configure Vinted Search",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first()?.json || {};\nconst searchText = String(input.searchText || '').trim();\nconst domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\\/\\//, '').replace(/\\/$/, '');\nconst minimumPrice = Number(input.minimumPrice ?? 0);\nconst maximumPrice = Number(input.maximumPrice ?? 0);\nconst maxResults = Number(input.maxResults ?? 10);\nconst sendFirstRunAlerts = input.sendFirstRunAlerts === true;\nconst parseList = (value) => String(value || '').split(',').map((entry) => entry.trim().toLowerCase()).filter(Boolean);\nconst allowedBrands = parseList(input.allowedBrands);\nconst allowedSizes = parseList(input.allowedSizes);\nif (searchText.length < 2 || searchText.length > 200) throw new Error('Search text must be 2 to 200 characters.');\nif (!/^www\\.vinted\\.[a-z.]{2,10}$/.test(domain)) throw new Error('Use a public Vinted domain such as www.vinted.fr, www.vinted.de, or www.vinted.co.uk.');\nif (!Number.isFinite(minimumPrice) || minimumPrice < 0) throw new Error('Minimum price must be zero or greater.');\nif (!Number.isFinite(maximumPrice) || maximumPrice <= 0 || maximumPrice < minimumPrice) throw new Error('Maximum price must be greater than or equal to minimum price.');\nif (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 50) throw new Error('Maximum results must be an integer from 1 to 50.');\nconst monitorKey = [domain, searchText.toLowerCase(), minimumPrice, maximumPrice, [...allowedBrands].sort().join(','), [...allowedSizes].sort().join(',')].join('|');\nreturn [{ json: {\n  searchText, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes,\n  maxResults, sendFirstRunAlerts, monitorKey,\n  actorInput: {\n    searchText,\n    domain,\n    priceMin: minimumPrice,\n    priceMax: maximumPrice,\n    maxItems: maxResults,\n    order: 'newest_first',\n    includeSeller: true\n  }\n} }];"
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000006",
+      "name": "Validate Search Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Vinted Monitor State"
+        },
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "monitorKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.monitorKey }}"
+            }
+          ]
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000007",
+      "name": "Load Monitor State",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/F1GAwbqJ9xc9h7P87/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Encoding",
+              "value": "identity"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "waitForFinish",
+              "value": "300"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $(\"Validate Search Configuration\").first().json.actorInput }}",
+        "options": {
+          "timeout": 310000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000008",
+      "name": "3. Search Vinted with FetchCat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clean",
+              "value": "true"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $(\"Validate Search Configuration\").first().json.maxResults }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000009",
+      "name": "Get Vinted Search Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Validate Search Configuration').first().json;\nconst state = $('Load Monitor State').first()?.json || {};\nconst rawListings = $input.all().flatMap((item) => {\n  let payload = item.json?.data ?? item.json;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }\n  }\n  return Array.isArray(payload) ? payload : [payload];\n}).slice(0, config.maxResults);\nconst normalized = [];\nfor (const listing of rawListings) {\n  const id = String(listing.id || '').trim();\n  const title = String(listing.title || '').trim();\n  const url = String(listing.url || '').trim();\n  const priceAmount = Number(listing.priceAmount);\n  const brand = String(listing.brandTitle || '').trim();\n  const size = String(listing.sizeTitle || '').trim();\n  if (!id || !title || !/^https:\\/\\//.test(url) || !Number.isFinite(priceAmount)) continue;\n  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;\n  if (config.allowedBrands.length && !config.allowedBrands.includes(brand.toLowerCase())) continue;\n  if (config.allowedSizes.length && !config.allowedSizes.includes(size.toLowerCase())) continue;\n  normalized.push({ json: {\n    listingId: id,\n    itemKey: config.monitorKey + '|' + id,\n    monitorKey: config.monitorKey,\n    isFirstRun: !state.initializedAt,\n    sendFirstRunAlerts: config.sendFirstRunAlerts,\n    title,\n    priceAmount,\n    currency: String(listing.currency || ''),\n    brand: brand || 'Brand not specified',\n    size: size || 'Size not specified',\n    condition: String(listing.status || 'Condition not specified'),\n    seller: String(listing.sellerLogin || 'Seller not specified'),\n    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,\n    viewCount: Number.isFinite(Number(listing.viewCount)) ? Number(listing.viewCount) : null,\n    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',\n    url,\n    scrapedAt: String(listing.scrapedAt || '')\n  } });\n}\nreturn normalized;"
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000010",
+      "name": "Normalize and Filter Listings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workflowSlug",
+              "condition": "eq",
+              "keyValue": "vinted-new-listing-alerts"
+            },
+            {
+              "keyName": "itemKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.itemKey }}"
+            }
+          ]
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000011",
+      "name": "Keep Undelivered Listings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const listings = $input.all().map((item) => item.json);\nif (listings.length === 0) return [];\nconst first = listings[0];\nreturn [{ json: {\n  listings,\n  isBaseline: first.isFirstRun && !first.sendFirstRunAlerts,\n  monitorKey: first.monitorKey\n} }];"
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000012",
+      "name": "Build Alert Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "vinted-baseline-condition",
+              "leftValue": "={{ $json.isBaseline }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000013",
+      "name": "First Run Baseline?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));"
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000014",
+      "name": "Prepare Baseline Ledger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "workflowSlug": "={{ $json.workflowSlug }}",
+            "itemKey": "={{ $json.itemKey }}",
+            "destination": "Baseline",
+            "deliveredAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "workflowSlug",
+              "displayName": "workflowSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itemKey",
+              "displayName": "itemKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination",
+              "displayName": "destination",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000015",
+      "name": "Store Baseline Listings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1280,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Vinted Monitor State"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "monitorKey",
+              "condition": "eq",
+              "keyValue": "={{ $(\"Validate Search Configuration\").first().json.monitorKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "monitorKey": "={{ $(\"Validate Search Configuration\").first().json.monitorKey }}",
+            "initializedAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "monitorKey",
+              "displayName": "monitorKey",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "initializedAt",
+              "displayName": "initializedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000016",
+      "name": "Mark Monitor Initialized",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst all = $json.listings;\nconst messages = [];\nfor (let offset = 0; offset < all.length; offset += 5) {\n  const chunk = all.slice(offset, offset + 5);\n  const lines = chunk.map((listing, index) => {\n    const position = offset + index + 1;\n    const price = listing.priceAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + (listing.currency ? ' ' + listing.currency : '');\n    const engagement = [listing.viewCount === null ? null : listing.viewCount + ' views', listing.favoriteCount === null ? null : listing.favoriteCount + ' favorites'].filter(Boolean).join(' | ');\n    return position + '. <b>' + escapeHtml(listing.title.slice(0, 110)) + '</b>\\n' +\n      '<b>Price:</b> ' + escapeHtml(price) + '\\n' +\n      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) + '\\n' +\n      '<b>Condition:</b> ' + escapeHtml(listing.condition) + ' | <b>Seller:</b> ' + escapeHtml(listing.seller) +\n      (engagement ? '\\n' + escapeHtml(engagement) : '') + '\\n' +\n      '<a href=\"' + escapeHtml(listing.url) + '\">Open Vinted listing</a>';\n  });\n  const heading = offset === 0\n    ? '<b>' + all.length + ' new Vinted ' + (all.length === 1 ? 'match' : 'matches') + '</b>'\n    : '<b>Vinted matches continued</b>';\n  messages.push({ json: { telegramMessage: heading + '\\n\\n' + lines.join('\\n\\n') } });\n}\nreturn messages;"
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000017",
+      "name": "Build Telegram Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "-1000000000000",
+        "text": "={{ $json.telegramMessage }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_notification": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000018",
+      "name": "4. Send New Listings to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Build Alert Batch').first().json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));"
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000019",
+      "name": "Prepare Delivery Ledger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "workflowSlug": "={{ $json.workflowSlug }}",
+            "itemKey": "={{ $json.itemKey }}",
+            "destination": "Telegram",
+            "deliveredAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "workflowSlug",
+              "displayName": "workflowSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itemKey",
+              "displayName": "itemKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination",
+              "displayName": "destination",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000020",
+      "name": "Commit Delivered Listings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "width": 1160,
+        "height": 560,
+        "content": "## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery and monitor-state tables, validates your search, runs the FetchCat Actor newest-first, applies optional brand and size filters, and compares listing IDs with the durable delivery ledger. The first run records a quiet baseline by default. Later runs send compact Telegram messages in groups of five and commit IDs only after Telegram succeeds.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, verify the quiet baseline, then activate the workflow.",
+        "color": 1
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000021",
+      "name": "Workflow Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        -820
+      ]
+    },
+    {
+      "parameters": {
+        "width": 700,
+        "height": 430,
+        "content": "## Choose timing and create state\n\nThe default schedule is hourly. Edit the Schedule Trigger for 15 or 30 minutes, 6 or 12 hours, or once daily. Both Data Tables are created automatically and reused safely.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000022",
+      "name": "Trigger and State Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1880,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "width": 720,
+        "height": 430,
+        "content": "## Configure one saved search\n\nSet a country domain, price range, result count, and optional comma-separated brand or size allowlists. Changing search criteria creates a new quiet baseline. Keep `sendFirstRunAlerts` off unless you intentionally want current results.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000023",
+      "name": "Configuration Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1160,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "width": 700,
+        "height": 430,
+        "content": "## Run FetchCat and normalize listings\n\nCloud-compatible HTTP Request nodes run `fetch_cat/vinted-search-scraper` newest-first and download its completed dataset. Invalid rows and listings outside the configured filters are rejected.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000024",
+      "name": "Scraper Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -440,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "width": 700,
+        "height": 430,
+        "content": "## Keep only unseen matches\n\nThe delivery ledger is scoped to this workflow and exact search configuration. Empty runs stop here. The first successful search records a baseline instead of flooding Telegram with existing listings.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000025",
+      "name": "Deduplication Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        280,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "width": 1100,
+        "height": 370,
+        "content": "## Establish the first-run baseline\n\nExisting result IDs are recorded, then the monitor is marked initialized. No Telegram message is sent. A failed ledger write leaves initialization incomplete so the run can be retried.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000026",
+      "name": "Baseline Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "width": 1100,
+        "height": 500,
+        "content": "## Send readable Telegram alerts\n\nNew matches are grouped five per message with title, price, brand, size, condition, seller, engagement, and a direct link. IDs are committed only after every Telegram message succeeds, keeping failed deliveries retryable.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000027",
+      "name": "Delivery Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "width": 360,
+        "height": 360,
+        "content": "## Save monitor state\n\nInitialization is written only after the baseline or Telegram delivery completes successfully.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000028",
+      "name": "Initialization Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        -160
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Choose Alert Frequency": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Vinted Monitor State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Vinted Monitor State": {
+      "main": [
+        [
+          {
+            "node": "2. Configure Vinted Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Configure Vinted Search": {
+      "main": [
+        [
+          {
+            "node": "Validate Search Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Search Configuration": {
+      "main": [
+        [
+          {
+            "node": "Load Monitor State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Monitor State": {
+      "main": [
+        [
+          {
+            "node": "3. Search Vinted with FetchCat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Search Vinted with FetchCat": {
+      "main": [
+        [
+          {
+            "node": "Get Vinted Search Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Vinted Search Results": {
+      "main": [
+        [
+          {
+            "node": "Normalize and Filter Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize and Filter Listings": {
+      "main": [
+        [
+          {
+            "node": "Keep Undelivered Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Undelivered Listings": {
+      "main": [
+        [
+          {
+            "node": "Build Alert Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert Batch": {
+      "main": [
+        [
+          {
+            "node": "First Run Baseline?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "First Run Baseline?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Baseline Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Telegram Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Baseline Ledger": {
+      "main": [
+        [
+          {
+            "node": "Store Baseline Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Baseline Listings": {
+      "main": [
+        [
+          {
+            "node": "Mark Monitor Initialized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Alerts": {
+      "main": [
+        [
+          {
+            "node": "4. Send New Listings to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Send New Listings to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Commit Delivered Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit Delivered Listings": {
+      "main": [
+        [
+          {
+            "node": "Mark Monitor Initialized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
