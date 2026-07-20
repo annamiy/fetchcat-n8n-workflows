@@ -1385,6 +1385,7 @@ const rawListings = $input.all().flatMap((item) => {
   return Array.isArray(payload) ? payload : [payload];
 }).slice(0, config.maxResults);
 const normalized = [];
+const filterProgress = { validListings: 0, withinPrice: 0, matchingBrand: 0, matchingSize: 0, matchingColor: 0 };
 const normalize = (value) => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const containsPhrase = (text, phrase) => (' ' + text + ' ').includes(' ' + phrase + ' ');
 for (const listing of rawListings) {
@@ -1400,10 +1401,15 @@ for (const listing of rawListings) {
   const sizeParts = new Set([normalizedSize, ...String(size || '').split(/[\/,;|()[\]]+/).map(normalize).filter(Boolean)]);
   const matchedColors = config.allowedColors.filter((color) => containsPhrase(normalizedTitle, color));
   if (!id || !title || !/^https:\/\//.test(url) || !Number.isFinite(priceAmount)) continue;
+  filterProgress.validListings += 1;
   if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;
+  filterProgress.withinPrice += 1;
   if (config.allowedBrands.length && !config.allowedBrands.includes(normalizedBrand)) continue;
+  filterProgress.matchingBrand += 1;
   if (config.allowedSizes.length && !config.allowedSizes.some((allowedSize) => sizeParts.has(allowedSize))) continue;
+  filterProgress.matchingSize += 1;
   if (config.allowedColors.length && matchedColors.length === 0) continue;
+  filterProgress.matchingColor += 1;
   normalized.push({ json: {
     listingId: id,
     itemKey: config.monitorKey + '|' + id,
@@ -1427,10 +1433,39 @@ for (const listing of rawListings) {
     scrapedAt: String(listing.scrapedAt || '')
   } });
 }
-return normalized;`
+if (normalized.length) return normalized;
+const stages = [
+  ['valid listing data', filterProgress.validListings],
+  ['price', filterProgress.withinPrice],
+  ['brand', filterProgress.matchingBrand],
+  ['size', filterProgress.matchingSize],
+  ['color keyword', filterProgress.matchingColor]
+];
+const blockedAt = rawListings.length === 0 ? 'search results' : (stages.find(([, count]) => count === 0)?.[0] || 'configured filters');
+return [{ json: {
+  noMatches: true,
+  status: 'No listings matched all configured filters.',
+  returnedCount: rawListings.length,
+  blockedAt,
+  filterProgress,
+  returnedBrands: [...new Set(rawListings.map((listing) => String(listing.brandTitle || 'Brand not specified').trim()))].sort(),
+  returnedSizes: [...new Set(rawListings.map((listing) => String(listing.sizeTitle || 'Size not specified').trim()))].sort(),
+  suggestion: rawListings.length === 0
+    ? 'Broaden searchText or confirm the selected Vinted domain.'
+    : 'Clear or broaden the blocking filter, use exact Vinted brand/catalog IDs when available, or increase maxResults for wider coverage.'
+} }];`
   }),
-  node('50000000-', 11, 'Keep Undelivered Listings', 'n8n-nodes-base.dataTable', 1.1, [320, 0], ledgerCheckParameters('vinted-new-listing-alerts', '={{ $json.itemKey }}')),
-  node('50000000-', 12, 'Build Alert Batch', 'n8n-nodes-base.code', 2, [560, 0], {
+  node('50000000-', 29, 'Any Listings Match Filters?', 'n8n-nodes-base.if', 2.2, [320, 0], {
+    conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [
+      { id: 'vinted-matches-condition', leftValue: '={{ $json.noMatches !== true }}', rightValue: true, operator: { type: 'boolean', operation: 'true', singleValue: true } }
+    ], combinator: 'and' },
+    options: {}
+  }),
+  node('50000000-', 11, 'Keep Undelivered Listings', 'n8n-nodes-base.dataTable', 1.1, [560, -100], ledgerCheckParameters('vinted-new-listing-alerts', '={{ $json.itemKey }}')),
+  node('50000000-', 30, 'No Listings Match Your Filters', 'n8n-nodes-base.code', 2, [560, 100], {
+    jsCode: String.raw`return $input.all();`
+  }),
+  node('50000000-', 12, 'Build Alert Batch', 'n8n-nodes-base.code', 2, [800, -100], {
     jsCode: String.raw`const listings = $input.all().map((item) => item.json);
 if (listings.length === 0) return [];
 const first = listings[0];
@@ -1440,7 +1475,7 @@ return [{ json: {
   monitorKey: first.monitorKey
 } }];`
   }),
-  node('50000000-', 13, 'First Run Baseline?', 'n8n-nodes-base.if', 2.2, [800, 0], {
+  node('50000000-', 13, 'First Run Baseline?', 'n8n-nodes-base.if', 2.2, [800, 80], {
     conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [
       { id: 'vinted-baseline-condition', leftValue: '={{ $json.isBaseline }}', rightValue: true, operator: { type: 'boolean', operation: 'true', singleValue: true } }
     ], combinator: 'and' },
@@ -1515,7 +1550,8 @@ return messages;`
   sticky('50000000-', 22, 'Trigger and State Notes', [-1880, -220], 700, 430, '## Choose timing and create state\n\nThe default schedule is hourly. Edit the Schedule Trigger for 15 or 30 minutes, 6 or 12 hours, or once daily. Both Data Tables are created automatically and reused safely.'),
   sticky('50000000-', 23, 'Configuration Notes', [-1160, -250], 720, 490, '## Configure one saved search\n\nChoose an audience and optional brand, size, and color filters. Size `M` matches `M / 38 / 10`; color uses listing titles. Numeric Vinted `brandIds` and `catalogIds` provide marketplace-side filtering. Changing criteria creates a new quiet baseline.'),
   sticky('50000000-', 24, 'Scraper Notes', [-440, -220], 700, 430, '## Run FetchCat and normalize listings\n\nCloud-compatible HTTP Request nodes run `fetch_cat/vinted-search-scraper` newest-first and download its completed dataset. Invalid rows and listings outside the configured filters are rejected.'),
-  sticky('50000000-', 25, 'Deduplication Notes', [280, -220], 700, 430, '## Keep only unseen matches\n\nThe delivery ledger is scoped to this workflow and exact search configuration. Empty runs stop here. The first successful search records a baseline instead of flooding Telegram with existing listings.'),
+  sticky('50000000-', 25, 'Filter Outcome Notes', [280, -220], 440, 430, '## Explain empty results\n\nMatching listings continue to the delivery ledger. A valid zero-match search ends visibly with counts, the likely blocking filter, returned brands and sizes, and a practical next step.'),
+  sticky('50000000-', 31, 'Deduplication Notes', [760, -220], 260, 430, '## Keep unseen matches\n\nDelivered IDs are removed. Remaining listings are batched and routed to a quiet first-run baseline or Telegram.'),
   sticky('50000000-', 26, 'Baseline Notes', [1000, -360], 1100, 370, '## Establish the first-run baseline\n\nExisting result IDs are recorded, then the monitor is marked initialized. No Telegram message is sent. A failed ledger write leaves initialization incomplete so the run can be retried.'),
   sticky('50000000-', 27, 'Delivery Notes', [1000, 40], 1100, 500, '## Send readable Telegram alerts\n\nNew matches are grouped five per message with title, price, brand, size, condition, seller, engagement, and a direct link. IDs are committed only after every Telegram message succeeds, keeping failed deliveries retryable.'),
   sticky('50000000-', 28, 'Initialization Notes', [2120, -160], 360, 360, '## Save monitor state\n\nInitialization is written only after the baseline or Telegram delivery completes successfully.')
@@ -1534,7 +1570,9 @@ const vintedWorkflow = workflow(
     ['Load Monitor State', '3. Search Vinted with FetchCat'],
     ['3. Search Vinted with FetchCat', 'Get Vinted Search Results'],
     ['Get Vinted Search Results', 'Normalize and Filter Listings'],
-    ['Normalize and Filter Listings', 'Keep Undelivered Listings'],
+    ['Normalize and Filter Listings', 'Any Listings Match Filters?'],
+    ['Any Listings Match Filters?', 'Keep Undelivered Listings'],
+    ['Any Listings Match Filters?', 'No Listings Match Your Filters', 0, 1],
     ['Keep Undelivered Listings', 'Build Alert Batch'],
     ['Build Alert Batch', 'First Run Baseline?'],
     ['First Run Baseline?', 'Prepare Baseline Ledger'],
@@ -1661,7 +1699,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'F1GAwbqJ9xc9h7P87',
       actorSlug: 'fetch_cat/vinted-search-scraper',
-      version: '1.1.1',
+      version: '1.2.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'Telegram', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

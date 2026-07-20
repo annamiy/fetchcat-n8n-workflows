@@ -320,7 +320,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Validate Search Configuration').first().json;\nconst state = $('Load Monitor State').first()?.json || {};\nconst rawListings = $input.all().flatMap((item) => {\n  let payload = item.json?.data ?? item.json;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }\n  }\n  return Array.isArray(payload) ? payload : [payload];\n}).slice(0, config.maxResults);\nconst normalized = [];\nconst normalize = (value) => String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst containsPhrase = (text, phrase) => (' ' + text + ' ').includes(' ' + phrase + ' ');\nfor (const listing of rawListings) {\n  const id = String(listing.id || '').trim();\n  const title = String(listing.title || '').trim();\n  const url = String(listing.url || '').trim();\n  const priceAmount = Number(listing.priceAmount);\n  const brand = String(listing.brandTitle || '').trim();\n  const size = String(listing.sizeTitle || '').trim();\n  const normalizedTitle = normalize(title);\n  const normalizedBrand = normalize(brand);\n  const normalizedSize = normalize(size);\n  const sizeParts = new Set([normalizedSize, ...String(size || '').split(/[\\/,;|()[\\]]+/).map(normalize).filter(Boolean)]);\n  const matchedColors = config.allowedColors.filter((color) => containsPhrase(normalizedTitle, color));\n  if (!id || !title || !/^https:\\/\\//.test(url) || !Number.isFinite(priceAmount)) continue;\n  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;\n  if (config.allowedBrands.length && !config.allowedBrands.includes(normalizedBrand)) continue;\n  if (config.allowedSizes.length && !config.allowedSizes.some((allowedSize) => sizeParts.has(allowedSize))) continue;\n  if (config.allowedColors.length && matchedColors.length === 0) continue;\n  normalized.push({ json: {\n    listingId: id,\n    itemKey: config.monitorKey + '|' + id,\n    monitorKey: config.monitorKey,\n    isFirstRun: !state.initializedAt,\n    sendFirstRunAlerts: config.sendFirstRunAlerts,\n    title,\n    priceAmount,\n    currency: String(listing.currency || ''),\n    brand: brand || 'Brand not specified',\n    size: size || 'Size not specified',\n    matchedColors,\n    audience: config.audience,\n    searchText: config.searchText,\n    condition: String(listing.status || 'Condition not specified'),\n    seller: String(listing.sellerLogin || 'Seller not specified'),\n    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,\n    viewCount: Number.isFinite(Number(listing.viewCount)) ? Number(listing.viewCount) : null,\n    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',\n    url,\n    scrapedAt: String(listing.scrapedAt || '')\n  } });\n}\nreturn normalized;"
+        "jsCode": "const config = $('Validate Search Configuration').first().json;\nconst state = $('Load Monitor State').first()?.json || {};\nconst rawListings = $input.all().flatMap((item) => {\n  let payload = item.json?.data ?? item.json;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }\n  }\n  return Array.isArray(payload) ? payload : [payload];\n}).slice(0, config.maxResults);\nconst normalized = [];\nconst filterProgress = { validListings: 0, withinPrice: 0, matchingBrand: 0, matchingSize: 0, matchingColor: 0 };\nconst normalize = (value) => String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst containsPhrase = (text, phrase) => (' ' + text + ' ').includes(' ' + phrase + ' ');\nfor (const listing of rawListings) {\n  const id = String(listing.id || '').trim();\n  const title = String(listing.title || '').trim();\n  const url = String(listing.url || '').trim();\n  const priceAmount = Number(listing.priceAmount);\n  const brand = String(listing.brandTitle || '').trim();\n  const size = String(listing.sizeTitle || '').trim();\n  const normalizedTitle = normalize(title);\n  const normalizedBrand = normalize(brand);\n  const normalizedSize = normalize(size);\n  const sizeParts = new Set([normalizedSize, ...String(size || '').split(/[\\/,;|()[\\]]+/).map(normalize).filter(Boolean)]);\n  const matchedColors = config.allowedColors.filter((color) => containsPhrase(normalizedTitle, color));\n  if (!id || !title || !/^https:\\/\\//.test(url) || !Number.isFinite(priceAmount)) continue;\n  filterProgress.validListings += 1;\n  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;\n  filterProgress.withinPrice += 1;\n  if (config.allowedBrands.length && !config.allowedBrands.includes(normalizedBrand)) continue;\n  filterProgress.matchingBrand += 1;\n  if (config.allowedSizes.length && !config.allowedSizes.some((allowedSize) => sizeParts.has(allowedSize))) continue;\n  filterProgress.matchingSize += 1;\n  if (config.allowedColors.length && matchedColors.length === 0) continue;\n  filterProgress.matchingColor += 1;\n  normalized.push({ json: {\n    listingId: id,\n    itemKey: config.monitorKey + '|' + id,\n    monitorKey: config.monitorKey,\n    isFirstRun: !state.initializedAt,\n    sendFirstRunAlerts: config.sendFirstRunAlerts,\n    title,\n    priceAmount,\n    currency: String(listing.currency || ''),\n    brand: brand || 'Brand not specified',\n    size: size || 'Size not specified',\n    matchedColors,\n    audience: config.audience,\n    searchText: config.searchText,\n    condition: String(listing.status || 'Condition not specified'),\n    seller: String(listing.sellerLogin || 'Seller not specified'),\n    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,\n    viewCount: Number.isFinite(Number(listing.viewCount)) ? Number(listing.viewCount) : null,\n    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',\n    url,\n    scrapedAt: String(listing.scrapedAt || '')\n  } });\n}\nif (normalized.length) return normalized;\nconst stages = [\n  ['valid listing data', filterProgress.validListings],\n  ['price', filterProgress.withinPrice],\n  ['brand', filterProgress.matchingBrand],\n  ['size', filterProgress.matchingSize],\n  ['color keyword', filterProgress.matchingColor]\n];\nconst blockedAt = rawListings.length === 0 ? 'search results' : (stages.find(([, count]) => count === 0)?.[0] || 'configured filters');\nreturn [{ json: {\n  noMatches: true,\n  status: 'No listings matched all configured filters.',\n  returnedCount: rawListings.length,\n  blockedAt,\n  filterProgress,\n  returnedBrands: [...new Set(rawListings.map((listing) => String(listing.brandTitle || 'Brand not specified').trim()))].sort(),\n  returnedSizes: [...new Set(rawListings.map((listing) => String(listing.sizeTitle || 'Size not specified').trim()))].sort(),\n  suggestion: rawListings.length === 0\n    ? 'Broaden searchText or confirm the selected Vinted domain.'\n    : 'Clear or broaden the blocking filter, use exact Vinted brand/catalog IDs when available, or increase maxResults for wider coverage.'\n} }];"
       },
       "id": "50000000-0000-0000-4000-8000-000000000010",
       "name": "Normalize and Filter Listings",
@@ -328,6 +328,40 @@
       "typeVersion": 2,
       "position": [
         80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "vinted-matches-condition",
+              "leftValue": "={{ $json.noMatches !== true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000029",
+      "name": "Any Listings Match Filters?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        320,
         0
       ]
     },
@@ -361,8 +395,21 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        320,
-        0
+        560,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000030",
+      "name": "No Listings Match Your Filters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        100
       ]
     },
     {
@@ -374,8 +421,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
-        0
+        800,
+        -100
       ]
     },
     {
@@ -409,7 +456,7 @@
       "typeVersion": 2.2,
       "position": [
         800,
-        0
+        80
       ]
     },
     {
@@ -737,17 +784,33 @@
     },
     {
       "parameters": {
-        "width": 700,
+        "width": 440,
         "height": 430,
-        "content": "## Keep only unseen matches\n\nThe delivery ledger is scoped to this workflow and exact search configuration. Empty runs stop here. The first successful search records a baseline instead of flooding Telegram with existing listings.",
+        "content": "## Explain empty results\n\nMatching listings continue to the delivery ledger. A valid zero-match search ends visibly with counts, the likely blocking filter, returned brands and sizes, and a practical next step.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000025",
-      "name": "Deduplication Notes",
+      "name": "Filter Outcome Notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         280,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "width": 260,
+        "height": 430,
+        "content": "## Keep unseen matches\n\nDelivered IDs are removed. Remaining listings are batched and routed to a quiet first-run baseline or Telegram.",
+        "color": 7
+      },
+      "id": "50000000-0000-0000-4000-8000-000000000031",
+      "name": "Deduplication Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        760,
         -220
       ]
     },
@@ -904,7 +967,25 @@
       "main": [
         [
           {
+            "node": "Any Listings Match Filters?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Listings Match Filters?": {
+      "main": [
+        [
+          {
             "node": "Keep Undelivered Listings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Listings Match Your Filters",
             "type": "main",
             "index": 0
           }

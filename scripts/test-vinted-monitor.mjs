@@ -45,6 +45,19 @@ assert.equal(matches[0].json.listingId, '100000001');
 assert.equal(matches[0].json.size, 'M / 38 / 10');
 assert.deepEqual(matches[0].json.matchedColors, ['blue']);
 
+const noMatchConfig = { ...configured, allowedBrands: ['maap'] };
+const noMatches = runCode(code('Normalize and Filter Listings'), {
+  all: () => fixture.items.map((json) => ({ json }))
+}, (name) => name === 'Validate Search Configuration'
+  ? { first: () => ({ json: noMatchConfig }) }
+  : { first: () => ({ json: { initializedAt: '2026-07-19T10:00:00.000Z' } }) });
+assert.equal(noMatches.length, 1);
+assert.equal(noMatches[0].json.noMatches, true);
+assert.equal(noMatches[0].json.blockedAt, 'brand');
+assert.equal(noMatches[0].json.returnedCount, 2);
+assert.ok(noMatches[0].json.returnedBrands.includes('Rapha'));
+assert.match(noMatches[0].json.suggestion, /blocking filter/);
+
 for (const size of ['38', '10', 'M / 38 / 10']) {
   const normalizedSize = size.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const sizeConfig = { ...configured, allowedSizes: [normalizedSize] };

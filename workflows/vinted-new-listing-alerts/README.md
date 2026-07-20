@@ -81,6 +81,9 @@ flowchart LR
 - `FetchCat Vinted Monitor State` records whether a search configuration has
   completed its baseline.
 - Empty searches and fully delivered reruns create no Telegram messages.
+- A valid search with zero filtered matches ends at `No Listings Match Your
+  Filters` and reports the likely blocking filter, stage counts, returned
+  brands and sizes, and a suggested next step.
 - The workflow never buys an item, contacts a seller, or signs into Vinted.
 
 ## Cost Guidance

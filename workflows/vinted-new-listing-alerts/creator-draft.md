@@ -27,10 +27,11 @@ the default French marketplace.
 2. Validates the Vinted domain, search, audience, price range, filters, and result limit.
 3. Runs the FetchCat Vinted Search Scraper through Cloud-compatible HTTP nodes.
 4. Filters malformed and nonmatching results.
-5. Checks each listing ID against a durable delivery ledger.
-6. Records a quiet baseline on the first run.
-7. Sends new matches to Telegram in readable groups of five.
-8. Commits listing IDs only after Telegram succeeds.
+5. Explains which filter blocked the run when no listing matches.
+6. Checks each listing ID against a durable delivery ledger.
+7. Records a quiet baseline on the first run.
+8. Sends new matches to Telegram in readable groups of five.
+9. Commits listing IDs only after Telegram succeeds.
 
 ## Setup
 
