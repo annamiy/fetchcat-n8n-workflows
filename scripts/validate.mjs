@@ -246,6 +246,10 @@ for (const slug of workflowSlugs()) {
     if (!fs.existsSync(path.join(dir, 'assets/form-preview.png'))) fail(slug, 'missing publication asset assets/form-preview.png');
   }
   if (slug === 'vinted-new-listing-alerts') {
+    const overviewNote = workflow.nodes.find((entry) => entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 1);
+    if (Number(overviewNote?.parameters?.width) < 480 || Number(overviewNote?.parameters?.height) < 900) {
+      fail(slug, 'yellow overview sticky must be at least 480 by 900 canvas units');
+    }
     if (!workflow.nodes.some((entry) => entry.name === 'Start FetchCat Vinted Search' && entry.type === 'n8n-nodes-base.httpRequest')) {
       fail(slug, 'must use a Cloud-compatible HTTP Request node to run Apify');
     }
