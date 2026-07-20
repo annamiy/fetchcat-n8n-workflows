@@ -8,8 +8,8 @@ notifications.
 
 The default schedule is hourly with 10 results per run. You can configure the
 Schedule Trigger from every 15 minutes through once per day and choose between
-1 and 50 results. The first successful run quietly records a baseline so the
-workflow does not flood Telegram with existing listings.
+1 and 50 results. The first successful run sends current matching listings;
+later runs send only matches that have not already been delivered.
 
 The editable example is prefilled for women's cycling jerseys from MAAP and
 Pas Normal Studios in sizes S or XS and prices up to EUR 150, with bilingual
@@ -31,15 +31,15 @@ filtering is intentionally unavailable, so missing title colors never reject a l
 4. Combines, deduplicates, caps, and filters the returned listings.
 5. Explains which filter blocked the run when no listing matches.
 6. Checks each listing ID against a durable delivery ledger.
-7. Records a quiet baseline on the first run.
-8. Sends new matches to Telegram in readable groups of five.
-9. Commits listing IDs only after Telegram succeeds.
+7. Sends unseen matches to Telegram in readable groups of five, including on
+   the first run.
+8. Commits listing IDs only after Telegram succeeds.
 
 ## Setup
 
 Connect an Apify HTTP Header Auth credential and a Telegram Bot credential.
 Choose the Telegram destination, edit the search configuration, run once
-manually, and activate the schedule after checking the baseline. The workflow
+manually, and activate the schedule after checking the first alerts. The workflow
 works on n8n Cloud or self-hosted n8n and does not use an AI model.
 
 ![Telegram alert preview](assets/output-preview.png)

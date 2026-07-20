@@ -259,7 +259,12 @@ for (const slug of workflowSlugs()) {
       fail(slug, 'must not require a community node');
     }
     if (serialized.includes('@n8n/n8n-nodes-langchain')) fail(slug, 'must not require an AI model');
-    if (!serialized.includes('FetchCat Vinted Monitor State')) fail(slug, 'must create durable first-run state');
+    for (const removedNode of ['Ensure Vinted Monitor State', 'Load Monitor State', 'First Run Baseline?', 'Prepare Baseline Ledger', 'Store Baseline Listings', 'Mark Monitor Initialized']) {
+      if (names.has(removedNode)) fail(slug, `must not contain obsolete first-run node ${removedNode}`);
+    }
+    if (serialized.includes('sendFirstRunAlerts') || serialized.includes('FetchCat Vinted Monitor State')) {
+      fail(slug, 'must send unseen first-run matches without separate baseline state');
+    }
     if (!names.has('Any Listings Match Filters?') || !names.has('No Listings Match Your Filters')) {
       fail(slug, 'must expose a human-readable zero-match execution path');
     }

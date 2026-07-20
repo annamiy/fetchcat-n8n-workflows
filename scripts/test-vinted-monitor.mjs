@@ -14,7 +14,7 @@ const configured = runCode(code('Validate Search Configuration'), {
     searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.fr',
     minimumPrice: 0, maximumPrice: 50, allowedBrands: 'Rápha',
     allowedSizes: 'M', allowedColors: 'blue, navy', brandIds: '10, 20',
-    catalogIds: '1904', maxResults: 10, sendFirstRunAlerts: false
+    catalogIds: '1904', maxResults: 10
   } })
 })[0].json;
 
@@ -24,12 +24,13 @@ assert.deepEqual(configured.actorInputs[0].brandIds, [10, 20]);
 assert.deepEqual(configured.actorInputs[0].catalogIds, [1904]);
 assert.deepEqual(configured.allowedBrands, ['rapha']);
 assert.deepEqual(configured.allowedColors, ['blue', 'navy']);
+assert.equal('sendFirstRunAlerts' in configured, false);
 const brandNameConfig = runCode(code('Validate Search Configuration'), {
   first: () => ({ json: {
     searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.pt',
     minimumPrice: 0, maximumPrice: 200, allowedBrands: 'MAAP, Pas Normal Studios, PNS',
     allowedSizes: 'S, XS', allowedColors: '', brandIds: '', catalogIds: '',
-    maxResults: 10, sendFirstRunAlerts: false
+    maxResults: 10
   } })
 })[0].json;
 assert.equal(brandNameConfig.actorInputs.length, 3);
@@ -57,7 +58,6 @@ assert.throws(() => runCode(code('Validate Search Configuration'), {
 const fixture = JSON.parse(fs.readFileSync(new URL('../workflows/vinted-new-listing-alerts/fixtures/input.json', import.meta.url)));
 const normalizeLookup = (name) => {
   if (name === 'Validate Search Configuration') return { first: () => ({ json: configured }) };
-  if (name === 'Load Monitor State') return { first: () => ({ json: { initializedAt: '2026-07-19T10:00:00.000Z' } }) };
   throw new Error(`Unexpected node lookup: ${name}`);
 };
 const matches = runCode(code('Normalize and Filter Listings'), {
@@ -80,7 +80,7 @@ const relaxedColorMatches = runCode(code('Normalize and Filter Listings'), {
   all: () => [{ json: fixture.items[0] }]
 }, (name) => name === 'Validate Search Configuration'
   ? { first: () => ({ json: relaxedColorConfig }) }
-  : { first: () => ({ json: { initializedAt: '2026-07-19T10:00:00.000Z' } }) });
+  : (() => { throw new Error(`Unexpected node lookup: ${name}`); })());
 assert.equal(relaxedColorMatches.length, 1);
 
 const noMatchConfig = { ...configured, allowedBrands: ['maap'] };
@@ -88,7 +88,7 @@ const noMatches = runCode(code('Normalize and Filter Listings'), {
   all: () => fixture.items.map((json) => ({ json }))
 }, (name) => name === 'Validate Search Configuration'
   ? { first: () => ({ json: noMatchConfig }) }
-  : { first: () => ({ json: { initializedAt: '2026-07-19T10:00:00.000Z' } }) });
+  : (() => { throw new Error(`Unexpected node lookup: ${name}`); })());
 assert.equal(noMatches.length, 1);
 assert.equal(noMatches[0].json.noMatches, true);
 assert.equal(noMatches[0].json.blockedAt, 'brand');
@@ -103,7 +103,7 @@ for (const size of ['38', '10', 'M / 38 / 10']) {
     all: () => [{ json: fixture.items[0] }]
   }, (name) => name === 'Validate Search Configuration'
     ? { first: () => ({ json: sizeConfig }) }
-    : { first: () => ({ json: { initializedAt: '2026-07-19T10:00:00.000Z' } }) });
+    : (() => { throw new Error(`Unexpected node lookup: ${name}`); })());
   assert.equal(result.length, 1, `${size} must match the combined Vinted size`);
 }
 
@@ -121,4 +121,12 @@ assert.match(alert[0].json.telegramMessage, /Size:<\/b> M \/ 38 \/ 10/);
 assert.match(alert[0].json.telegramMessage, /51 favorites/);
 assert.doesNotMatch(alert[0].json.telegramMessage, /0 views/);
 
-console.log('Vinted monitor passed audience, marketplace ID, brand, combined-size, and color-label tests.');
+const alertBatch = runCode(code('Build Alert Batch'), {
+  all: () => unavailableViews
+});
+assert.deepEqual(alertBatch[0].json.listings, unavailableViews.map((item) => item.json));
+for (const removedNode of ['Ensure Vinted Monitor State', 'Load Monitor State', 'First Run Baseline?', 'Prepare Baseline Ledger', 'Store Baseline Listings', 'Mark Monitor Initialized']) {
+  assert.equal(workflow.nodes.some((node) => node.name === removedNode), false, `${removedNode} must be removed`);
+}
+
+console.log('Vinted monitor passed immediate first-run alert, audience, marketplace ID, brand, combined-size, and color-label tests.');

@@ -1260,19 +1260,13 @@ const redditWorkflow = workflow(
   ])
 );
 
-const vintedStateColumns = [
-  { name: 'monitorKey', type: 'string' },
-  { name: 'initializedAt', type: 'date' }
-];
-
 const vintedNodes = [
   node('50000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1840, 100], {}),
   node('50000000-', 2, '1. Choose Alert Frequency', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1840, -100], {
     rule: { interval: [{ field: 'hours', hoursInterval: 1 }] }
   }),
   node('50000000-', 3, 'Ensure Delivery Ledger', 'n8n-nodes-base.dataTable', 1.1, [-1600, 0], createTableParameters('FetchCat Delivery Ledger', ledgerColumns)),
-  node('50000000-', 4, 'Ensure Vinted Monitor State', 'n8n-nodes-base.dataTable', 1.1, [-1360, 0], createTableParameters('FetchCat Vinted Monitor State', vintedStateColumns)),
-  node('50000000-', 5, '2. Configure Vinted Search', 'n8n-nodes-base.set', 3.4, [-1120, 0], {
+  node('50000000-', 5, '2. Configure Vinted Search', 'n8n-nodes-base.set', 3.4, [-1360, 0], {
     mode: 'manual',
     duplicateItem: false,
     assignments: { assignments: [
@@ -1286,8 +1280,7 @@ const vintedNodes = [
       { id: 'vinted-colors', name: 'allowedColors', value: 'blue, bleu, black, noir, white, blanc, multi, multicolor, multicolour, multicolore, red, rouge, yellow, jaune', type: 'string' },
       { id: 'vinted-brand-ids', name: 'brandIds', value: '', type: 'string' },
       { id: 'vinted-catalog-ids', name: 'catalogIds', value: '', type: 'string' },
-      { id: 'vinted-results', name: 'maxResults', value: 10, type: 'number' },
-      { id: 'vinted-first-run', name: 'sendFirstRunAlerts', value: false, type: 'boolean' }
+      { id: 'vinted-results', name: 'maxResults', value: 10, type: 'number' }
     ] },
     options: {}
   }),
@@ -1298,7 +1291,6 @@ const domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:
 const minimumPrice = Number(input.minimumPrice ?? 0);
 const maximumPrice = Number(input.maximumPrice ?? 0);
 const maxResults = Number(input.maxResults ?? 10);
-const sendFirstRunAlerts = input.sendFirstRunAlerts === true;
 const normalize = (value) => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const parseList = (value) => String(value || '').split(',').map(normalize).filter(Boolean);
 const parseIds = (value, label) => {
@@ -1340,18 +1332,10 @@ const makeActorInput = (focusedBrand = '') => ({
 const actorInputs = focusedBrands.length ? focusedBrands.map(makeActorInput) : [makeActorInput()];
 return [{ json: {
   searchText, actorSearchText, audience, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes, allowedColors, brandIds, catalogIds,
-  maxResults, sendFirstRunAlerts, monitorKey, searchCount, itemsPerSearch, actorInputs
+  maxResults, monitorKey, searchCount, itemsPerSearch, actorInputs
 } }];`
   }),
-  Object.assign(node('50000000-', 7, 'Load Monitor State', 'n8n-nodes-base.dataTable', 1.1, [-640, 0], {
-    resource: 'row',
-    operation: 'get',
-    dataTableId: dataTable('FetchCat Vinted Monitor State'),
-    returnAll: false,
-    limit: 1,
-    filters: { conditions: [{ keyName: 'monitorKey', condition: 'eq', keyValue: '={{ $json.monitorKey }}' }] }
-  }), { alwaysOutputData: true }),
-  node('50000000-', 32, 'Build Focused Brand Searches', 'n8n-nodes-base.code', 2, [-400, -100], {
+  node('50000000-', 32, 'Build Focused Brand Searches', 'n8n-nodes-base.code', 2, [-640, -100], {
     jsCode: String.raw`const config = $('Validate Search Configuration').first().json;
 return config.actorInputs.map((actorInput, index) => ({ json: {
   actorInput,
@@ -1388,7 +1372,6 @@ return config.actorInputs.map((actorInput, index) => ({ json: {
   }),
   node('50000000-', 10, 'Normalize and Filter Listings', 'n8n-nodes-base.code', 2, [80, 100], {
     jsCode: String.raw`const config = $('Validate Search Configuration').first().json;
-const state = $('Load Monitor State').first()?.json || {};
 const rawListings = $input.all().flatMap((item) => {
   let payload = item.json?.data ?? item.json;
   if (typeof payload === 'string') {
@@ -1427,8 +1410,6 @@ for (const listing of rawListings) {
     listingId: id,
     itemKey: config.monitorKey + '|' + id,
     monitorKey: config.monitorKey,
-    isFirstRun: !state.initializedAt,
-    sendFirstRunAlerts: config.sendFirstRunAlerts,
     title,
     priceAmount,
     currency: String(listing.currency || ''),
@@ -1480,44 +1461,7 @@ return [{ json: {
   node('50000000-', 12, 'Build Alert Batch', 'n8n-nodes-base.code', 2, [800, -100], {
     jsCode: String.raw`const listings = $input.all().map((item) => item.json);
 if (listings.length === 0) return [];
-const first = listings[0];
-return [{ json: {
-  listings,
-  isBaseline: first.isFirstRun && !first.sendFirstRunAlerts,
-  monitorKey: first.monitorKey
-} }];`
-  }),
-  node('50000000-', 13, 'First Run Baseline?', 'n8n-nodes-base.if', 2.2, [800, 80], {
-    conditions: { options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 }, conditions: [
-      { id: 'vinted-baseline-condition', leftValue: '={{ $json.isBaseline }}', rightValue: true, operator: { type: 'boolean', operation: 'true', singleValue: true } }
-    ], combinator: 'and' },
-    options: {}
-  }),
-  node('50000000-', 14, 'Prepare Baseline Ledger', 'n8n-nodes-base.code', 2, [1040, -160], {
-    jsCode: String.raw`return $json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));`
-  }),
-  node('50000000-', 15, 'Store Baseline Listings', 'n8n-nodes-base.dataTable', 1.1, [1280, -160], ledgerInsertParameters('Baseline')),
-  node('50000000-', 16, 'Mark Monitor Initialized', 'n8n-nodes-base.dataTable', 1.1, [2160, 0], {
-    resource: 'row',
-    operation: 'upsert',
-    dataTableId: dataTable('FetchCat Vinted Monitor State'),
-    matchType: 'allConditions',
-    filters: { conditions: [{ keyName: 'monitorKey', condition: 'eq', keyValue: '={{ $("Validate Search Configuration").first().json.monitorKey }}' }] },
-    columns: {
-      mappingMode: 'defineBelow',
-      matchingColumns: [],
-      value: {
-        monitorKey: '={{ $("Validate Search Configuration").first().json.monitorKey }}',
-        initializedAt: '={{ $now.toISO() }}'
-      },
-      schema: [
-        { id: 'monitorKey', displayName: 'monitorKey', required: false, defaultMatch: true, display: true, type: 'string', canBeUsedToMatch: true },
-        { id: 'initializedAt', displayName: 'initializedAt', required: false, defaultMatch: false, display: true, type: 'dateTime', canBeUsedToMatch: true }
-      ],
-      attemptToConvertTypes: true,
-      convertFieldsToString: false
-    },
-    options: {}
+return [{ json: { listings } }];`
   }),
   node('50000000-', 17, 'Build Telegram Alerts', 'n8n-nodes-base.code', 2, [1040, 260], {
     jsCode: String.raw`const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1558,15 +1502,13 @@ return messages;`
     jsCode: String.raw`return $('Build Alert Batch').first().json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));`
   }),
   node('50000000-', 20, 'Commit Delivered Listings', 'n8n-nodes-base.dataTable', 1.1, [1880, 300], ledgerInsertParameters('Telegram')),
-  sticky('50000000-', 21, 'Workflow Overview', [-1840, -820], 1160, 590, '## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates state, validates your search, runs one focused FetchCat search per brand name (or one combined search with numeric brand IDs), deduplicates results, applies size and color filters, and checks the delivery ledger. The first run records a quiet baseline. Later runs send Telegram messages and commit IDs only after delivery succeeds.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, audience, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, verify the quiet baseline, then activate the workflow.' , 1),
-  sticky('50000000-', 22, 'Trigger and State Notes', [-1880, -220], 700, 430, '## Choose timing and create state\n\nThe default schedule is hourly. Edit the Schedule Trigger for 15 or 30 minutes, 6 or 12 hours, or once daily. Both Data Tables are created automatically and reused safely.'),
+  sticky('50000000-', 21, 'Workflow Overview', [-1840, -820], 1160, 590, '## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery ledger, validates your search, runs one focused FetchCat search per brand name (or one combined search with numeric brand IDs), deduplicates results, applies filters, and sends every unseen match to Telegram. IDs are committed only after delivery succeeds, so failures remain retryable.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, audience, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, confirm that current matches arrive, then activate the workflow.' , 1),
+  sticky('50000000-', 22, 'Trigger and State Notes', [-1880, -220], 700, 430, '## Choose timing and create state\n\nThe default schedule is hourly. Edit the Schedule Trigger for 15 or 30 minutes, 6 or 12 hours, or once daily. The delivery ledger is created automatically and reused safely.'),
   sticky('50000000-', 23, 'Configuration Notes', [-1160, -250], 720, 490, '## Configure one saved search\n\nChoose audience, brand, size, and color preferences. Size `M` matches `M / 38 / 10`. Color keywords label recognized title colors but never exclude listings. Numeric IDs provide marketplace-side filtering.'),
   sticky('50000000-', 24, 'Scraper Notes', [-440, -220], 700, 430, '## Run focused FetchCat searches\n\nEach brand name creates a focused search; numeric brand IDs use one combined run. The result allowance is divided across searches, then listings are combined, deduplicated, capped, and filtered.'),
   sticky('50000000-', 25, 'Filter Outcome Notes', [280, -220], 440, 430, '## Explain empty results\n\nMatching listings continue to the delivery ledger. A valid zero-match search ends visibly with counts, the likely blocking filter, returned brands and sizes, and a practical next step.'),
-  sticky('50000000-', 31, 'Deduplication Notes', [760, -220], 260, 430, '## Keep unseen matches\n\nDelivered IDs are removed. Remaining listings are batched and routed to a quiet first-run baseline or Telegram.'),
-  sticky('50000000-', 26, 'Baseline Notes', [1000, -360], 1100, 370, '## Establish the first-run baseline\n\nExisting result IDs are recorded, then the monitor is marked initialized. No Telegram message is sent. A failed ledger write leaves initialization incomplete so the run can be retried.'),
+  sticky('50000000-', 31, 'Deduplication Notes', [760, -220], 260, 430, '## Keep unseen matches\n\nDelivered IDs are removed. Every remaining listing continues to Telegram, including matches found on the first run.'),
   sticky('50000000-', 27, 'Delivery Notes', [1000, 40], 1100, 500, '## Send readable Telegram alerts\n\nNew matches are grouped five per message with title, price, brand, size, condition, seller, engagement, and a direct link. IDs are committed only after every Telegram message succeeds, keeping failed deliveries retryable.'),
-  sticky('50000000-', 28, 'Initialization Notes', [2120, -160], 360, 360, '## Save monitor state\n\nInitialization is written only after the baseline or Telegram delivery completes successfully.')
 ];
 
 const vintedWorkflow = workflow(
@@ -1575,11 +1517,9 @@ const vintedWorkflow = workflow(
   connectionMap([
     ['Manual Trigger', 'Ensure Delivery Ledger'],
     ['1. Choose Alert Frequency', 'Ensure Delivery Ledger'],
-    ['Ensure Delivery Ledger', 'Ensure Vinted Monitor State'],
-    ['Ensure Vinted Monitor State', '2. Configure Vinted Search'],
+    ['Ensure Delivery Ledger', '2. Configure Vinted Search'],
     ['2. Configure Vinted Search', 'Validate Search Configuration'],
-    ['Validate Search Configuration', 'Load Monitor State'],
-    ['Load Monitor State', 'Build Focused Brand Searches'],
+    ['Validate Search Configuration', 'Build Focused Brand Searches'],
     ['Build Focused Brand Searches', '3. Search Vinted with FetchCat'],
     ['3. Search Vinted with FetchCat', 'Get Vinted Search Results'],
     ['Get Vinted Search Results', 'Normalize and Filter Listings'],
@@ -1587,15 +1527,10 @@ const vintedWorkflow = workflow(
     ['Any Listings Match Filters?', 'Keep Undelivered Listings'],
     ['Any Listings Match Filters?', 'No Listings Match Your Filters', 0, 1],
     ['Keep Undelivered Listings', 'Build Alert Batch'],
-    ['Build Alert Batch', 'First Run Baseline?'],
-    ['First Run Baseline?', 'Prepare Baseline Ledger'],
-    ['Prepare Baseline Ledger', 'Store Baseline Listings'],
-    ['Store Baseline Listings', 'Mark Monitor Initialized'],
-    ['First Run Baseline?', 'Build Telegram Alerts', 0, 1],
+    ['Build Alert Batch', 'Build Telegram Alerts'],
     ['Build Telegram Alerts', '4. Send New Listings to Telegram'],
     ['4. Send New Listings to Telegram', 'Prepare Delivery Ledger'],
-    ['Prepare Delivery Ledger', 'Commit Delivered Listings'],
-    ['Commit Delivered Listings', 'Mark Monitor Initialized']
+    ['Prepare Delivery Ledger', 'Commit Delivered Listings']
   ])
 );
 
@@ -1712,7 +1647,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'F1GAwbqJ9xc9h7P87',
       actorSlug: 'fetch_cat/vinted-search-scraper',
-      version: '1.3.2',
+      version: '2.0.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'Telegram', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

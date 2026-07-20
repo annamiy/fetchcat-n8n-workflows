@@ -43,8 +43,6 @@ not require OpenAI.
    - `catalogIds`: optional comma-separated numeric Vinted catalog IDs. Use
      these when you need strict category or audience filtering.
    - `maxResults`: an integer from 1 to 50; the default is 10.
-   - `sendFirstRunAlerts`: normally leave this off so setup creates a quiet
-     baseline. Turn it on only when you intentionally want current results.
 
 The included example monitors women's cycling jerseys up to EUR 150 from MAAP
 and Pas Normal Studios in sizes S or XS. Since its default marketplace is `www.vinted.fr`, the
@@ -61,8 +59,8 @@ run.
    `Bearer YOUR_APIFY_TOKEN`. Select it in both Apify HTTP Request nodes.
 5. Connect a Telegram Bot credential in `4. Send New Listings to Telegram` and
    enter the private chat or group ID that should receive alerts.
-6. Run the workflow manually. With the safe default, the first successful run
-   records current listing IDs without sending a message.
+6. Run the workflow manually and confirm that current matching listings arrive
+   in Telegram.
 7. Run it again to verify that unchanged listings do not send duplicate alerts,
    then activate the schedule.
 
@@ -74,14 +72,15 @@ flowchart LR
   C --> A[Run FetchCat Vinted Search Scraper]
   A --> F[Apply audience, price, brand, size, and color filters]
   F --> D[Keep IDs absent from delivery ledger]
-  D --> B{First run?}
-  B -->|Yes| Q[Record quiet baseline]
-  B -->|No| M[Send Telegram alerts in groups of five]
+  D --> M[Send Telegram alerts in groups of five]
   M --> L[Commit IDs after delivery]
 ```
 
-- Search state is scoped to the complete configuration. Changing the domain,
-  query, audience, price range, or any allowlist creates a new baseline.
+- Delivery keys are scoped to the complete configuration. Changing the domain,
+  query, audience, price range, or any allowlist allows matching results for the
+  new configuration to be delivered.
+- The first run sends current matching listings immediately. Later runs send
+  only listing IDs that have not already been delivered for that configuration.
 - Telegram messages contain title, price, brand, size, condition, seller,
   engagement counters when available, and a direct listing link.
 - Vinted's public catalogue commonly reports `viewCount: 0` even on listings
@@ -91,8 +90,6 @@ flowchart LR
   message limits.
 - IDs are written to `FetchCat Delivery Ledger` only after Telegram succeeds.
   A Telegram failure therefore leaves those listings retryable.
-- `FetchCat Vinted Monitor State` records whether a search configuration has
-  completed its baseline.
 - Empty searches and fully delivered reruns create no Telegram messages.
 - A valid search with zero filtered matches ends at `No Listings Match Your
   Filters` and reports the likely blocking filter, stage counts, returned
@@ -131,10 +128,9 @@ every 30 minutes uses about 1,440; every 15 minutes uses about 2,880.
 
 ## QA
 
-Use at most three Apify-backed executions: first-run baseline, one controlled
-delivery, and one duplicate rerun. Confirm that the first run is quiet by
-default, Telegram receives readable links, a duplicate rerun sends nothing,
-and a failed Telegram call does not commit IDs.
+Use at most three Apify-backed executions: one first-run delivery, one duplicate
+rerun, and one negative path. Confirm that the first run sends readable links,
+a duplicate rerun sends nothing, and a failed Telegram call does not commit IDs.
 
 Synthetic Actor-shaped input and deterministic assertions are stored under
 `fixtures/`. They contain no real listings or personal information.

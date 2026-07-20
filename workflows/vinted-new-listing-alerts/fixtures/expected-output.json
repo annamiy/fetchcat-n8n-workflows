@@ -3,7 +3,7 @@
   "assertions": [
     "The default schedule is hourly and the default Actor result limit is 10.",
     "Configuration accepts 1 through 50 results and rejects values outside that range.",
-    "The first successful run records current matching IDs without sending Telegram when sendFirstRunAlerts is false.",
+    "The first successful run sends every current matching listing that is absent from the delivery ledger.",
     "Audience accepts Any, Women, Men, Girls, or Boys and changes the Actor search query.",
     "A configured size M, 38, or 10 matches Vinted's combined size M / 38 / 10 without matching unrelated values.",
     "Color words are matched against listing titles and multiple configured colors use OR logic.",
@@ -12,6 +12,6 @@
     "Telegram messages contain human-readable listing details and direct links in groups of at most five.",
     "An immediate duplicate rerun creates no Telegram writes.",
     "A Telegram failure does not commit listing IDs to the delivery ledger.",
-    "Changing search criteria creates an independent first-run baseline."
+    "Changing search criteria creates independent delivery-ledger keys and sends matching results for that configuration."
   ]
 }

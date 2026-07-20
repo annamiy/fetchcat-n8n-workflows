@@ -4,7 +4,7 @@
   "workflowKind": "actor-template",
   "actorId": "F1GAwbqJ9xc9h7P87",
   "actorSlug": "fetch_cat/vinted-search-scraper",
-  "version": "1.3.2",
+  "version": "2.0.0",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",
