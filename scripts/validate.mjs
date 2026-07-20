@@ -246,13 +246,13 @@ for (const slug of workflowSlugs()) {
     if (!fs.existsSync(path.join(dir, 'assets/form-preview.png'))) fail(slug, 'missing publication asset assets/form-preview.png');
   }
   if (slug === 'vinted-new-listing-alerts') {
-    if (!workflow.nodes.some((entry) => entry.name === '3. Search Vinted with FetchCat' && entry.type === 'n8n-nodes-base.httpRequest')) {
+    if (!workflow.nodes.some((entry) => entry.name === 'Start FetchCat Vinted Search' && entry.type === 'n8n-nodes-base.httpRequest')) {
       fail(slug, 'must use a Cloud-compatible HTTP Request node to run Apify');
     }
-    if (!workflow.nodes.some((entry) => entry.name === '1. Choose Alert Frequency' && entry.type === 'n8n-nodes-base.scheduleTrigger')) {
+    if (!workflow.nodes.some((entry) => entry.name === 'Hourly Alert Trigger' && entry.type === 'n8n-nodes-base.scheduleTrigger')) {
       fail(slug, 'must expose an editable schedule trigger');
     }
-    if (!workflow.nodes.some((entry) => entry.name === '2. Configure Vinted Search' && entry.type === 'n8n-nodes-base.set')) {
+    if (!workflow.nodes.some((entry) => entry.name === 'Set Vinted Search Parameters' && entry.type === 'n8n-nodes-base.set')) {
       fail(slug, 'must expose search configuration in a Set node');
     }
     if (workflow.nodes.some((entry) => entry.type === '@apify/n8n-nodes-apify.apify')) {
@@ -265,10 +265,10 @@ for (const slug of workflowSlugs()) {
     if (serialized.includes('sendFirstRunAlerts') || serialized.includes('FetchCat Vinted Monitor State')) {
       fail(slug, 'must send unseen first-run matches without separate baseline state');
     }
-    if (!names.has('Any Listings Match Filters?') || !names.has('No Listings Match Your Filters')) {
+    if (!names.has('Check for Matching Listings') || !names.has('Show No-Match Details')) {
       fail(slug, 'must expose a human-readable zero-match execution path');
     }
-    if (!names.has('Build Focused Brand Searches')) fail(slug, 'must search by configured brand names before post-filtering');
+    if (!names.has('Build Brand Search Queries')) fail(slug, 'must search by configured brand names before post-filtering');
     for (const control of ['audience', 'allowedBrands', 'allowedSizes', 'allowedColors', 'brandIds', 'catalogIds']) {
       if (!serialized.includes(`\"name\":\"${control}\"`) && !serialized.includes(`\"name\": \"${control}\"`)) fail(slug, `missing Vinted control ${control}`);
     }

@@ -4,7 +4,7 @@
     {
       "parameters": {},
       "id": "50000000-0000-0000-4000-8000-000000000001",
-      "name": "Manual Trigger",
+      "name": "Manual Start Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
@@ -24,7 +24,7 @@
         }
       },
       "id": "50000000-0000-0000-4000-8000-000000000002",
-      "name": "1. Choose Alert Frequency",
+      "name": "Hourly Alert Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
@@ -62,11 +62,11 @@
         }
       },
       "id": "50000000-0000-0000-4000-8000-000000000003",
-      "name": "Ensure Delivery Ledger",
+      "name": "Create Delivery Ledger",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        -1600,
+        -1568,
         0
       ]
     },
@@ -147,11 +147,11 @@
         "options": {}
       },
       "id": "50000000-0000-0000-4000-8000-000000000005",
-      "name": "2. Configure Vinted Search",
+      "name": "Set Vinted Search Parameters",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1360,
+        -1328,
         0
       ]
     },
@@ -160,25 +160,25 @@
         "jsCode": "const input = $input.first()?.json || {};\nconst searchText = String(input.searchText || '').trim();\nconst domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\\/\\//, '').replace(/\\/$/, '');\nconst minimumPrice = Number(input.minimumPrice ?? 0);\nconst maximumPrice = Number(input.maximumPrice ?? 0);\nconst maxResults = Number(input.maxResults ?? 10);\nconst normalize = (value) => String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst parseList = (value) => String(value || '').split(',').map(normalize).filter(Boolean);\nconst parseIds = (value, label) => {\n  const ids = String(value || '').split(',').map((entry) => entry.trim()).filter(Boolean).map(Number);\n  if (ids.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error(label + ' must contain comma-separated positive numeric Vinted IDs.');\n  return [...new Set(ids)];\n};\nconst audienceMap = { any: 'Any', women: 'Women', men: 'Men', girls: 'Girls', boys: 'Boys' };\nconst audience = audienceMap[normalize(input.audience || 'Any')];\nconst allowedBrands = parseList(input.allowedBrands);\nconst allowedSizes = parseList(input.allowedSizes);\nconst allowedColors = parseList(input.allowedColors);\nconst brandIds = parseIds(input.brandIds, 'Brand IDs');\nconst catalogIds = parseIds(input.catalogIds, 'Catalog IDs');\nif (searchText.length < 2 || searchText.length > 200) throw new Error('Search text must be 2 to 200 characters.');\nif (!audience) throw new Error('Audience must be Any, Women, Men, Girls, or Boys.');\nif (!/^www\\.vinted\\.[a-z.]{2,10}$/.test(domain)) throw new Error('Use a public Vinted domain such as www.vinted.fr, www.vinted.de, or www.vinted.co.uk.');\nif (!Number.isFinite(minimumPrice) || minimumPrice < 0) throw new Error('Minimum price must be zero or greater.');\nif (!Number.isFinite(maximumPrice) || maximumPrice <= 0 || maximumPrice < minimumPrice) throw new Error('Maximum price must be greater than or equal to minimum price.');\nif (!Number.isInteger(maxResults) || maxResults < 1 || maxResults > 50) throw new Error('Maximum results must be an integer from 1 to 50.');\nconst audienceTerm = audience === 'Any' ? '' : audience.toLowerCase();\nconst searchTerms = new Set(normalize(searchText).split(' ').filter(Boolean));\nconst actorSearchText = audienceTerm && !searchTerms.has(audienceTerm) ? searchText + ' ' + audienceTerm : searchText;\nconst monitorKey = [domain, normalize(searchText), audience, minimumPrice, maximumPrice, [...allowedBrands].sort().join(','), [...allowedSizes].sort().join(','), [...allowedColors].sort().join(','), [...brandIds].sort((a, b) => a - b).join(','), [...catalogIds].sort((a, b) => a - b).join(',')].join('|');\nconst focusedBrands = brandIds.length ? [] : allowedBrands;\nconst searchCount = Math.max(1, focusedBrands.length);\nconst itemsPerSearch = Math.ceil(maxResults / searchCount);\nconst makeActorInput = (focusedBrand = '') => ({\n  searchText: focusedBrand ? focusedBrand + ' ' + actorSearchText : actorSearchText,\n  domain,\n  priceMin: minimumPrice,\n  priceMax: maximumPrice,\n  maxItems: itemsPerSearch,\n  order: 'newest_first',\n  includeSeller: true,\n  ...(brandIds.length ? { brandIds } : {}),\n  ...(catalogIds.length ? { catalogIds } : {})\n});\nconst actorInputs = focusedBrands.length ? focusedBrands.map(makeActorInput) : [makeActorInput()];\nreturn [{ json: {\n  searchText, actorSearchText, audience, domain, minimumPrice, maximumPrice, allowedBrands, allowedSizes, allowedColors, brandIds, catalogIds,\n  maxResults, monitorKey, searchCount, itemsPerSearch, actorInputs\n} }];"
       },
       "id": "50000000-0000-0000-4000-8000-000000000006",
-      "name": "Validate Search Configuration",
+      "name": "Validate Search Settings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -880,
+        -848,
         0
       ]
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Validate Search Configuration').first().json;\nreturn config.actorInputs.map((actorInput, index) => ({ json: {\n  actorInput,\n  searchNumber: index + 1,\n  searchCount: config.actorInputs.length\n} }));"
+        "jsCode": "const config = $('Validate Search Settings').first().json;\nreturn config.actorInputs.map((actorInput, index) => ({ json: {\n  actorInput,\n  searchNumber: index + 1,\n  searchCount: config.actorInputs.length\n} }));"
       },
       "id": "50000000-0000-0000-4000-8000-000000000032",
-      "name": "Build Focused Brand Searches",
+      "name": "Build Brand Search Queries",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -640,
-        -100
+        -608,
+        -96
       ]
     },
     {
@@ -219,7 +219,7 @@
         }
       },
       "id": "50000000-0000-0000-4000-8000-000000000008",
-      "name": "3. Search Vinted with FetchCat",
+      "name": "Start FetchCat Vinted Search",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
@@ -242,7 +242,7 @@
             },
             {
               "name": "limit",
-              "value": "={{ $(\"Validate Search Configuration\").first().json.maxResults }}"
+              "value": "={{ $(\"Validate Search Settings\").first().json.maxResults }}"
             }
           ]
         },
@@ -256,7 +256,7 @@
         }
       },
       "id": "50000000-0000-0000-4000-8000-000000000009",
-      "name": "Get Vinted Search Results",
+      "name": "Download Vinted Search Results",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
@@ -266,15 +266,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const config = $('Validate Search Configuration').first().json;\nconst rawListings = $input.all().flatMap((item) => {\n  let payload = item.json?.data ?? item.json;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }\n  }\n  return Array.isArray(payload) ? payload : [payload];\n}).slice(0, config.maxResults);\nconst normalized = [];\nconst seenListingIds = new Set();\nconst filterProgress = { validListings: 0, withinPrice: 0, matchingBrand: 0, matchingSize: 0 };\nconst normalize = (value) => String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst containsPhrase = (text, phrase) => (' ' + text + ' ').includes(' ' + phrase + ' ');\nfor (const listing of rawListings) {\n  const id = String(listing.id || '').trim();\n  const title = String(listing.title || '').trim();\n  const url = String(listing.url || '').trim();\n  const priceAmount = Number(listing.priceAmount);\n  const brand = String(listing.brandTitle || '').trim();\n  const size = String(listing.sizeTitle || '').trim();\n  const normalizedTitle = normalize(title);\n  const normalizedBrand = normalize(brand);\n  const normalizedSize = normalize(size);\n  const sizeParts = new Set([normalizedSize, ...String(size || '').split(/[\\/,;|()[\\]]+/).map(normalize).filter(Boolean)]);\n  const matchedColors = config.allowedColors.filter((color) => containsPhrase(normalizedTitle, color));\n  if (!id || !title || !/^https:\\/\\//.test(url) || !Number.isFinite(priceAmount)) continue;\n  if (seenListingIds.has(id)) continue;\n  seenListingIds.add(id);\n  filterProgress.validListings += 1;\n  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;\n  filterProgress.withinPrice += 1;\n  if (config.allowedBrands.length && !config.allowedBrands.includes(normalizedBrand)) continue;\n  filterProgress.matchingBrand += 1;\n  if (config.allowedSizes.length && !config.allowedSizes.some((allowedSize) => sizeParts.has(allowedSize))) continue;\n  filterProgress.matchingSize += 1;\n  normalized.push({ json: {\n    listingId: id,\n    itemKey: config.monitorKey + '|' + id,\n    monitorKey: config.monitorKey,\n    title,\n    priceAmount,\n    currency: String(listing.currency || ''),\n    brand: brand || 'Brand not specified',\n    size: size || 'Size not specified',\n    matchedColors,\n    audience: config.audience,\n    searchText: config.searchText,\n    condition: String(listing.status || 'Condition not specified'),\n    seller: String(listing.sellerLogin || 'Seller not specified'),\n    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,\n    viewCount: Number.isFinite(Number(listing.viewCount)) && Number(listing.viewCount) > 0 ? Number(listing.viewCount) : null,\n    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',\n    url,\n    scrapedAt: String(listing.scrapedAt || '')\n  } });\n}\nif (normalized.length) return normalized;\nconst stages = [\n  ['valid listing data', filterProgress.validListings],\n  ['price', filterProgress.withinPrice],\n  ['brand', filterProgress.matchingBrand],\n  ['size', filterProgress.matchingSize]\n];\nconst blockedAt = rawListings.length === 0 ? 'search results' : (stages.find(([, count]) => count === 0)?.[0] || 'configured filters');\nreturn [{ json: {\n  noMatches: true,\n  status: 'No listings matched all configured filters.',\n  returnedCount: rawListings.length,\n  blockedAt,\n  filterProgress,\n  returnedBrands: [...new Set(rawListings.map((listing) => String(listing.brandTitle || 'Brand not specified').trim()))].sort(),\n  returnedSizes: [...new Set(rawListings.map((listing) => String(listing.sizeTitle || 'Size not specified').trim()))].sort(),\n  suggestion: rawListings.length === 0\n    ? 'Broaden searchText or confirm the selected Vinted domain.'\n    : 'Clear or broaden the blocking filter, use exact Vinted brand/catalog IDs when available, or increase maxResults for wider coverage.'\n} }];"
+        "jsCode": "const config = $('Validate Search Settings').first().json;\nconst rawListings = $input.all().flatMap((item) => {\n  let payload = item.json?.data ?? item.json;\n  if (typeof payload === 'string') {\n    try { payload = JSON.parse(payload); } catch { throw new Error('Apify returned invalid JSON.'); }\n  }\n  return Array.isArray(payload) ? payload : [payload];\n}).slice(0, config.maxResults);\nconst normalized = [];\nconst seenListingIds = new Set();\nconst filterProgress = { validListings: 0, withinPrice: 0, matchingBrand: 0, matchingSize: 0 };\nconst normalize = (value) => String(value || '').normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();\nconst containsPhrase = (text, phrase) => (' ' + text + ' ').includes(' ' + phrase + ' ');\nfor (const listing of rawListings) {\n  const id = String(listing.id || '').trim();\n  const title = String(listing.title || '').trim();\n  const url = String(listing.url || '').trim();\n  const priceAmount = Number(listing.priceAmount);\n  const brand = String(listing.brandTitle || '').trim();\n  const size = String(listing.sizeTitle || '').trim();\n  const normalizedTitle = normalize(title);\n  const normalizedBrand = normalize(brand);\n  const normalizedSize = normalize(size);\n  const sizeParts = new Set([normalizedSize, ...String(size || '').split(/[\\/,;|()[\\]]+/).map(normalize).filter(Boolean)]);\n  const matchedColors = config.allowedColors.filter((color) => containsPhrase(normalizedTitle, color));\n  if (!id || !title || !/^https:\\/\\//.test(url) || !Number.isFinite(priceAmount)) continue;\n  if (seenListingIds.has(id)) continue;\n  seenListingIds.add(id);\n  filterProgress.validListings += 1;\n  if (priceAmount < config.minimumPrice || priceAmount > config.maximumPrice) continue;\n  filterProgress.withinPrice += 1;\n  if (config.allowedBrands.length && !config.allowedBrands.includes(normalizedBrand)) continue;\n  filterProgress.matchingBrand += 1;\n  if (config.allowedSizes.length && !config.allowedSizes.some((allowedSize) => sizeParts.has(allowedSize))) continue;\n  filterProgress.matchingSize += 1;\n  normalized.push({ json: {\n    listingId: id,\n    itemKey: config.monitorKey + '|' + id,\n    monitorKey: config.monitorKey,\n    title,\n    priceAmount,\n    currency: String(listing.currency || ''),\n    brand: brand || 'Brand not specified',\n    size: size || 'Size not specified',\n    matchedColors,\n    audience: config.audience,\n    searchText: config.searchText,\n    condition: String(listing.status || 'Condition not specified'),\n    seller: String(listing.sellerLogin || 'Seller not specified'),\n    favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,\n    viewCount: Number.isFinite(Number(listing.viewCount)) && Number(listing.viewCount) > 0 ? Number(listing.viewCount) : null,\n    photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',\n    url,\n    scrapedAt: String(listing.scrapedAt || '')\n  } });\n}\nif (normalized.length) return normalized;\nconst stages = [\n  ['valid listing data', filterProgress.validListings],\n  ['price', filterProgress.withinPrice],\n  ['brand', filterProgress.matchingBrand],\n  ['size', filterProgress.matchingSize]\n];\nconst blockedAt = rawListings.length === 0 ? 'search results' : (stages.find(([, count]) => count === 0)?.[0] || 'configured filters');\nreturn [{ json: {\n  noMatches: true,\n  status: 'No listings matched all configured filters.',\n  returnedCount: rawListings.length,\n  blockedAt,\n  filterProgress,\n  returnedBrands: [...new Set(rawListings.map((listing) => String(listing.brandTitle || 'Brand not specified').trim()))].sort(),\n  returnedSizes: [...new Set(rawListings.map((listing) => String(listing.sizeTitle || 'Size not specified').trim()))].sort(),\n  suggestion: rawListings.length === 0\n    ? 'Broaden searchText or confirm the selected Vinted domain.'\n    : 'Clear or broaden the blocking filter, use exact Vinted brand/catalog IDs when available, or increase maxResults for wider coverage.'\n} }];"
       },
       "id": "50000000-0000-0000-4000-8000-000000000010",
       "name": "Normalize and Filter Listings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        80,
-        100
+        304,
+        96
       ]
     },
     {
@@ -303,11 +303,11 @@
         "options": {}
       },
       "id": "50000000-0000-0000-4000-8000-000000000029",
-      "name": "Any Listings Match Filters?",
+      "name": "Check for Matching Listings",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        320,
+        544,
         0
       ]
     },
@@ -341,8 +341,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        560,
-        -100
+        784,
+        -96
       ]
     },
     {
@@ -350,12 +350,12 @@
         "jsCode": "return $input.all();"
       },
       "id": "50000000-0000-0000-4000-8000-000000000030",
-      "name": "No Listings Match Your Filters",
+      "name": "Show No-Match Details",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
-        100
+        784,
+        96
       ]
     },
     {
@@ -363,25 +363,25 @@
         "jsCode": "const listings = $input.all().map((item) => item.json);\nif (listings.length === 0) return [];\nreturn [{ json: { listings } }];"
       },
       "id": "50000000-0000-0000-4000-8000-000000000012",
-      "name": "Build Alert Batch",
+      "name": "Build Telegram Alert Batch",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
-        -100
+        1008,
+        -96
       ]
     },
     {
       "parameters": {
-        "jsCode": "const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst all = $json.listings;\nconst config = $('Validate Search Configuration').first().json;\nconst messages = [];\nfor (let offset = 0; offset < all.length; offset += 5) {\n  const chunk = all.slice(offset, offset + 5);\n  const lines = chunk.map((listing, index) => {\n    const position = offset + index + 1;\n    const price = listing.priceAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + (listing.currency ? ' ' + listing.currency : '');\n    const engagement = [listing.viewCount === null ? null : listing.viewCount + ' views', listing.favoriteCount === null ? null : listing.favoriteCount + ' favorites'].filter(Boolean).join(' | ');\n    return position + '. <b>' + escapeHtml(listing.title.slice(0, 110)) + '</b>\\n' +\n      '<b>Price:</b> ' + escapeHtml(price) + '\\n' +\n      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) +\n      (listing.matchedColors.length ? ' | <b>Color:</b> ' + escapeHtml(listing.matchedColors.join(', ')) : '') + '\\n' +\n      '<b>Condition:</b> ' + escapeHtml(listing.condition) + ' | <b>Seller:</b> ' + escapeHtml(listing.seller) +\n      (engagement ? '\\n' + escapeHtml(engagement) : '') + '\\n' +\n      '<a href=\"' + escapeHtml(listing.url) + '\">Open Vinted listing</a>';\n  });\n  const heading = offset === 0\n    ? '<b>' + all.length + ' new Vinted ' + (all.length === 1 ? 'match' : 'matches') + '</b>'\n    : '<b>Vinted matches continued</b>';\n  const criteria = offset === 0 ? '\\n<b>Search:</b> ' + escapeHtml(config.searchText) + ' | <b>Audience:</b> ' + escapeHtml(config.audience) : '';\n  messages.push({ json: { telegramMessage: heading + criteria + '\\n\\n' + lines.join('\\n\\n') } });\n}\nreturn messages;"
+        "jsCode": "const escapeHtml = (value) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');\nconst all = $json.listings;\nconst config = $('Validate Search Settings').first().json;\nconst messages = [];\nfor (let offset = 0; offset < all.length; offset += 5) {\n  const chunk = all.slice(offset, offset + 5);\n  const lines = chunk.map((listing, index) => {\n    const position = offset + index + 1;\n    const price = listing.priceAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + (listing.currency ? ' ' + listing.currency : '');\n    const engagement = [listing.viewCount === null ? null : listing.viewCount + ' views', listing.favoriteCount === null ? null : listing.favoriteCount + ' favorites'].filter(Boolean).join(' | ');\n    return position + '. <b>' + escapeHtml(listing.title.slice(0, 110)) + '</b>\\n' +\n      '<b>Price:</b> ' + escapeHtml(price) + '\\n' +\n      '<b>Brand:</b> ' + escapeHtml(listing.brand) + ' | <b>Size:</b> ' + escapeHtml(listing.size) +\n      (listing.matchedColors.length ? ' | <b>Color:</b> ' + escapeHtml(listing.matchedColors.join(', ')) : '') + '\\n' +\n      '<b>Condition:</b> ' + escapeHtml(listing.condition) + ' | <b>Seller:</b> ' + escapeHtml(listing.seller) +\n      (engagement ? '\\n' + escapeHtml(engagement) : '') + '\\n' +\n      '<a href=\"' + escapeHtml(listing.url) + '\">Open Vinted listing</a>';\n  });\n  const heading = offset === 0\n    ? '<b>' + all.length + ' new Vinted ' + (all.length === 1 ? 'match' : 'matches') + '</b>'\n    : '<b>Vinted matches continued</b>';\n  const criteria = offset === 0 ? '\\n<b>Search:</b> ' + escapeHtml(config.searchText) + ' | <b>Audience:</b> ' + escapeHtml(config.audience) : '';\n  messages.push({ json: { telegramMessage: heading + criteria + '\\n\\n' + lines.join('\\n\\n') } });\n}\nreturn messages;"
       },
       "id": "50000000-0000-0000-4000-8000-000000000017",
-      "name": "Build Telegram Alerts",
+      "name": "Format Telegram Messages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1040,
-        260
+        1248,
+        256
       ]
     },
     {
@@ -398,25 +398,25 @@
         }
       },
       "id": "50000000-0000-0000-4000-8000-000000000018",
-      "name": "4. Send New Listings to Telegram",
+      "name": "Send New Listings to Telegram",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1280,
-        260
+        1488,
+        256
       ]
     },
     {
       "parameters": {
-        "jsCode": "return $('Build Alert Batch').first().json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));"
+        "jsCode": "return $('Build Telegram Alert Batch').first().json.listings.map((listing) => ({ json: { workflowSlug: 'vinted-new-listing-alerts', itemKey: listing.itemKey } }));"
       },
       "id": "50000000-0000-0000-4000-8000-000000000019",
-      "name": "Prepare Delivery Ledger",
+      "name": "Prepare Delivery Records",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1600,
-        300
+        1712,
+        304
       ]
     },
     {
@@ -480,19 +480,19 @@
         }
       },
       "id": "50000000-0000-0000-4000-8000-000000000020",
-      "name": "Commit Delivered Listings",
+      "name": "Record Delivered Listings",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1880,
-        300
+        2000,
+        304
       ]
     },
     {
       "parameters": {
-        "width": 1160,
-        "height": 590,
-        "content": "## Vinted new-listing alerts\n\nMonitor one public Vinted search and receive Telegram alerts only for matching listings that have not been delivered before. The workflow uses `fetch_cat/vinted-search-scraper`, works on n8n Cloud or self-hosted n8n, and does not require OpenAI. The default is one hourly run returning 10 listings.\n\n### How it works\n\nThe schedule or manual trigger creates the delivery ledger, validates your search, runs one focused FetchCat search per brand name (or one combined search with numeric brand IDs), deduplicates results, applies filters, and sends every unseen match to Telegram. IDs are committed only after delivery succeeds, so failures remain retryable.\n\n### Setup\n\n- [ ] Choose a frequency from 15 minutes to one day in `1. Choose Alert Frequency`.\n- [ ] Enter the search, audience, Vinted domain, price range, optional filters, and 1-50 result limit in `2. Configure Vinted Search`.\n- [ ] Connect an Apify HTTP Header Auth credential to both HTTP Request nodes.\n- [ ] Connect Telegram and select your private destination in `4. Send New Listings to Telegram`.\n- [ ] Test manually, confirm that current matches arrive, then activate the workflow.",
+        "width": 480,
+        "height": 720,
+        "content": "## Vinted New-Listing Alerts to Telegram\n\nMonitor a focused public Vinted search and receive Telegram alerts for matching listings that have not been delivered before. This workflow runs `fetch_cat/vinted-search-scraper` through Apify, works on n8n Cloud or self-hosted n8n, and does not require OpenAI.\n\n### How it works\n\n1. Starts manually or on the editable hourly schedule.\n2. Validates the marketplace, query, audience, price, brand, size, color labels, and result limit.\n3. Runs focused FetchCat searches and downloads the newest Vinted listings.\n4. Filters results and removes listing IDs already present in the delivery ledger.\n5. Sends readable Telegram alerts and records IDs only after delivery succeeds.\n\n### Setup\n\n- [ ] Edit `Set Vinted Search Parameters` for your marketplace and saved-search criteria.\n- [ ] Connect one Apify HTTP Header Auth credential to both FetchCat HTTP Request nodes.\n- [ ] Connect a Telegram Bot credential and choose the destination chat.\n- [ ] Adjust `Hourly Alert Trigger` when a different interval is worth the extra executions.\n- [ ] Run manually, confirm the current matches arrive, then publish the workflow.",
         "color": 1
       },
       "id": "50000000-0000-0000-4000-8000-000000000021",
@@ -500,186 +500,186 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1840,
-        -820
+        -2448,
+        -256
       ]
     },
     {
       "parameters": {
-        "width": 700,
-        "height": 430,
-        "content": "## Choose timing and create state\n\nThe default schedule is hourly. Edit the Schedule Trigger for 15 or 30 minutes, 6 or 12 hours, or once daily. The delivery ledger is created automatically and reused safely.",
+        "width": 240,
+        "height": 512,
+        "content": "## Trigger the monitor\n\nStarts manually for testing or on the editable hourly schedule.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000022",
-      "name": "Trigger and State Notes",
+      "name": "Trigger Workflow",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1880,
-        -220
+        -1888,
+        -256
       ]
     },
     {
       "parameters": {
-        "width": 720,
-        "height": 490,
-        "content": "## Configure one saved search\n\nChoose audience, brand, size, and color preferences. Size `M` matches `M / 38 / 10`. Color keywords label recognized title colors but never exclude listings. Numeric IDs provide marketplace-side filtering.",
+        "width": 1152,
+        "height": 368,
+        "content": "## Initialize and configure search\n\nCreates the delivery ledger, reads the saved-search parameters, validates every value, and builds one focused Actor input per brand name. A size such as `M`, `38`, or `10` matches Vinted's combined value `M / 38 / 10`.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000023",
-      "name": "Configuration Notes",
+      "name": "Initialize and Configure Search",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1160,
-        -250
+        -1616,
+        -208
       ]
     },
     {
       "parameters": {
-        "width": 700,
-        "height": 430,
-        "content": "## Run focused FetchCat searches\n\nEach brand name creates a focused search; numeric brand IDs use one combined run. The result allowance is divided across searches, then listings are combined, deduplicated, capped, and filtered.",
+        "width": 432,
+        "height": 304,
+        "content": "## Execute the FetchCat search\n\nStarts `fetch_cat/vinted-search-scraper` through Apify and downloads the completed dataset.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000024",
-      "name": "Scraper Notes",
+      "name": "Execute Search",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -440,
-        -220
+        -208,
+        -240
       ]
     },
     {
       "parameters": {
-        "width": 440,
-        "height": 430,
-        "content": "## Explain empty results\n\nMatching listings continue to the delivery ledger. A valid zero-match search ends visibly with counts, the likely blocking filter, returned brands and sizes, and a practical next step.",
+        "width": 672,
+        "height": 496,
+        "content": "## Process and filter results\n\nNormalizes listings, applies price, brand, and size filters, explains empty results, and keeps only IDs absent from the delivery ledger.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000025",
-      "name": "Filter Outcome Notes",
+      "name": "Process and Filter Results",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        280,
-        -220
+        256,
+        -240
       ]
     },
     {
       "parameters": {
-        "width": 260,
-        "height": 430,
-        "content": "## Keep unseen matches\n\nDelivered IDs are removed. Every remaining listing continues to Telegram, including matches found on the first run.",
+        "width": 672,
+        "height": 640,
+        "content": "## Prepare and send alerts\n\nBatches unseen listings, formats readable Telegram messages, and sends current matches immediately, including on the first run.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000031",
-      "name": "Deduplication Notes",
+      "name": "Prepare and Send Alerts",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        760,
-        -220
+        960,
+        -208
       ]
     },
     {
       "parameters": {
-        "width": 1100,
-        "height": 500,
-        "content": "## Send readable Telegram alerts\n\nNew matches are grouped five per message with title, price, brand, size, condition, seller, engagement, and a direct link. IDs are committed only after every Telegram message succeeds, keeping failed deliveries retryable.",
+        "width": 480,
+        "height": 304,
+        "content": "## Record successful delivery\n\nWrites listing IDs only after Telegram succeeds so interrupted deliveries remain retryable.",
         "color": 7
       },
       "id": "50000000-0000-0000-4000-8000-000000000027",
-      "name": "Delivery Notes",
+      "name": "Log and Finalize",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1000,
-        40
+        1664,
+        160
       ]
     }
   ],
   "connections": {
-    "Manual Trigger": {
+    "Manual Start Trigger": {
       "main": [
         [
           {
-            "node": "Ensure Delivery Ledger",
+            "node": "Create Delivery Ledger",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "1. Choose Alert Frequency": {
+    "Hourly Alert Trigger": {
       "main": [
         [
           {
-            "node": "Ensure Delivery Ledger",
+            "node": "Create Delivery Ledger",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ensure Delivery Ledger": {
+    "Create Delivery Ledger": {
       "main": [
         [
           {
-            "node": "2. Configure Vinted Search",
+            "node": "Set Vinted Search Parameters",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "2. Configure Vinted Search": {
+    "Set Vinted Search Parameters": {
       "main": [
         [
           {
-            "node": "Validate Search Configuration",
+            "node": "Validate Search Settings",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate Search Configuration": {
+    "Validate Search Settings": {
       "main": [
         [
           {
-            "node": "Build Focused Brand Searches",
+            "node": "Build Brand Search Queries",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Focused Brand Searches": {
+    "Build Brand Search Queries": {
       "main": [
         [
           {
-            "node": "3. Search Vinted with FetchCat",
+            "node": "Start FetchCat Vinted Search",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "3. Search Vinted with FetchCat": {
+    "Start FetchCat Vinted Search": {
       "main": [
         [
           {
-            "node": "Get Vinted Search Results",
+            "node": "Download Vinted Search Results",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get Vinted Search Results": {
+    "Download Vinted Search Results": {
       "main": [
         [
           {
@@ -694,14 +694,14 @@
       "main": [
         [
           {
-            "node": "Any Listings Match Filters?",
+            "node": "Check for Matching Listings",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Any Listings Match Filters?": {
+    "Check for Matching Listings": {
       "main": [
         [
           {
@@ -712,7 +712,7 @@
         ],
         [
           {
-            "node": "No Listings Match Your Filters",
+            "node": "Show No-Match Details",
             "type": "main",
             "index": 0
           }
@@ -723,51 +723,51 @@
       "main": [
         [
           {
-            "node": "Build Alert Batch",
+            "node": "Build Telegram Alert Batch",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Alert Batch": {
+    "Build Telegram Alert Batch": {
       "main": [
         [
           {
-            "node": "Build Telegram Alerts",
+            "node": "Format Telegram Messages",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Telegram Alerts": {
+    "Format Telegram Messages": {
       "main": [
         [
           {
-            "node": "4. Send New Listings to Telegram",
+            "node": "Send New Listings to Telegram",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "4. Send New Listings to Telegram": {
+    "Send New Listings to Telegram": {
       "main": [
         [
           {
-            "node": "Prepare Delivery Ledger",
+            "node": "Prepare Delivery Records",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Delivery Ledger": {
+    "Prepare Delivery Records": {
       "main": [
         [
           {
-            "node": "Commit Delivered Listings",
+            "node": "Record Delivered Listings",
             "type": "main",
             "index": 0
           }

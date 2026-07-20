@@ -18,9 +18,9 @@ not require OpenAI.
 ## Setup
 
 1. Import `workflow.json` into n8n.
-2. Open `1. Choose Alert Frequency`. Keep the hourly default or select an
+2. Open `Hourly Alert Trigger`. Keep the hourly default or select an
    interval from 15 minutes through one day.
-3. Open `2. Configure Vinted Search` and set:
+3. Open `Set Vinted Search Parameters` and set:
    - `searchText`: the product, style, or model to find.
    - `audience`: `Any`, `Women`, `Men`, `Girls`, or `Boys`. The workflow adds
      this term to the Vinted search query.
@@ -57,7 +57,7 @@ to four listings from each search and caps the combined output at 10. Numeric
 run.
 4. Create an HTTP Header Auth credential with header `Authorization` and value
    `Bearer YOUR_APIFY_TOKEN`. Select it in both Apify HTTP Request nodes.
-5. Connect a Telegram Bot credential in `4. Send New Listings to Telegram` and
+5. Connect a Telegram Bot credential in `Send New Listings to Telegram` and
    enter the private chat or group ID that should receive alerts.
 6. Run the workflow manually and confirm that current matching listings arrive
    in Telegram.

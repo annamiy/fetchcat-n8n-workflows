@@ -9,7 +9,7 @@ for (const entry of workflow.nodes.filter((node) => node.type === 'n8n-nodes-bas
   assert.doesNotThrow(() => new Function('$input', '$', '$json', entry.parameters.jsCode), `${entry.name} must compile`);
 }
 
-const configured = runCode(code('Validate Search Configuration'), {
+const configured = runCode(code('Validate Search Settings'), {
   first: () => ({ json: {
     searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.fr',
     minimumPrice: 0, maximumPrice: 50, allowedBrands: 'Rápha',
@@ -25,7 +25,7 @@ assert.deepEqual(configured.actorInputs[0].catalogIds, [1904]);
 assert.deepEqual(configured.allowedBrands, ['rapha']);
 assert.deepEqual(configured.allowedColors, ['blue', 'navy']);
 assert.equal('sendFirstRunAlerts' in configured, false);
-const brandNameConfig = runCode(code('Validate Search Configuration'), {
+const brandNameConfig = runCode(code('Validate Search Settings'), {
   first: () => ({ json: {
     searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.pt',
     minimumPrice: 0, maximumPrice: 200, allowedBrands: 'MAAP, Pas Normal Studios, PNS',
@@ -41,23 +41,23 @@ assert.deepEqual(brandNameConfig.actorInputs.map((input) => input.searchText), [
   'pns cycling jersey women'
 ]);
 assert.deepEqual(brandNameConfig.actorInputs.map((input) => input.maxItems), [4, 4, 4]);
-const expandedSearches = runCode(code('Build Focused Brand Searches'), { first: () => ({ json: {} }) }, (name) => {
-  assert.equal(name, 'Validate Search Configuration');
+const expandedSearches = runCode(code('Build Brand Search Queries'), { first: () => ({ json: {} }) }, (name) => {
+  assert.equal(name, 'Validate Search Settings');
   return { first: () => ({ json: brandNameConfig }) };
 });
 assert.equal(expandedSearches.length, 3);
 assert.equal(expandedSearches[0].json.searchCount, 3);
-const mensConfig = runCode(code('Validate Search Configuration'), {
+const mensConfig = runCode(code('Validate Search Settings'), {
   first: () => ({ json: { searchText: 'women cycling jersey', audience: 'Men', domain: 'www.vinted.fr', minimumPrice: 0, maximumPrice: 50, maxResults: 10 } })
 })[0].json;
 assert.equal(mensConfig.actorSearchText, 'women cycling jersey men');
-assert.throws(() => runCode(code('Validate Search Configuration'), {
+assert.throws(() => runCode(code('Validate Search Settings'), {
   first: () => ({ json: { searchText: 'jersey', audience: 'Adults', domain: 'www.vinted.fr', minimumPrice: 0, maximumPrice: 50, maxResults: 10 } })
 }), /Audience must be/);
 
 const fixture = JSON.parse(fs.readFileSync(new URL('../workflows/vinted-new-listing-alerts/fixtures/input.json', import.meta.url)));
 const normalizeLookup = (name) => {
-  if (name === 'Validate Search Configuration') return { first: () => ({ json: configured }) };
+  if (name === 'Validate Search Settings') return { first: () => ({ json: configured }) };
   throw new Error(`Unexpected node lookup: ${name}`);
 };
 const matches = runCode(code('Normalize and Filter Listings'), {
@@ -78,7 +78,7 @@ assert.equal(unavailableViews[0].json.favoriteCount, 51);
 const relaxedColorConfig = { ...configured, allowedColors: ['purple'] };
 const relaxedColorMatches = runCode(code('Normalize and Filter Listings'), {
   all: () => [{ json: fixture.items[0] }]
-}, (name) => name === 'Validate Search Configuration'
+}, (name) => name === 'Validate Search Settings'
   ? { first: () => ({ json: relaxedColorConfig }) }
   : (() => { throw new Error(`Unexpected node lookup: ${name}`); })());
 assert.equal(relaxedColorMatches.length, 1);
@@ -86,7 +86,7 @@ assert.equal(relaxedColorMatches.length, 1);
 const noMatchConfig = { ...configured, allowedBrands: ['maap'] };
 const noMatches = runCode(code('Normalize and Filter Listings'), {
   all: () => fixture.items.map((json) => ({ json }))
-}, (name) => name === 'Validate Search Configuration'
+}, (name) => name === 'Validate Search Settings'
   ? { first: () => ({ json: noMatchConfig }) }
   : (() => { throw new Error(`Unexpected node lookup: ${name}`); })());
 assert.equal(noMatches.length, 1);
@@ -101,16 +101,16 @@ for (const size of ['38', '10', 'M / 38 / 10']) {
   const sizeConfig = { ...configured, allowedSizes: [normalizedSize] };
   const result = runCode(code('Normalize and Filter Listings'), {
     all: () => [{ json: fixture.items[0] }]
-  }, (name) => name === 'Validate Search Configuration'
+  }, (name) => name === 'Validate Search Settings'
     ? { first: () => ({ json: sizeConfig }) }
     : (() => { throw new Error(`Unexpected node lookup: ${name}`); })());
   assert.equal(result.length, 1, `${size} must match the combined Vinted size`);
 }
 
-const alert = runCode(code('Build Telegram Alerts'), {
+const alert = runCode(code('Format Telegram Messages'), {
   first: () => ({ json: {} })
 }, (name) => {
-  if (name === 'Validate Search Configuration') return { first: () => ({ json: configured }) };
+  if (name === 'Validate Search Settings') return { first: () => ({ json: configured }) };
   throw new Error(`Unexpected node lookup: ${name}`);
 }, { listings: unavailableViews.map((item) => item.json) });
 assert.equal(alert.length, 1);
@@ -121,7 +121,7 @@ assert.match(alert[0].json.telegramMessage, /Size:<\/b> M \/ 38 \/ 10/);
 assert.match(alert[0].json.telegramMessage, /51 favorites/);
 assert.doesNotMatch(alert[0].json.telegramMessage, /0 views/);
 
-const alertBatch = runCode(code('Build Alert Batch'), {
+const alertBatch = runCode(code('Build Telegram Alert Batch'), {
   all: () => unavailableViews
 });
 assert.deepEqual(alertBatch[0].json.listings, unavailableViews.map((item) => item.json));
