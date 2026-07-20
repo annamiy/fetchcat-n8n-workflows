@@ -9,7 +9,7 @@
       "typeVersion": 1,
       "position": [
         -1840,
-        100
+        212
       ]
     },
     {
@@ -29,7 +29,7 @@
       "typeVersion": 1.3,
       "position": [
         -1840,
-        -100
+        12
       ]
     },
     {
@@ -67,7 +67,7 @@
       "typeVersion": 1.1,
       "position": [
         -1568,
-        0
+        112
       ]
     },
     {
@@ -152,7 +152,7 @@
       "typeVersion": 3.4,
       "position": [
         -1328,
-        0
+        112
       ]
     },
     {
@@ -165,7 +165,7 @@
       "typeVersion": 2,
       "position": [
         -848,
-        0
+        112
       ]
     },
     {
@@ -178,7 +178,7 @@
       "typeVersion": 2,
       "position": [
         -608,
-        -96
+        16
       ]
     },
     {
@@ -224,7 +224,7 @@
       "typeVersion": 4.3,
       "position": [
         -160,
-        -100
+        12
       ]
     },
     {
@@ -261,7 +261,7 @@
       "typeVersion": 4.3,
       "position": [
         80,
-        -100
+        12
       ]
     },
     {
@@ -274,7 +274,7 @@
       "typeVersion": 2,
       "position": [
         304,
-        96
+        208
       ]
     },
     {
@@ -308,7 +308,7 @@
       "typeVersion": 2.2,
       "position": [
         544,
-        0
+        112
       ]
     },
     {
@@ -342,7 +342,7 @@
       "typeVersion": 1.1,
       "position": [
         784,
-        -96
+        16
       ]
     },
     {
@@ -355,7 +355,7 @@
       "typeVersion": 2,
       "position": [
         784,
-        96
+        208
       ]
     },
     {
@@ -368,7 +368,7 @@
       "typeVersion": 2,
       "position": [
         1008,
-        -96
+        16
       ]
     },
     {
@@ -381,7 +381,7 @@
       "typeVersion": 2,
       "position": [
         1248,
-        256
+        368
       ]
     },
     {
@@ -403,7 +403,7 @@
       "typeVersion": 1.2,
       "position": [
         1488,
-        256
+        368
       ]
     },
     {
@@ -416,7 +416,7 @@
       "typeVersion": 2,
       "position": [
         1712,
-        304
+        416
       ]
     },
     {
@@ -485,7 +485,7 @@
       "typeVersion": 1.1,
       "position": [
         2000,
-        304
+        416
       ]
     },
     {
@@ -507,7 +507,7 @@
     {
       "parameters": {
         "width": 240,
-        "height": 512,
+        "height": 624,
         "content": "## Trigger the monitor\n\nStarts manually for testing or on the editable hourly schedule.",
         "color": 7
       },
@@ -523,7 +523,7 @@
     {
       "parameters": {
         "width": 1152,
-        "height": 368,
+        "height": 480,
         "content": "## Initialize and configure search\n\nCreates the delivery ledger, reads the saved-search parameters, validates every value, and builds one focused Actor input per brand name. A size such as `M`, `38`, or `10` matches Vinted's combined value `M / 38 / 10`.",
         "color": 7
       },
@@ -539,7 +539,7 @@
     {
       "parameters": {
         "width": 432,
-        "height": 304,
+        "height": 416,
         "content": "## Execute the FetchCat search\n\nStarts `fetch_cat/vinted-search-scraper` through Apify and downloads the completed dataset.",
         "color": 7
       },
@@ -555,7 +555,7 @@
     {
       "parameters": {
         "width": 672,
-        "height": 496,
+        "height": 608,
         "content": "## Process and filter results\n\nNormalizes listings, applies price, brand, and size filters, explains empty results, and keeps only IDs absent from the delivery ledger.",
         "color": 7
       },
@@ -571,7 +571,7 @@
     {
       "parameters": {
         "width": 672,
-        "height": 640,
+        "height": 752,
         "content": "## Prepare and send alerts\n\nBatches unseen listings, formats readable Telegram messages, and sends current matches immediately, including on the first run.",
         "color": 7
       },
@@ -587,7 +587,7 @@
     {
       "parameters": {
         "width": 480,
-        "height": 304,
+        "height": 416,
         "content": "## Record successful delivery\n\nWrites listing IDs only after Telegram succeeds so interrupted deliveries remain retryable.",
         "color": 7
       },

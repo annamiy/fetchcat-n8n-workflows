@@ -274,6 +274,19 @@ for (const slug of workflowSlugs()) {
     }
     if (serialized.includes('requireColorInTitle')) fail(slug, 'must not expose strict title-color filtering');
     if (!serialized.includes('M / 38 / 10')) fail(slug, 'must document token-aware combined-size matching');
+    const vintedWorkflowNodes = workflow.nodes.filter((entry) => entry.type !== 'n8n-nodes-base.stickyNote');
+    for (const note of workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 7)) {
+      const [noteX, noteY] = note.position;
+      const noteWidth = Number(note.parameters.width);
+      const noteHeight = Number(note.parameters.height);
+      const enclosed = vintedWorkflowNodes.filter((entry) => {
+        const [nodeX, nodeY] = entry.position;
+        return nodeX >= noteX && nodeX + 96 <= noteX + noteWidth && nodeY >= noteY && nodeY + 96 <= noteY + noteHeight;
+      });
+      if (enclosed.some((entry) => entry.position[1] - noteY < 200)) {
+        fail(slug, `${note.name} must leave at least 200 canvas units above enclosed nodes for readable note text`);
+      }
+    }
   }
 
   if (metadata.slug !== slug) fail(slug, 'metadata slug does not match directory');
