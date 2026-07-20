@@ -13,16 +13,39 @@ const configured = runCode(code('Validate Search Configuration'), {
   first: () => ({ json: {
     searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.fr',
     minimumPrice: 0, maximumPrice: 50, allowedBrands: 'Rápha',
-    allowedSizes: 'M', allowedColors: 'blue, navy', brandIds: '10, 20',
+    allowedSizes: 'M', allowedColors: 'blue, navy', requireColorInTitle: true, brandIds: '10, 20',
     catalogIds: '1904', maxResults: 10, sendFirstRunAlerts: false
   } })
 })[0].json;
 
 assert.equal(configured.actorSearchText, 'cycling jersey women');
-assert.deepEqual(configured.actorInput.brandIds, [10, 20]);
-assert.deepEqual(configured.actorInput.catalogIds, [1904]);
+assert.equal(configured.actorInputs.length, 1);
+assert.deepEqual(configured.actorInputs[0].brandIds, [10, 20]);
+assert.deepEqual(configured.actorInputs[0].catalogIds, [1904]);
 assert.deepEqual(configured.allowedBrands, ['rapha']);
 assert.deepEqual(configured.allowedColors, ['blue', 'navy']);
+const brandNameConfig = runCode(code('Validate Search Configuration'), {
+  first: () => ({ json: {
+    searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.pt',
+    minimumPrice: 0, maximumPrice: 200, allowedBrands: 'MAAP, Pas Normal Studios, PNS',
+    allowedSizes: 'S, XS', allowedColors: '', requireColorInTitle: false, brandIds: '', catalogIds: '',
+    maxResults: 10, sendFirstRunAlerts: false
+  } })
+})[0].json;
+assert.equal(brandNameConfig.actorInputs.length, 3);
+assert.equal(brandNameConfig.itemsPerSearch, 4);
+assert.deepEqual(brandNameConfig.actorInputs.map((input) => input.searchText), [
+  'maap cycling jersey women',
+  'pas normal studios cycling jersey women',
+  'pns cycling jersey women'
+]);
+assert.deepEqual(brandNameConfig.actorInputs.map((input) => input.maxItems), [4, 4, 4]);
+const expandedSearches = runCode(code('Build Focused Brand Searches'), { first: () => ({ json: {} }) }, (name) => {
+  assert.equal(name, 'Validate Search Configuration');
+  return { first: () => ({ json: brandNameConfig }) };
+});
+assert.equal(expandedSearches.length, 3);
+assert.equal(expandedSearches[0].json.searchCount, 3);
 const mensConfig = runCode(code('Validate Search Configuration'), {
   first: () => ({ json: { searchText: 'women cycling jersey', audience: 'Men', domain: 'www.vinted.fr', minimumPrice: 0, maximumPrice: 50, maxResults: 10 } })
 })[0].json;
@@ -44,6 +67,14 @@ assert.equal(matches.length, 1);
 assert.equal(matches[0].json.listingId, '100000001');
 assert.equal(matches[0].json.size, 'M / 38 / 10');
 assert.deepEqual(matches[0].json.matchedColors, ['blue']);
+
+const relaxedColorConfig = { ...configured, requireColorInTitle: false, allowedColors: ['purple'] };
+const relaxedColorMatches = runCode(code('Normalize and Filter Listings'), {
+  all: () => [{ json: fixture.items[0] }]
+}, (name) => name === 'Validate Search Configuration'
+  ? { first: () => ({ json: relaxedColorConfig }) }
+  : { first: () => ({ json: { initializedAt: '2026-07-19T10:00:00.000Z' } }) });
+assert.equal(relaxedColorMatches.length, 1);
 
 const noMatchConfig = { ...configured, allowedBrands: ['maap'] };
 const noMatches = runCode(code('Normalize and Filter Listings'), {

@@ -12,8 +12,9 @@ Schedule Trigger from every 15 minutes through once per day and choose between
 workflow does not flood Telegram with existing listings.
 
 The editable example is prefilled for women's cycling jerseys from MAAP and
-Pas Normal Studios in sizes S or XS, with bilingual color keywords suitable for
-the default French marketplace.
+Pas Normal Studios in sizes S or XS and prices up to EUR 150, with bilingual
+color keywords suitable for the default French marketplace. Strict title-color
+filtering is off by default to avoid rejecting listings whose title omits color.
 
 ## Who is it for?
 
@@ -25,8 +26,9 @@ the default French marketplace.
 
 1. Runs manually or on the schedule you select.
 2. Validates the Vinted domain, search, audience, price range, filters, and result limit.
-3. Runs the FetchCat Vinted Search Scraper through Cloud-compatible HTTP nodes.
-4. Filters malformed and nonmatching results.
+3. Runs one focused FetchCat search per brand name, or one combined search with
+   numeric brand IDs, through Cloud-compatible HTTP nodes.
+4. Combines, deduplicates, caps, and filters the returned listings.
 5. Explains which filter blocked the run when no listing matches.
 6. Checks each listing ID against a durable delivery ledger.
 7. Records a quiet baseline on the first run.
@@ -46,7 +48,8 @@ works on n8n Cloud or self-hosted n8n and does not use an AI model.
 
 Apify charges for the run and returned listings, while n8n Cloud counts every
 scheduled execution. The hourly 10-result default is the recommended balanced
-starting point. Faster schedules and larger result limits cost more.
+starting point. Each brand name creates an Actor run unless numeric brand IDs
+are supplied. Faster schedules, more names, and larger limits cost more.
 
 The workflow only monitors public listings. It never purchases items, contacts
 sellers, signs into Vinted, or claims that a listing is still available.

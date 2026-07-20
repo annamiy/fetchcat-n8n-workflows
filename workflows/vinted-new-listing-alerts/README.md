@@ -29,11 +29,17 @@ not require OpenAI.
    - `minimumPrice` and `maximumPrice`: numeric price limits in the marketplace
      currency.
    - `allowedBrands`: optional comma-separated brand names, matched
-     case-insensitively against Vinted's brand field.
+     case-insensitively against Vinted's brand field. Without `brandIds`, each
+     name also creates a focused Vinted search so matching brands are actually
+     retrieved rather than filtered from an unrelated broad result page.
    - `allowedSizes`: optional comma-separated sizes. A value such as `M`, `38`,
      or `10` matches Vinted's combined size `M / 38 / 10`.
    - `allowedColors`: optional comma-separated color words matched against the
-     listing title. Multiple values use OR logic.
+     listing title. Multiple values use OR logic and recognized colors appear
+     in Telegram.
+   - `requireColorInTitle`: off by default because Vinted sellers often omit
+     colors from titles. Enable it only when listings without a recognized
+     title color must be rejected.
    - `brandIds`: optional comma-separated numeric Vinted brand IDs for exact
      marketplace-side filtering.
    - `catalogIds`: optional comma-separated numeric Vinted catalog IDs. Use
@@ -42,11 +48,17 @@ not require OpenAI.
    - `sendFirstRunAlerts`: normally leave this off so setup creates a quiet
      baseline. Turn it on only when you intentionally want current results.
 
-The included example monitors women's cycling jerseys from MAAP and Pas Normal
-Studios in sizes S or XS. Since its default marketplace is `www.vinted.fr`, the
+The included example monitors women's cycling jerseys up to EUR 150 from MAAP
+and Pas Normal Studios in sizes S or XS. Since its default marketplace is `www.vinted.fr`, the
 color list includes English and French terms such as `black, noir` and
 `yellow, jaune`. Replace these examples with words used by sellers in your
 selected marketplace.
+
+Brand-name searches divide `maxResults` across the configured names and require
+one Actor run per name. For example, 10 results across three names requests up
+to four listings from each search and caps the combined output at 10. Numeric
+`brandIds` are more efficient because Vinted can apply several IDs in one Actor
+run.
 4. Create an HTTP Header Auth credential with header `Authorization` and value
    `Bearer YOUR_APIFY_TOKEN`. Select it in both Apify HTTP Request nodes.
 5. Connect a Telegram Bot credential in `4. Send New Listings to Telegram` and
@@ -109,10 +121,13 @@ every 30 minutes uses about 1,440; every 15 minutes uses about 2,880.
   filtering requires the optional Vinted `catalogIds` field.
 - Brand names use Vinted's structured brand field. Sizes use its structured
   size field with token-aware matching. Color is not returned as structured
-  metadata by this Actor, so color filtering checks whole words in titles and
-  may omit listings whose sellers did not name the color.
+  metadata by this Actor, so recognized colors come from whole words in titles.
+  Strict color filtering is optional and can omit listings whose sellers did
+  not name the visible color.
 - The Actor returns and charges for dataset rows before n8n removes previously
   delivered IDs.
+- Each configured brand name creates one Actor run unless numeric `brandIds`
+  are supplied. More brand names therefore increase run-start charges.
 
 ## QA
 
