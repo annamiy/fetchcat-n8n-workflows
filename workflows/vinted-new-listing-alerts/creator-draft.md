@@ -53,3 +53,5 @@ are supplied. Faster schedules, more names, and larger limits cost more.
 
 The workflow only monitors public listings. It never purchases items, contacts
 sellers, signs into Vinted, or claims that a listing is still available.
+Vinted may return zero as an unavailable public view count; the workflow hides
+that value rather than presenting it as reliable engagement data.

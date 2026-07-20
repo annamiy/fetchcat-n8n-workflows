@@ -1444,7 +1444,7 @@ for (const listing of rawListings) {
     condition: String(listing.status || 'Condition not specified'),
     seller: String(listing.sellerLogin || 'Seller not specified'),
     favoriteCount: Number.isFinite(Number(listing.favoriteCount)) ? Number(listing.favoriteCount) : null,
-    viewCount: Number.isFinite(Number(listing.viewCount)) ? Number(listing.viewCount) : null,
+    viewCount: Number.isFinite(Number(listing.viewCount)) && Number(listing.viewCount) > 0 ? Number(listing.viewCount) : null,
     photoUrl: Array.isArray(listing.photoUrls) && listing.photoUrls[0] ? String(listing.photoUrls[0]) : '',
     url,
     scrapedAt: String(listing.scrapedAt || '')
@@ -1717,7 +1717,7 @@ const definitions = [
       workflowKind: 'actor-template',
       actorId: 'F1GAwbqJ9xc9h7P87',
       actorSlug: 'fetch_cat/vinted-search-scraper',
-      version: '1.3.0',
+      version: '1.3.1',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'Telegram', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

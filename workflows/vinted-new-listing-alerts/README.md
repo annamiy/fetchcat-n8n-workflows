@@ -86,6 +86,9 @@ flowchart LR
   query, audience, price range, or any allowlist creates a new baseline.
 - Telegram messages contain title, price, brand, size, condition, seller,
   engagement counters when available, and a direct listing link.
+- Vinted's public catalogue commonly reports `viewCount: 0` even on listings
+  with favorites. The workflow treats non-positive views as unavailable and
+  omits that misleading counter from Telegram.
 - Listings are grouped five per message to stay readable and within Telegram's
   message limits.
 - IDs are written to `FetchCat Delivery Ledger` only after Telegram succeeds.

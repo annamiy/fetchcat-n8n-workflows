@@ -68,6 +68,13 @@ assert.equal(matches[0].json.listingId, '100000001');
 assert.equal(matches[0].json.size, 'M / 38 / 10');
 assert.deepEqual(matches[0].json.matchedColors, ['blue']);
 
+const unavailableViewsListing = { ...fixture.items[0], viewCount: 0, favoriteCount: 51 };
+const unavailableViews = runCode(code('Normalize and Filter Listings'), {
+  all: () => [{ json: unavailableViewsListing }]
+}, normalizeLookup);
+assert.equal(unavailableViews[0].json.viewCount, null);
+assert.equal(unavailableViews[0].json.favoriteCount, 51);
+
 const relaxedColorConfig = { ...configured, requireColorInTitle: false, allowedColors: ['purple'] };
 const relaxedColorMatches = runCode(code('Normalize and Filter Listings'), {
   all: () => [{ json: fixture.items[0] }]
@@ -105,11 +112,13 @@ const alert = runCode(code('Build Telegram Alerts'), {
 }, (name) => {
   if (name === 'Validate Search Configuration') return { first: () => ({ json: configured }) };
   throw new Error(`Unexpected node lookup: ${name}`);
-}, { listings: matches.map((item) => item.json) });
+}, { listings: unavailableViews.map((item) => item.json) });
 assert.equal(alert.length, 1);
 assert.match(alert[0].json.telegramMessage, /Search:<\/b> cycling jersey/);
 assert.match(alert[0].json.telegramMessage, /Audience:<\/b> Women/);
 assert.match(alert[0].json.telegramMessage, /Color:<\/b> blue/);
 assert.match(alert[0].json.telegramMessage, /Size:<\/b> M \/ 38 \/ 10/);
+assert.match(alert[0].json.telegramMessage, /51 favorites/);
+assert.doesNotMatch(alert[0].json.telegramMessage, /0 views/);
 
 console.log('Vinted monitor passed audience, marketplace ID, brand, combined-size, and color-filter tests.');
