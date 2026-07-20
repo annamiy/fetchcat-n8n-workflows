@@ -44,8 +44,8 @@ not require OpenAI.
      these when you need strict category or audience filtering.
    - `maxResults`: an integer from 1 to 50; the default is 10.
 
-The included example monitors women's cycling jerseys up to EUR 150 from MAAP
-and Pas Normal Studios in sizes S or XS. Since its default marketplace is `www.vinted.fr`, the
+The included example monitors women's MAAP cycling jerseys up to EUR 150 in
+sizes S or XS. Since its default marketplace is `www.vinted.fr`, the
 color list includes English and French terms such as `black, noir` and
 `yellow, jaune`. Replace these examples with words used by sellers in your
 selected marketplace.
@@ -58,7 +58,14 @@ run.
 4. Create an HTTP Header Auth credential with header `Authorization` and value
    `Bearer YOUR_APIFY_TOKEN`. Select it in both Apify HTTP Request nodes.
 5. Connect a Telegram Bot credential in `Send New Listings to Telegram` and
-   enter the private chat or group ID that should receive alerts.
+   enter the private chat or group ID that should receive alerts:
+   - Open `@BotFather` in Telegram, send `/newbot`, and follow its prompts.
+   - Copy the resulting bot token into a new Telegram credential in n8n.
+   - Start a private chat with the bot, or add it to the destination group, and
+     send one message so Telegram creates the conversation.
+   - Enter that conversation's chat ID in the Telegram node. You can obtain it
+     from a temporary Telegram Trigger execution or Telegram's `getUpdates`
+     response. Keep the bot token private.
 6. Run the workflow manually and confirm that current matching listings arrive
    in Telegram.
 7. Run it again to verify that unchanged listings do not send duplicate alerts,
@@ -98,11 +105,15 @@ flowchart LR
 
 ## Cost Guidance
 
-The Actor currently charges a run-start event plus each listing saved. At the
-published Free-tier event prices, one hourly search returning 10 listings is
-approximately USD 7.78 per 30-day month. Every 30 minutes is approximately USD
-15.55 and every 15 minutes approximately USD 31.10. These are estimates, not a
-guarantee; check the Actor page for current pricing before activation.
+The Actor currently charges USD 0.005 per Actor start plus USD 0.00058 per
+listing saved on Apify's Free pricing tier. One Actor run every hour returning
+10 listings is approximately USD 7.78 per 30-day month: 720 runs and up to 7,200
+dataset rows. Once daily is approximately USD 0.32; every 30 minutes is USD
+15.55; and every 15 minutes is USD 31.10.
+
+Each additional brand name creates another Actor run unless numeric `brandIds`
+are supplied, so adding brands increases the estimate. These are estimates, not
+a guarantee; check the Actor page for current pricing before activation.
 
 n8n Cloud also counts every scheduled workflow run as an execution, even when
 there are no new listings. Hourly uses about 720 executions per 30-day month;

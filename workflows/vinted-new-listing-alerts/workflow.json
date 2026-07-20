@@ -109,7 +109,7 @@
             {
               "id": "vinted-brands",
               "name": "allowedBrands",
-              "value": "MAAP, Pas Normal Studios, PNS",
+              "value": "MAAP",
               "type": "string"
             },
             {
