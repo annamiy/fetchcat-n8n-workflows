@@ -14,7 +14,7 @@ workflow does not flood Telegram with existing listings.
 The editable example is prefilled for women's cycling jerseys from MAAP and
 Pas Normal Studios in sizes S or XS and prices up to EUR 150, with bilingual
 color keywords suitable for the default French marketplace. Strict title-color
-filtering is off by default to avoid rejecting listings whose title omits color.
+filtering is intentionally unavailable, so missing title colors never reject a listing.
 
 ## Who is it for?
 

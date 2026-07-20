@@ -36,10 +36,8 @@ not require OpenAI.
      or `10` matches Vinted's combined size `M / 38 / 10`.
    - `allowedColors`: optional comma-separated color words matched against the
      listing title. Multiple values use OR logic and recognized colors appear
-     in Telegram.
-   - `requireColorInTitle`: off by default because Vinted sellers often omit
-     colors from titles. Enable it only when listings without a recognized
-     title color must be rejected.
+     in Telegram. Colors never exclude listings because sellers often omit
+     them from titles.
    - `brandIds`: optional comma-separated numeric Vinted brand IDs for exact
      marketplace-side filtering.
    - `catalogIds`: optional comma-separated numeric Vinted catalog IDs. Use
@@ -124,9 +122,8 @@ every 30 minutes uses about 1,440; every 15 minutes uses about 2,880.
   filtering requires the optional Vinted `catalogIds` field.
 - Brand names use Vinted's structured brand field. Sizes use its structured
   size field with token-aware matching. Color is not returned as structured
-  metadata by this Actor, so recognized colors come from whole words in titles.
-  Strict color filtering is optional and can omit listings whose sellers did
-  not name the visible color.
+  metadata by this Actor, so recognized colors come from whole words in titles
+  and are labels rather than exclusion filters.
 - The Actor returns and charges for dataset rows before n8n removes previously
   delivered IDs.
 - Each configured brand name creates one Actor run unless numeric `brandIds`

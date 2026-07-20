@@ -13,7 +13,7 @@ const configured = runCode(code('Validate Search Configuration'), {
   first: () => ({ json: {
     searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.fr',
     minimumPrice: 0, maximumPrice: 50, allowedBrands: 'Rápha',
-    allowedSizes: 'M', allowedColors: 'blue, navy', requireColorInTitle: true, brandIds: '10, 20',
+    allowedSizes: 'M', allowedColors: 'blue, navy', brandIds: '10, 20',
     catalogIds: '1904', maxResults: 10, sendFirstRunAlerts: false
   } })
 })[0].json;
@@ -28,7 +28,7 @@ const brandNameConfig = runCode(code('Validate Search Configuration'), {
   first: () => ({ json: {
     searchText: 'cycling jersey', audience: 'Women', domain: 'www.vinted.pt',
     minimumPrice: 0, maximumPrice: 200, allowedBrands: 'MAAP, Pas Normal Studios, PNS',
-    allowedSizes: 'S, XS', allowedColors: '', requireColorInTitle: false, brandIds: '', catalogIds: '',
+    allowedSizes: 'S, XS', allowedColors: '', brandIds: '', catalogIds: '',
     maxResults: 10, sendFirstRunAlerts: false
   } })
 })[0].json;
@@ -75,7 +75,7 @@ const unavailableViews = runCode(code('Normalize and Filter Listings'), {
 assert.equal(unavailableViews[0].json.viewCount, null);
 assert.equal(unavailableViews[0].json.favoriteCount, 51);
 
-const relaxedColorConfig = { ...configured, requireColorInTitle: false, allowedColors: ['purple'] };
+const relaxedColorConfig = { ...configured, allowedColors: ['purple'] };
 const relaxedColorMatches = runCode(code('Normalize and Filter Listings'), {
   all: () => [{ json: fixture.items[0] }]
 }, (name) => name === 'Validate Search Configuration'
@@ -121,4 +121,4 @@ assert.match(alert[0].json.telegramMessage, /Size:<\/b> M \/ 38 \/ 10/);
 assert.match(alert[0].json.telegramMessage, /51 favorites/);
 assert.doesNotMatch(alert[0].json.telegramMessage, /0 views/);
 
-console.log('Vinted monitor passed audience, marketplace ID, brand, combined-size, and color-filter tests.');
+console.log('Vinted monitor passed audience, marketplace ID, brand, combined-size, and color-label tests.');

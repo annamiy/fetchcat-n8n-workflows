@@ -264,9 +264,10 @@ for (const slug of workflowSlugs()) {
       fail(slug, 'must expose a human-readable zero-match execution path');
     }
     if (!names.has('Build Focused Brand Searches')) fail(slug, 'must search by configured brand names before post-filtering');
-    for (const control of ['audience', 'allowedBrands', 'allowedSizes', 'allowedColors', 'requireColorInTitle', 'brandIds', 'catalogIds']) {
+    for (const control of ['audience', 'allowedBrands', 'allowedSizes', 'allowedColors', 'brandIds', 'catalogIds']) {
       if (!serialized.includes(`\"name\":\"${control}\"`) && !serialized.includes(`\"name\": \"${control}\"`)) fail(slug, `missing Vinted control ${control}`);
     }
+    if (serialized.includes('requireColorInTitle')) fail(slug, 'must not expose strict title-color filtering');
     if (!serialized.includes('M / 38 / 10')) fail(slug, 'must document token-aware combined-size matching');
   }
 
