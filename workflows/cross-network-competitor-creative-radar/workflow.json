@@ -201,7 +201,9 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "23100000-0000-4000-8000-000000000008",
       "name": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
@@ -224,7 +226,9 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "23100000-0000-4000-8000-000000000009",
       "name": "Run Google Actor (fetch_cat/google-ads-transparency-scraper)",
@@ -247,7 +251,9 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "23100000-0000-4000-8000-000000000010",
       "name": "Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)",
@@ -405,7 +411,9 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "23100000-0000-4000-8000-000000000020",
       "name": "Fetch Meta Dataset Items",
@@ -425,7 +433,9 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "23100000-0000-4000-8000-000000000021",
       "name": "Fetch Google Dataset Items",
@@ -445,7 +455,9 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "23100000-0000-4000-8000-000000000022",
       "name": "Fetch Tiktok Dataset Items",
