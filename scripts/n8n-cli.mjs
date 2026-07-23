@@ -50,10 +50,13 @@ if (command === 'execute' && workflowDefinition.nodes.some((node) => node.type =
 }
 
 const matches = listWorkflows().filter((workflow) => workflow.name === metadata.title);
-if (matches.length !== 1) {
-  throw new Error(`Expected one imported workflow named "${metadata.title}", found ${matches.length}`);
+if (matches.length < 1) {
+  throw new Error(`Expected at least one imported workflow named "${metadata.title}", found ${matches.length}`);
 }
-const workflowId = matches[0].id;
+if (matches.length > 1) {
+  console.warn(`Found ${matches.length} imported workflows named "${metadata.title}"; using the most recently listed ID ${matches.at(-1).id}.`);
+}
+const workflowId = matches.at(-1).id;
 
 if (command === 'execute') {
   const runnerPort = process.env.N8N_CLI_RUNNER_PORT ?? '5680';
