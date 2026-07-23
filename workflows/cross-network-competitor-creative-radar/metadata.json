@@ -1,0 +1,28 @@
+{
+  "slug": "cross-network-competitor-creative-radar",
+  "title": "Cross-Network Competitor Creative Radar",
+  "workflowKind": "actor-template",
+  "actorId": "fetch_cat/facebook-ads-library-scraper",
+  "actorSlug": "fetch_cat/facebook-ads-library-scraper",
+  "version": "0.1.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Drive",
+    "Slack",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "actorItemsPerSource": 10,
+    "actorRuns": 3,
+    "totalRows": 30,
+    "aiRequests": 1,
+    "driveWrites": 1,
+    "slackWrites": 1,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 10
+  },
+  "releaseState": "development"
+}

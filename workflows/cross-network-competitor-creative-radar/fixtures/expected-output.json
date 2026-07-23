@@ -1,0 +1,20 @@
+{
+  "assertions": [
+    "happy path contains 2 rows per source and one reviewed theme shared by at least two sources",
+    "previous/current comparison labels new, persistent, and not_observed without claiming retirement",
+    "duplicate rows use source + source_ad_id with newest most-complete tie-break",
+    "partial source failure preserves successful rows and renders warnings",
+    "total empty/failure creates no Drive or Slack write",
+    "malformed AI output falls back to an unclassified deterministic brief",
+    "delivery ledger prevents duplicate Drive and Slack writes",
+    "no cross-network score, rank, blended metric, or universal performance language is present"
+  ],
+  "caps": {
+    "itemsPerSource": 10,
+    "actorRuns": 3,
+    "totalRows": 30,
+    "aiRequests": 1,
+    "driveWrites": 1,
+    "slackWrites": 1
+  }
+}

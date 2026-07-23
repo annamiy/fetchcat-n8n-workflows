@@ -1,0 +1,12 @@
+{
+  "description": "Synthetic fixture for the cross-network competitor creative radar setup form and capped execution.",
+  "items": [
+    {
+      "watchlistLabel": "Synthetic running shoes",
+      "market": "US",
+      "itemsPerSource": 2,
+      "reportingWindow": "weekly",
+      "slackNotify": false
+    }
+  ]
+}

@@ -1,0 +1,541 @@
+{
+  "name": "Cross-Network Competitor Creative Radar",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "23100000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1600,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000002",
+      "name": "Weekly Schedule (inactive until configured)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1600,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Cross-network competitor creative radar setup",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "watchlistLabel"
+            },
+            {
+              "fieldLabel": "market"
+            },
+            {
+              "fieldLabel": "itemsPerSource",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "reportingWindow"
+            },
+            {
+              "fieldLabel": "slackNotify",
+              "fieldType": "checkbox"
+            }
+          ]
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000003",
+      "name": "Creative Radar Setup Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -1360,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "creative_radar_config",
+        "columns": {
+          "column": [
+            {
+              "name": "watchlist_label",
+              "type": "string"
+            },
+            {
+              "name": "market",
+              "type": "string"
+            },
+            {
+              "name": "config_fingerprint",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000004",
+      "name": "Ensure Creative Radar Config",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1120,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "creative_radar_snapshots",
+        "columns": {
+          "column": [
+            {
+              "name": "snapshot_key",
+              "type": "string"
+            },
+            {
+              "name": "source",
+              "type": "string"
+            },
+            {
+              "name": "source_ad_id",
+              "type": "string"
+            },
+            {
+              "name": "source_signals",
+              "type": "json"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000005",
+      "name": "Ensure Creative Radar Snapshots",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1120,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "creative_radar_deliveries",
+        "columns": {
+          "column": [
+            {
+              "name": "idempotency_key",
+              "type": "string"
+            },
+            {
+              "name": "destination_result",
+              "type": "json"
+            },
+            {
+              "name": "delivered_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000006",
+      "name": "Ensure Creative Radar Deliveries",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{watchlistLabel:$json.watchlistLabel||'Demo competitors',market:$json.market||'US',itemsPerSource:Math.min(Number($json.itemsPerSource||10),10),caps:{itemsPerSource:10,actorRuns:3,totalRows:30,aiRequests:1,driveWrites:1,slackWrites:1},actorInputs:{meta:{actor:'fetch_cat/facebook-ads-library-scraper',maxItems:10},google:{actor:'fetch_cat/google-ads-transparency-scraper',maxResultsPerQuery:10},tiktok:{actor:'fetch_cat/tiktok-ads-library-scraper',maxItems:10}}}}];"
+      },
+      "id": "23100000-0000-4000-8000-000000000007",
+      "name": "Validate Setup and Build Actor Inputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -860,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/fetch_cat~facebook-ads-library-scraper/runs?waitForFinish=120",
+        "sendBody": true,
+        "jsonBody": "={{$json.actorInputs.meta}}"
+      },
+      "id": "23100000-0000-4000-8000-000000000008",
+      "name": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -600,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/fetch_cat~google-ads-transparency-scraper/runs?waitForFinish=120",
+        "sendBody": true,
+        "jsonBody": "={{$json.actorInputs.google}}"
+      },
+      "id": "23100000-0000-4000-8000-000000000009",
+      "name": "Run Google Actor (fetch_cat/google-ads-transparency-scraper)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -600,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/fetch_cat~tiktok-ads-library-scraper/runs?waitForFinish=120",
+        "sendBody": true,
+        "jsonBody": "={{$json.actorInputs.tiktok}}"
+      },
+      "id": "23100000-0000-4000-8000-000000000010",
+      "name": "Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -600,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalized=[]; for (const item of $input.all()) { const j=item.json||{}; const src=j.source||'unknown'; const rows=j.rows||[]; for (const r of rows.slice(0,10)) normalized.push({...r, source:r.source||src, coverage_type:r.coverage_type||'public_library_results', source_ad_id:String(r.source_ad_id||r.adId||r.id), source_signals:r.source_signals||{}, snapshot_state:'new'}); } return [{json:{normalized:normalized.slice(0,30),counts:{total:normalized.slice(0,30).length},warnings:[]}}];"
+      },
+      "id": "23100000-0000-4000-8000-000000000011",
+      "name": "Normalize Rows and Compare Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "model": "gpt-5.4-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Return strict JSON classifications with evidence excerpts only."
+            },
+            {
+              "content": "={{JSON.stringify($json.normalized).slice(0,12000)}}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 1500,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000012",
+      "name": "Classify Themes with OpenAI gpt-5.4-mini",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -60,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data=$json; if(!data.normalized?.length) return [{json:{skipDelivery:true,reason:'No observed source rows; no Drive or Slack write allowed.'}}]; const lines=['# Cross-network competitor creative radar','','Collection scope: '+JSON.stringify(data.counts),'','## Evidence rows',...data.normalized.map(r=>'- '+r.source+' '+r.source_ad_id+' — '+(r.message_primary||'no copy')+' — '+(r.evidence_url||'no evidence URL')),'','No cross-network performance score is calculated. Absence means not observed unless a source explicitly proves retirement.']; return [{json:{markdown:lines.join('\\n'),fileName:'creative-radar-'+Date.now()+'.md',idempotencyKey:'demo-weekly-us'}}];"
+      },
+      "id": "23100000-0000-4000-8000-000000000013",
+      "name": "Render Evidence-linked Markdown Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{$json.fileName}}",
+        "binaryData": false,
+        "fileContent": "={{$json.markdown}}"
+      },
+      "id": "23100000-0000-4000-8000-000000000014",
+      "name": "Write Markdown Brief to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        460,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "text": "={{\"Creative radar delivered: \"+$json.webViewLink}}"
+      },
+      "id": "23100000-0000-4000-8000-000000000015",
+      "name": "Optional Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        720,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableName": "creative_radar_deliveries"
+      },
+      "id": "23100000-0000-4000-8000-000000000016",
+      "name": "Commit Snapshot and Delivery Ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "color": 1,
+        "width": 520,
+        "height": 340,
+        "content": "### How it works\nThis inactive template collects a capped public sample from Meta Ads Library, Google Ads Transparency, and TikTok Creative Center Actors, normalizes only comparable evidence, compares with the previous snapshot, optionally classifies hooks and offers in one structured AI request, then writes one Markdown brief to Google Drive. It preserves source statuses and source-specific signals without creating a cross-network score.\n\n### Setup\nUse the setup form or config Data Table for watchlist label, market, source queries, weekly window, item cap, Drive folder, and optional Slack notification. Add Apify and Google Drive credentials in n8n. OpenAI and Slack are optional. Keep the workflow inactive until QA/publisher approval."
+      },
+      "id": "23100000-0000-4000-8000-000000000017",
+      "name": "Overview Sticky",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1360,
+        -520
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Creative Radar Setup Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Schedule (inactive until configured)": {
+      "main": [
+        [
+          {
+            "node": "Creative Radar Setup Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creative Radar Setup Form": {
+      "main": [
+        [
+          {
+            "node": "Ensure Creative Radar Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Creative Radar Config": {
+      "main": [
+        [
+          {
+            "node": "Ensure Creative Radar Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Creative Radar Snapshots": {
+      "main": [
+        [
+          {
+            "node": "Ensure Creative Radar Deliveries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Creative Radar Deliveries": {
+      "main": [
+        [
+          {
+            "node": "Validate Setup and Build Actor Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Setup and Build Actor Inputs": {
+      "main": [
+        [
+          {
+            "node": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run Google Actor (fetch_cat/google-ads-transparency-scraper)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Google Actor (fetch_cat/google-ads-transparency-scraper)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Rows and Compare Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Classify Themes with OpenAI gpt-5.4-mini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Themes with OpenAI gpt-5.4-mini": {
+      "main": [
+        [
+          {
+            "node": "Render Evidence-linked Markdown Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Evidence-linked Markdown Brief": {
+      "main": [
+        [
+          {
+            "node": "Write Markdown Brief to Google Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Markdown Brief to Google Drive": {
+      "main": [
+        [
+          {
+            "node": "Optional Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Optional Slack Notification": {
+      "main": [
+        [
+          {
+            "node": "Commit Snapshot and Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}
