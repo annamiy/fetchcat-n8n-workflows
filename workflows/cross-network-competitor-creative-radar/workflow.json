@@ -178,7 +178,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{json:{watchlistLabel:$json.watchlistLabel||'Demo competitors',market:$json.market||'US',itemsPerSource:Math.min(Number($json.itemsPerSource||10),10),caps:{itemsPerSource:10,actorRuns:3,totalRows:30,aiRequests:1,driveWrites:1,slackWrites:1},actorInputs:{meta:{actor:'fetch_cat/facebook-ads-library-scraper',maxItems:10},google:{actor:'fetch_cat/google-ads-transparency-scraper',maxResultsPerQuery:10},tiktok:{actor:'fetch_cat/tiktok-ads-library-scraper',maxItems:10}}}}];"
+        "jsCode": "const watchlistLabel = String($json.watchlistLabel || '').trim();\nconst market = String($json.market || '').trim() || 'US';\nconst requested = Number($json.itemsPerSource ?? 10);\nconst itemsPerSource = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 10, 10));\nif (!watchlistLabel) throw new Error('watchlistLabel is required before any Apify, AI, Drive, or Slack spend.');\nconst sources = ['meta','google','tiktok'];\nconst runKey = `${watchlistLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-')}:${market}:${new Date().toISOString().slice(0,10)}`;\nreturn [{json:{watchlistLabel,market,itemsPerSource,slackNotify:Boolean($json.slackNotify),runKey,caps:{itemsPerSource:10,actorRuns:3,totalRows:30,aiRequests:1,driveWrites:1,slackWrites:1},actorInputs:{meta:{query:watchlistLabel,country:market,maxItems:itemsPerSource},google:{query:watchlistLabel,region:market,maxResultsPerQuery:itemsPerSource},tiktok:{query:watchlistLabel,country:market,maxItems:itemsPerSource}},sourceOrder:sources}}];"
       },
       "id": "23100000-0000-4000-8000-000000000007",
       "name": "Validate Setup and Build Actor Inputs",
@@ -192,9 +192,16 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/fetch_cat~facebook-ads-library-scraper/runs?waitForFinish=120",
+        "url": "https://api.apify.com/v2/acts/fetch_cat~facebook-ads-library-scraper/runs?waitForFinish=120&token={{$env.APIFY_TOKEN}}",
         "sendBody": true,
-        "jsonBody": "={{$json.actorInputs.meta}}"
+        "jsonBody": "={$json.actorInputs.meta}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
       "id": "23100000-0000-4000-8000-000000000008",
       "name": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
@@ -208,9 +215,16 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/fetch_cat~google-ads-transparency-scraper/runs?waitForFinish=120",
+        "url": "https://api.apify.com/v2/acts/fetch_cat~google-ads-transparency-scraper/runs?waitForFinish=120&token={{$env.APIFY_TOKEN}}",
         "sendBody": true,
-        "jsonBody": "={{$json.actorInputs.google}}"
+        "jsonBody": "={$json.actorInputs.google}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
       "id": "23100000-0000-4000-8000-000000000009",
       "name": "Run Google Actor (fetch_cat/google-ads-transparency-scraper)",
@@ -224,9 +238,16 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.apify.com/v2/acts/fetch_cat~tiktok-ads-library-scraper/runs?waitForFinish=120",
+        "url": "https://api.apify.com/v2/acts/fetch_cat~tiktok-ads-library-scraper/runs?waitForFinish=120&token={{$env.APIFY_TOKEN}}",
         "sendBody": true,
-        "jsonBody": "={{$json.actorInputs.tiktok}}"
+        "jsonBody": "={$json.actorInputs.tiktok}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
       "id": "23100000-0000-4000-8000-000000000010",
       "name": "Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)",
@@ -239,7 +260,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const normalized=[]; for (const item of $input.all()) { const j=item.json||{}; const src=j.source||'unknown'; const rows=j.rows||[]; for (const r of rows.slice(0,10)) normalized.push({...r, source:r.source||src, coverage_type:r.coverage_type||'public_library_results', source_ad_id:String(r.source_ad_id||r.adId||r.id), source_signals:r.source_signals||{}, snapshot_state:'new'}); } return [{json:{normalized:normalized.slice(0,30),counts:{total:normalized.slice(0,30).length},warnings:[]}}];"
+        "jsCode": "const items = $input.all();\nconst normalized = [];\nconst sourceStatus = {};\nfunction detectSource(j, paired) {\n  const name = paired?.json?.actorId || paired?.json?.actId || paired?.json?.actorTaskId || '';\n  if (/facebook|meta/i.test(name)) return 'meta';\n  if (/google/i.test(name)) return 'google';\n  if (/tiktok/i.test(name)) return 'tiktok';\n  return j.source || j.platform || 'unknown';\n}\nfor (const item of items) {\n  const rows = Array.isArray(item.json) ? item.json : (Array.isArray(item.json?.items) ? item.json.items : []);\n  const source = rows[0]?.source || rows[0]?.platform || item.json?.source || 'unknown';\n  if (!rows.length) { sourceStatus[source] = {status:'empty_or_error', count:0}; continue; }\n  sourceStatus[source] = {status:'observed', count:Math.min(rows.length,10)};\n  for (const r of rows.slice(0, 10)) {\n    const s = String(r.source || r.platform || source).toLowerCase().includes('google') ? 'google' : String(r.source || r.platform || source).toLowerCase().includes('tiktok') ? 'tiktok' : String(r.source || r.platform || source).toLowerCase().includes('meta') || String(r.source || r.platform || source).toLowerCase().includes('facebook') ? 'meta' : source;\n    const sourceAdId = String(r.source_ad_id || r.adArchiveId || r.adId || r.creativeId || r.id || '').trim();\n    if (!sourceAdId) continue;\n    normalized.push({source:s, coverage_type:'public_library_results', source_ad_id:sourceAdId, advertiser_name:r.advertiser_name||r.pageName||r.advertiserName||r.brandName||'', message_primary:r.message_primary||r.adText||r.text||r.title||'', evidence_url:r.evidence_url||r.url||r.adSnapshotUrl||r.landingPageUrl||'', observed_at:new Date().toISOString(), source_signals:r.source_signals||{rawFields:Object.keys(r).slice(0,20)}, snapshot_state:'new'});\n  }\n}\nconst seen = new Set();\nconst capped = normalized.filter(r => { const k = `${r.source}:${r.source_ad_id}`; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0,30);\nreturn [{json:{normalized:capped,counts:{total:capped.length,bySource:sourceStatus},warnings:Object.entries(sourceStatus).filter(([,v])=>v.status!=='observed').map(([s])=>`${s}: no observed rows; rendered as absence, not retirement`)}}];"
       },
       "id": "23100000-0000-4000-8000-000000000011",
       "name": "Normalize Rows and Compare Snapshot",
@@ -282,7 +303,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const data=$json; if(!data.normalized?.length) return [{json:{skipDelivery:true,reason:'No observed source rows; no Drive or Slack write allowed.'}}]; const lines=['# Cross-network competitor creative radar','','Collection scope: '+JSON.stringify(data.counts),'','## Evidence rows',...data.normalized.map(r=>'- '+r.source+' '+r.source_ad_id+' — '+(r.message_primary||'no copy')+' — '+(r.evidence_url||'no evidence URL')),'','No cross-network performance score is calculated. Absence means not observed unless a source explicitly proves retirement.']; return [{json:{markdown:lines.join('\\n'),fileName:'creative-radar-'+Date.now()+'.md',idempotencyKey:'demo-weekly-us'}}];"
+        "jsCode": "const data = $json;\nif (!data.normalized?.length) return [{json:{skipDelivery:true,reason:'No observed source rows; no AI, Drive, Slack, snapshot, or delivery writes allowed.'}}];\nconst lines=['# Cross-network competitor creative radar','','Collection scope: '+JSON.stringify(data.counts),'','## Guardrails','- Meta, Google, and TikTok are reported separately; no blended rank or score is calculated.','- Absence means not observed unless a source explicitly proves retirement.','','## Evidence rows',...data.normalized.map(r=>`- **${r.source}** ${r.source_ad_id} \u2014 ${r.message_primary || 'no copy'} \u2014 ${r.evidence_url || 'no evidence URL'}`),'','## Source warnings',...(data.warnings?.length ? data.warnings.map(w=>`- ${w}`) : ['- none'])];\nreturn [{json:{markdown:lines.join('\\n'),fileName:'creative-radar-'+Date.now()+'.md',idempotencyKey:`creative-radar:${Date.now()}`,slackNotify:Boolean(data.slackNotify)}}];"
       },
       "id": "23100000-0000-4000-8000-000000000013",
       "name": "Render Evidence-linked Markdown Brief",
@@ -353,6 +374,123 @@
       "position": [
         -1360,
         -520
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{$json.data?.defaultDatasetId || $json.defaultDatasetId}}/items?clean=true&limit=10&token={{$env.APIFY_TOKEN}}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000020",
+      "name": "Fetch Meta Dataset Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -330,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{$json.data?.defaultDatasetId || $json.defaultDatasetId}}/items?clean=true&limit=10&token={{$env.APIFY_TOKEN}}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000021",
+      "name": "Fetch Google Dataset Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -330,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.apify.com/v2/datasets/{{$json.data?.defaultDatasetId || $json.defaultDatasetId}}/items?clean=true&limit=10&token={{$env.APIFY_TOKEN}}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000022",
+      "name": "Fetch Tiktok Dataset Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -330,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.slackNotify === true}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000030",
+      "name": "Should Send Slack?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        700,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableName": "creative_radar_deliveries",
+        "limit": 1
+      },
+      "id": "23100000-0000-4000-8000-000000000031",
+      "name": "Check Delivery Ledger Before Writes",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -190,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.counts.total}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000032",
+      "name": "Has Observed Rows?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -230,
+        20
       ]
     }
   ],
@@ -448,7 +586,7 @@
       "main": [
         [
           {
-            "node": "Normalize Rows and Compare Snapshot",
+            "node": "Fetch Meta Dataset Items",
             "type": "main",
             "index": 0
           }
@@ -459,7 +597,7 @@
       "main": [
         [
           {
-            "node": "Normalize Rows and Compare Snapshot",
+            "node": "Fetch Google Dataset Items",
             "type": "main",
             "index": 0
           }
@@ -470,7 +608,7 @@
       "main": [
         [
           {
-            "node": "Normalize Rows and Compare Snapshot",
+            "node": "Fetch Tiktok Dataset Items",
             "type": "main",
             "index": 0
           }
@@ -481,7 +619,7 @@
       "main": [
         [
           {
-            "node": "Classify Themes with OpenAI gpt-5.4-mini",
+            "node": "Has Observed Rows?",
             "type": "main",
             "index": 0
           }
@@ -514,7 +652,7 @@
       "main": [
         [
           {
-            "node": "Optional Slack Notification",
+            "node": "Should Send Slack?",
             "type": "main",
             "index": 0
           }
@@ -530,6 +668,80 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Fetch Meta Dataset Items": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Google Dataset Items": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Tiktok Dataset Items": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Delivery Ledger Before Writes": {
+      "main": [
+        [
+          {
+            "node": "Render Evidence-linked Markdown Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Slack?": {
+      "main": [
+        [
+          {
+            "node": "Optional Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Commit Snapshot and Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Observed Rows?": {
+      "main": [
+        [
+          {
+            "node": "Check Delivery Ledger Before Writes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },

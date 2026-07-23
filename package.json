@@ -15,8 +15,8 @@
     "execute": "node scripts/n8n-cli.mjs execute",
     "export": "node scripts/n8n-cli.mjs export",
     "package": "node scripts/package.mjs",
-    "check": "npm run build && git diff --exit-code && npm run validate"
+    "check": "npm run build && git diff --exit-code && npm run validate",
+    "security:audit": "node scripts/security-audit.mjs"
   },
   "license": "MIT"
 }
-
