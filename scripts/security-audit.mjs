@@ -1,14 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = path.resolve(new URL('..', import.meta.url).pathname, '..');
+const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const slug = process.argv[2];
 const dirs = slug ? [path.join(root, 'workflows', slug)] : fs.readdirSync(path.join(root, 'workflows')).map((entry) => path.join(root, 'workflows', entry));
 const errors = [];
 
 for (const dir of dirs) {
   const workflowPath = path.join(dir, 'workflow.json');
-  if (!fs.existsSync(workflowPath)) continue;
+  if (!fs.existsSync(workflowPath)) { errors.push(`${path.basename(dir)}: workflow.json missing at ${workflowPath}`); continue; }
   const workflow = JSON.parse(fs.readFileSync(workflowPath, 'utf8'));
   const name = path.basename(dir);
   const serialized = JSON.stringify(workflow);

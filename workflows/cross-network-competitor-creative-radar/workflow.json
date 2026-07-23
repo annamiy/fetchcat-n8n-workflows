@@ -260,7 +260,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst normalized = [];\nconst sourceStatus = {};\nfunction detectSource(j, paired) {\n  const name = paired?.json?.actorId || paired?.json?.actId || paired?.json?.actorTaskId || '';\n  if (/facebook|meta/i.test(name)) return 'meta';\n  if (/google/i.test(name)) return 'google';\n  if (/tiktok/i.test(name)) return 'tiktok';\n  return j.source || j.platform || 'unknown';\n}\nfor (const item of items) {\n  const rows = Array.isArray(item.json) ? item.json : (Array.isArray(item.json?.items) ? item.json.items : []);\n  const source = rows[0]?.source || rows[0]?.platform || item.json?.source || 'unknown';\n  if (!rows.length) { sourceStatus[source] = {status:'empty_or_error', count:0}; continue; }\n  sourceStatus[source] = {status:'observed', count:Math.min(rows.length,10)};\n  for (const r of rows.slice(0, 10)) {\n    const s = String(r.source || r.platform || source).toLowerCase().includes('google') ? 'google' : String(r.source || r.platform || source).toLowerCase().includes('tiktok') ? 'tiktok' : String(r.source || r.platform || source).toLowerCase().includes('meta') || String(r.source || r.platform || source).toLowerCase().includes('facebook') ? 'meta' : source;\n    const sourceAdId = String(r.source_ad_id || r.adArchiveId || r.adId || r.creativeId || r.id || '').trim();\n    if (!sourceAdId) continue;\n    normalized.push({source:s, coverage_type:'public_library_results', source_ad_id:sourceAdId, advertiser_name:r.advertiser_name||r.pageName||r.advertiserName||r.brandName||'', message_primary:r.message_primary||r.adText||r.text||r.title||'', evidence_url:r.evidence_url||r.url||r.adSnapshotUrl||r.landingPageUrl||'', observed_at:new Date().toISOString(), source_signals:r.source_signals||{rawFields:Object.keys(r).slice(0,20)}, snapshot_state:'new'});\n  }\n}\nconst seen = new Set();\nconst capped = normalized.filter(r => { const k = `${r.source}:${r.source_ad_id}`; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0,30);\nreturn [{json:{normalized:capped,counts:{total:capped.length,bySource:sourceStatus},warnings:Object.entries(sourceStatus).filter(([,v])=>v.status!=='observed').map(([s])=>`${s}: no observed rows; rendered as absence, not retirement`)}}];"
+        "jsCode": "const items = $input.all();\nconst normalized = [];\nconst sourceStatus = {};\nlet ctx = {};\nfor (const item of items) {\n  const source = item.json.source || 'unknown';\n  const rows = Array.isArray(item.json.rows) ? item.json.rows : [];\n  ctx = {...ctx, runKey:item.json.runKey, idempotencyKey:item.json.idempotencyKey, watchlistLabel:item.json.watchlistLabel, market:item.json.market, slackNotify:item.json.slackNotify};\n  if (!rows.length) { sourceStatus[source] = {status:item.json.status || 'empty_or_error', count:0, apifyRunId:item.json.apifyRunId, apifyDatasetId:item.json.apifyDatasetId}; continue; }\n  sourceStatus[source] = {status:'observed', count:Math.min(rows.length,10), apifyRunId:item.json.apifyRunId, apifyDatasetId:item.json.apifyDatasetId};\n  for (const r of rows.slice(0, 10)) {\n    const sourceAdId = String(r.source_ad_id || r.adArchiveId || r.adId || r.creativeId || r.id || '').trim();\n    if (!sourceAdId) continue;\n    normalized.push({source, coverage_type:'public_library_results', source_ad_id:sourceAdId, advertiser_name:r.advertiser_name||r.pageName||r.advertiserName||r.brandName||'', message_primary:r.message_primary||r.adText||r.text||r.title||'', evidence_url:r.evidence_url||r.url||r.adSnapshotUrl||r.landingPageUrl||'', observed_at:new Date().toISOString(), apify_run_id:r.apifyRunId, apify_dataset_id:r.apifyDatasetId, source_signals:r.source_signals||{rawFields:Object.keys(r).slice(0,20)}, snapshot_state:'new'});\n  }\n}\nconst seen = new Set();\nconst capped = normalized.filter(r => { const k = `${r.source}:${r.source_ad_id}`; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0,30);\nreturn [{json:{...ctx, normalized:capped,counts:{total:capped.length,bySource:sourceStatus},warnings:Object.entries(sourceStatus).filter(([,v])=>v.status!=='observed').map(([s])=>`${s}: no observed rows; rendered as absence, not retirement`)}}];"
       },
       "id": "23100000-0000-4000-8000-000000000011",
       "name": "Normalize Rows and Compare Snapshot",
@@ -303,7 +303,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const data = $json;\nif (!data.normalized?.length) return [{json:{skipDelivery:true,reason:'No observed source rows; no AI, Drive, Slack, snapshot, or delivery writes allowed.'}}];\nconst lines=['# Cross-network competitor creative radar','','Collection scope: '+JSON.stringify(data.counts),'','## Guardrails','- Meta, Google, and TikTok are reported separately; no blended rank or score is calculated.','- Absence means not observed unless a source explicitly proves retirement.','','## Evidence rows',...data.normalized.map(r=>`- **${r.source}** ${r.source_ad_id} \u2014 ${r.message_primary || 'no copy'} \u2014 ${r.evidence_url || 'no evidence URL'}`),'','## Source warnings',...(data.warnings?.length ? data.warnings.map(w=>`- ${w}`) : ['- none'])];\nreturn [{json:{markdown:lines.join('\\n'),fileName:'creative-radar-'+Date.now()+'.md',idempotencyKey:`creative-radar:${Date.now()}`,slackNotify:Boolean(data.slackNotify)}}];"
+        "jsCode": "const data = $('Normalize Rows and Compare Snapshot').first().json;\nconst ai = $json;\nif (!data.normalized?.length) return [{json:{skipDelivery:true,reason:'No observed source rows; no AI, Drive, Slack, snapshot, or delivery writes allowed.'}}];\nconst lines=['# Cross-network competitor creative radar','',`Watchlist: ${data.watchlistLabel} (${data.market})`,'Collection scope: '+JSON.stringify(data.counts),'','## Guardrails','- Meta, Google, and TikTok are reported separately; no blended rank or score is calculated.','- Absence means not observed unless a source explicitly proves retirement.','','## Evidence rows',...data.normalized.map(r=>`- **${r.source}** ${r.source_ad_id} \u2014 ${r.message_primary || 'no copy'} \u2014 ${r.evidence_url || 'no evidence URL'} (run ${r.apify_run_id || 'n/a'}, dataset ${r.apify_dataset_id || 'n/a'})`),'','## AI themes (source-separated)',JSON.stringify(ai).slice(0,4000),'','## Source warnings',...(data.warnings?.length ? data.warnings.map(w=>`- ${w}`) : ['- none'])];\nreturn [{json:{...data, ai, markdown:lines.join('\\n'),fileName:`creative-radar-${data.runKey}.md`.replace(/[^a-z0-9_.-]/gi,'-'),idempotencyKey:data.idempotencyKey,slackNotify:Boolean(data.slackNotify)}}];"
       },
       "id": "23100000-0000-4000-8000-000000000013",
       "name": "Render Evidence-linked Markdown Brief",
@@ -349,7 +349,15 @@
       "parameters": {
         "resource": "row",
         "operation": "create",
-        "tableName": "creative_radar_deliveries"
+        "tableName": "creative_radar_deliveries",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "idempotency_key": "={{$('Render Evidence-linked Markdown Brief').first().json.idempotencyKey}}",
+            "destination_result": "={{JSON.stringify($json)}}",
+            "delivered_at": "={{new Date().toISOString()}}"
+          }
+        }
       },
       "id": "23100000-0000-4000-8000-000000000016",
       "name": "Commit Snapshot and Delivery Ledger",
@@ -492,6 +500,125 @@
         -230,
         20
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const setup = $('Validate Setup and Build Actor Inputs').first().json;\nconst run = $('Run Meta Actor (fetch_cat/facebook-ads-library-scraper)').first()?.json || {};\nconst datasetId = run.data?.defaultDatasetId || run.defaultDatasetId || '';\nconst runId = run.data?.id || run.id || '';\nconst rows = $input.all().flatMap(i => Array.isArray(i.json) ? i.json : (Array.isArray(i.json?.items) ? i.json.items : []));\nreturn [{json:{source:'meta', rows: rows.slice(0, setup.itemsPerSource || 10).map(r => ({...r, source:'meta', apifyRunId: runId, apifyDatasetId: datasetId})), status: rows.length ? 'observed' : 'empty_or_error', apifyRunId: runId, apifyDatasetId: datasetId, runKey: setup.runKey, idempotencyKey: setup.idempotencyKey, watchlistLabel: setup.watchlistLabel, market: setup.market, slackNotify: setup.slackNotify}}];"
+      },
+      "id": "23100000-0000-4000-8000-000000000034",
+      "name": "Annotate Meta Rows with Provenance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -110,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const setup = $('Validate Setup and Build Actor Inputs').first().json;\nconst run = $('Run Google Actor (fetch_cat/google-ads-transparency-scraper)').first()?.json || {};\nconst datasetId = run.data?.defaultDatasetId || run.defaultDatasetId || '';\nconst runId = run.data?.id || run.id || '';\nconst rows = $input.all().flatMap(i => Array.isArray(i.json) ? i.json : (Array.isArray(i.json?.items) ? i.json.items : []));\nreturn [{json:{source:'google', rows: rows.slice(0, setup.itemsPerSource || 10).map(r => ({...r, source:'google', apifyRunId: runId, apifyDatasetId: datasetId})), status: rows.length ? 'observed' : 'empty_or_error', apifyRunId: runId, apifyDatasetId: datasetId, runKey: setup.runKey, idempotencyKey: setup.idempotencyKey, watchlistLabel: setup.watchlistLabel, market: setup.market, slackNotify: setup.slackNotify}}];"
+      },
+      "id": "23100000-0000-4000-8000-000000000035",
+      "name": "Annotate Google Rows with Provenance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -110,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const setup = $('Validate Setup and Build Actor Inputs').first().json;\nconst run = $('Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)').first()?.json || {};\nconst datasetId = run.data?.defaultDatasetId || run.defaultDatasetId || '';\nconst runId = run.data?.id || run.id || '';\nconst rows = $input.all().flatMap(i => Array.isArray(i.json) ? i.json : (Array.isArray(i.json?.items) ? i.json.items : []));\nreturn [{json:{source:'tiktok', rows: rows.slice(0, setup.itemsPerSource || 10).map(r => ({...r, source:'tiktok', apifyRunId: runId, apifyDatasetId: datasetId})), status: rows.length ? 'observed' : 'empty_or_error', apifyRunId: runId, apifyDatasetId: datasetId, runKey: setup.runKey, idempotencyKey: setup.idempotencyKey, watchlistLabel: setup.watchlistLabel, market: setup.market, slackNotify: setup.slackNotify}}];"
+      },
+      "id": "23100000-0000-4000-8000-000000000036",
+      "name": "Annotate Tiktok Rows with Provenance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -110,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.duplicateExists === false}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000037",
+      "name": "No Prior Delivery?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        20,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableName": "creative_radar_snapshots",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "snapshot_key": "={{$('Render Evidence-linked Markdown Brief').first().json.runKey}}",
+            "source": "all",
+            "source_ad_id": "={{$('Render Evidence-linked Markdown Brief').first().json.normalized.map(r => r.source + ':' + r.source_ad_id).join(',')}}",
+            "source_signals": "={{JSON.stringify({counts:$('Render Evidence-linked Markdown Brief').first().json.counts, rows:$('Render Evidence-linked Markdown Brief').first().json.normalized})}}"
+          }
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000038",
+      "name": "Commit Creative Radar Snapshot Rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableName": "creative_radar_config",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "watchlist_label": "={{$json.watchlistLabel}}",
+            "market": "={{$json.market}}",
+            "config_fingerprint": "={{$json.configFingerprint}}"
+          }
+        }
+      },
+      "id": "23100000-0000-4000-8000-000000000033",
+      "name": "Upsert Creative Radar Config Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -740,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Normalize Rows and Compare Snapshot').first().json;\nconst rows = $input.all().map(i => i.json);\nconst duplicateExists = rows.some(r => r.idempotency_key === data.idempotencyKey || r.idempotencyKey === data.idempotencyKey);\nreturn [{json:{...data, duplicateExists}}];"
+      },
+      "id": "23100000-0000-4000-8000-000000000039",
+      "name": "Evaluate Delivery Ledger Match",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        20
+      ]
     }
   ],
   "connections": {
@@ -565,17 +692,7 @@
       "main": [
         [
           {
-            "node": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Run Google Actor (fetch_cat/google-ads-transparency-scraper)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)",
+            "node": "Upsert Creative Radar Config Row",
             "type": "main",
             "index": 0
           }
@@ -674,7 +791,7 @@
       "main": [
         [
           {
-            "node": "Normalize Rows and Compare Snapshot",
+            "node": "Annotate Meta Rows with Provenance",
             "type": "main",
             "index": 0
           }
@@ -685,7 +802,7 @@
       "main": [
         [
           {
-            "node": "Normalize Rows and Compare Snapshot",
+            "node": "Annotate Google Rows with Provenance",
             "type": "main",
             "index": 0
           }
@@ -696,7 +813,7 @@
       "main": [
         [
           {
-            "node": "Normalize Rows and Compare Snapshot",
+            "node": "Annotate Tiktok Rows with Provenance",
             "type": "main",
             "index": 0
           }
@@ -707,7 +824,7 @@
       "main": [
         [
           {
-            "node": "Render Evidence-linked Markdown Brief",
+            "node": "Evaluate Delivery Ledger Match",
             "type": "main",
             "index": 0
           }
@@ -742,6 +859,94 @@
           }
         ],
         []
+      ]
+    },
+    "Upsert Creative Radar Config Row": {
+      "main": [
+        [
+          {
+            "node": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run Google Actor (fetch_cat/google-ads-transparency-scraper)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Run TikTok Actor (fetch_cat/tiktok-ads-library-scraper)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Annotate Meta Rows with Provenance": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Annotate Google Rows with Provenance": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Annotate Tiktok Rows with Provenance": {
+      "main": [
+        [
+          {
+            "node": "Normalize Rows and Compare Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Prior Delivery?": {
+      "main": [
+        [
+          {
+            "node": "Classify Themes with OpenAI gpt-5.4-mini",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Commit Snapshot and Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Commit Creative Radar Snapshot Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Delivery Ledger Match": {
+      "main": [
+        [
+          {
+            "node": "No Prior Delivery?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
