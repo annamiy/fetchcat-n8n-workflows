@@ -178,7 +178,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const setup = $('Creative Radar Setup Form').first().json;\nconst watchlistLabel = String(setup.watchlistLabel || '').trim();\nconst market = String(setup.market || '').trim() || 'US';\nconst requested = Number(setup.itemsPerSource ?? 10);\nconst itemsPerSource = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 10, 10));\nif (!watchlistLabel) throw new Error('watchlistLabel is required before any Apify, AI, Drive, or Slack spend.');\nconst sources = ['meta','google','tiktok'];\nconst normalizedLabel = watchlistLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'watchlist';\nconst runDate = new Date().toISOString().slice(0,10);\nconst configFingerprint = JSON.stringify({watchlistLabel, market, itemsPerSource});\nconst runKey = `${normalizedLabel}:${market}:${runDate}`;\nconst idempotencyKey = `${runKey}:${itemsPerSource}`;\nreturn [{json:{watchlistLabel,market,itemsPerSource,slackNotify:Boolean(setup.slackNotify),runKey,idempotencyKey,configFingerprint,caps:{itemsPerSource:10,actorRuns:3,totalRows:30,aiRequests:1,driveWrites:1,slackWrites:1},actorInputs:{meta:{query:watchlistLabel,country:market,maxItems:itemsPerSource},google:{query:watchlistLabel,region:market,maxResultsPerQuery:itemsPerSource},tiktok:{query:watchlistLabel,country:market,maxItems:itemsPerSource}},sourceOrder:sources}}];"
+        "jsCode": "const incoming = $input.first()?.json || {};\nlet setup = incoming;\ntry {\n  const formItems = $('Creative Radar Setup Form').all();\n  if (formItems.length) setup = formItems[0].json;\n} catch (error) {\n  // Manual/server-editor and schedule paths use the incoming setup values.\n}\nconst watchlistLabel = String(setup.watchlistLabel || '').trim();\nconst market = String(setup.market || '').trim() || 'US';\nconst requested = Number(setup.itemsPerSource ?? 10);\nconst itemsPerSource = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 10, 10));\nif (!watchlistLabel) throw new Error('watchlistLabel is required before any Apify, AI, Drive, or Slack spend.');\nconst sources = ['meta','google','tiktok'];\nconst normalizedLabel = watchlistLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'watchlist';\nconst runDate = new Date().toISOString().slice(0,10);\nconst configFingerprint = JSON.stringify({watchlistLabel, market, itemsPerSource});\nconst runKey = `${normalizedLabel}:${market}:${runDate}`;\nconst idempotencyKey = `${runKey}:${itemsPerSource}`;\nreturn [{json:{watchlistLabel,market,itemsPerSource,slackNotify:Boolean(setup.slackNotify),runKey,idempotencyKey,configFingerprint,caps:{itemsPerSource:10,actorRuns:3,totalRows:30,aiRequests:1,driveWrites:1,slackWrites:1},actorInputs:{meta:{query:watchlistLabel,country:market,maxItems:itemsPerSource},google:{query:watchlistLabel,region:market,maxResultsPerQuery:itemsPerSource},tiktok:{query:watchlistLabel,country:market,maxItems:itemsPerSource}},sourceOrder:sources}}];"
       },
       "id": "23100000-0000-4000-8000-000000000007",
       "name": "Validate Setup and Build Actor Inputs",
@@ -309,7 +309,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const data = $('Normalize Rows and Compare Snapshot').first().json;\nconst ai = $json;\nif (!data.normalized?.length) return [{json:{skipDelivery:true,reason:'No observed source rows; no AI, Drive, Slack, snapshot, or delivery writes allowed.'}}];\nconst lines=['# Cross-network competitor creative radar','',`Watchlist: ${data.watchlistLabel} (${data.market})`,'Collection scope: '+JSON.stringify(data.counts),'','## Guardrails','- Meta, Google, and TikTok are reported separately; no blended rank or score is calculated.','- Absence means not observed unless a source explicitly proves retirement.','','## Evidence rows',...data.normalized.map(r=>`- **${r.source}** ${r.source_ad_id} — ${r.message_primary || 'no copy'} — ${r.evidence_url || 'no evidence URL'} (run ${r.apify_run_id || 'n/a'}, dataset ${r.apify_dataset_id || 'n/a'})`),'','## AI themes (source-separated)',JSON.stringify(ai).slice(0,4000),'','## Source warnings',...(data.warnings?.length ? data.warnings.map(w=>`- ${w}`) : ['- none'])];\nreturn [{json:{...data, ai, markdown:lines.join('\\n'),fileName:`creative-radar-${data.runKey}.md`.replace(/[^a-z0-9_.-]/gi,'-'),idempotencyKey:data.idempotencyKey,slackNotify:Boolean(data.slackNotify)}}];"
+        "jsCode": "const data = $('Normalize Rows and Compare Snapshot').first().json;\nconst ai = $json;\nif (!data.normalized?.length) return [{json:{skipDelivery:true,reason:'No observed source rows; no AI, Drive, Slack, snapshot, or delivery writes allowed.'}}];\nconst lines=['# Cross-network competitor creative radar','',`Watchlist: ${data.watchlistLabel} (${data.market})`,'Collection scope: '+JSON.stringify(data.counts),'','## Guardrails','- Meta, Google, and TikTok are reported separately; no blended rank or score is calculated.','- Absence means not observed unless a source explicitly proves retirement.','','## Evidence rows',...data.normalized.map(r=>`- **${r.source}** ${r.source_ad_id} \u2014 ${r.message_primary || 'no copy'} \u2014 ${r.evidence_url || 'no evidence URL'} (run ${r.apify_run_id || 'n/a'}, dataset ${r.apify_dataset_id || 'n/a'})`),'','## AI themes (source-separated)',JSON.stringify(ai).slice(0,4000),'','## Source warnings',...(data.warnings?.length ? data.warnings.map(w=>`- ${w}`) : ['- none'])];\nreturn [{json:{...data, ai, markdown:lines.join('\\n'),fileName:`creative-radar-${data.runKey}.md`.replace(/[^a-z0-9_.-]/gi,'-'),idempotencyKey:data.idempotencyKey,slackNotify:Boolean(data.slackNotify)}}];"
       },
       "id": "23100000-0000-4000-8000-000000000013",
       "name": "Render Evidence-linked Markdown Brief",
@@ -759,6 +759,48 @@
       ],
       "id": "prepare-snapshot-rows",
       "name": "Prepare Row-level Snapshot Rows"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "watchlistLabel",
+              "value": "FetchCat QA",
+              "type": "string"
+            },
+            {
+              "name": "market",
+              "value": "US",
+              "type": "string"
+            },
+            {
+              "name": "itemsPerSource",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "name": "reportingWindow",
+              "value": "last_7_days",
+              "type": "string"
+            },
+            {
+              "name": "slackNotify",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "23100000-0000-4000-8000-000000000036",
+      "name": "Editor Setup Values",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1360,
+        100
+      ]
     }
   ],
   "connections": {
@@ -766,7 +808,7 @@
       "main": [
         [
           {
-            "node": "Creative Radar Setup Form",
+            "node": "Editor Setup Values",
             "type": "main",
             "index": 0
           }
@@ -777,7 +819,7 @@
       "main": [
         [
           {
-            "node": "Creative Radar Setup Form",
+            "node": "Editor Setup Values",
             "type": "main",
             "index": 0
           }
@@ -1135,6 +1177,17 @@
         [
           {
             "node": "Commit Creative Radar Snapshot Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Editor Setup Values": {
+      "main": [
+        [
+          {
+            "node": "Ensure Creative Radar Config",
             "type": "main",
             "index": 0
           }
