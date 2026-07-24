@@ -422,7 +422,8 @@
       "position": [
         -330,
         -180
-      ]
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -444,7 +445,8 @@
       "position": [
         -330,
         20
-      ]
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -466,7 +468,8 @@
       "position": [
         -330,
         220
-      ]
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
