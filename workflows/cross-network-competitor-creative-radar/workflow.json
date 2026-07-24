@@ -178,7 +178,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const setup = $('Creative Radar Setup Form').first().json;\nconst watchlistLabel = String(setup.watchlistLabel || '').trim();\nconst market = String(setup.market || '').trim() || 'US';\nconst requested = Number(setup.itemsPerSource ?? 10);\nconst itemsPerSource = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 10, 10));\nif (!watchlistLabel) throw new Error('watchlistLabel is required before any Apify, AI, Drive, or Slack spend.');\nconst sources = ['meta','google','tiktok'];\nconst runKey = `${watchlistLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-')}:${market}:${new Date().toISOString().slice(0,10)}`;\nreturn [{json:{watchlistLabel,market,itemsPerSource,slackNotify:Boolean(setup.slackNotify),runKey,caps:{itemsPerSource:10,actorRuns:3,totalRows:30,aiRequests:1,driveWrites:1,slackWrites:1},actorInputs:{meta:{query:watchlistLabel,country:market,maxItems:itemsPerSource},google:{query:watchlistLabel,region:market,maxResultsPerQuery:itemsPerSource},tiktok:{query:watchlistLabel,country:market,maxItems:itemsPerSource}},sourceOrder:sources}}];"
+        "jsCode": "const setup = $('Creative Radar Setup Form').first().json;\nconst watchlistLabel = String(setup.watchlistLabel || '').trim();\nconst market = String(setup.market || '').trim() || 'US';\nconst requested = Number(setup.itemsPerSource ?? 10);\nconst itemsPerSource = Math.max(1, Math.min(Number.isFinite(requested) ? requested : 10, 10));\nif (!watchlistLabel) throw new Error('watchlistLabel is required before any Apify, AI, Drive, or Slack spend.');\nconst sources = ['meta','google','tiktok'];\nconst normalizedLabel = watchlistLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'watchlist';\nconst runDate = new Date().toISOString().slice(0,10);\nconst configFingerprint = JSON.stringify({watchlistLabel, market, itemsPerSource});\nconst runKey = `${normalizedLabel}:${market}:${runDate}`;\nconst idempotencyKey = `${runKey}:${itemsPerSource}`;\nreturn [{json:{watchlistLabel,market,itemsPerSource,slackNotify:Boolean(setup.slackNotify),runKey,idempotencyKey,configFingerprint,caps:{itemsPerSource:10,actorRuns:3,totalRows:30,aiRequests:1,driveWrites:1,slackWrites:1},actorInputs:{meta:{query:watchlistLabel,country:market,maxItems:itemsPerSource},google:{query:watchlistLabel,region:market,maxResultsPerQuery:itemsPerSource},tiktok:{query:watchlistLabel,country:market,maxItems:itemsPerSource}},sourceOrder:sources}}];"
       },
       "id": "23100000-0000-4000-8000-000000000007",
       "name": "Validate Setup and Build Actor Inputs",
@@ -501,6 +501,15 @@
           "mode": "name",
           "value": "creative_radar_deliveries",
           "cachedResultName": "creative_radar_deliveries"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "idempotency_key",
+              "condition": "equal",
+              "keyValue": "={{$json.idempotencyKey}}"
+            }
+          ]
         }
       },
       "id": "23100000-0000-4000-8000-000000000031",
@@ -599,10 +608,10 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "snapshot_key": "={{$('Render Evidence-linked Markdown Brief').first().json.runKey}}",
-            "source": "all",
-            "source_ad_id": "={{$('Render Evidence-linked Markdown Brief').first().json.normalized.map(r => r.source + ':' + r.source_ad_id).join(',')}}",
-            "source_signals": "={{JSON.stringify({counts:$('Render Evidence-linked Markdown Brief').first().json.counts, rows:$('Render Evidence-linked Markdown Brief').first().json.normalized})}}"
+            "snapshot_key": "={{$json.snapshot_key}}",
+            "source": "={{$json.source}}",
+            "source_ad_id": "={{$json.source_ad_id}}",
+            "source_signals": "={{JSON.stringify($json.source_signals)}}"
           }
         },
         "dataTableId": {
@@ -624,14 +633,16 @@
     {
       "parameters": {
         "resource": "row",
-        "operation": "insert",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "watchlist_label": "={{$json.watchlistLabel}}",
-            "market": "={{$json.market}}",
-            "config_fingerprint": "={{$json.configFingerprint}}"
-          }
+        "operation": "get",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "config_fingerprint",
+              "condition": "equal",
+              "keyValue": "={{$json.configFingerprint}}"
+            }
+          ]
         },
         "dataTableId": {
           "__rl": true,
@@ -641,7 +652,7 @@
         }
       },
       "id": "23100000-0000-4000-8000-000000000033",
-      "name": "Upsert Creative Radar Config Row",
+      "name": "Check Creative Radar Config Before Insert",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -661,6 +672,93 @@
         -80,
         20
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const setup = $('Validate Setup and Build Actor Inputs').first().json;\nconst matches = $input.all().map(i => i.json).filter(r => r.config_fingerprint === setup.configFingerprint || r.configFingerprint === setup.configFingerprint);\nif (matches.length) return [{json:{...setup, configAlreadyExists:true}}];\nreturn [{json:{...setup, configAlreadyExists:false}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        180
+      ],
+      "id": "evaluate-config-match",
+      "name": "Evaluate Config Match"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.configAlreadyExists === false}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        180
+      ],
+      "id": "config-needs-insert",
+      "name": "Config Needs Insert?"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "watchlist_label": "={{$json.watchlistLabel}}",
+            "market": "={{$json.market}}",
+            "config_fingerprint": "={{$json.configFingerprint}}"
+          }
+        },
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "creative_radar_config",
+          "cachedResultName": "creative_radar_config"
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        20,
+        80
+      ],
+      "id": "insert-config-row",
+      "name": "Insert Creative Radar Config Row"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:$('Validate Setup and Build Actor Inputs').first().json}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        180
+      ],
+      "id": "continue-after-config",
+      "name": "Continue After Config Check"
+    },
+    {
+      "parameters": {
+        "jsCode": "const delivered = $input.first()?.json || {};\nconst brief = $('Render Evidence-linked Markdown Brief').first().json;\nreturn (brief.normalized || []).slice(0, 30).map(row => ({json:{snapshot_key: brief.runKey, source: row.source, source_ad_id: row.source_ad_id, source_signals: {coverage_type: row.coverage_type, advertiser_name: row.advertiser_name, message_primary: row.message_primary, evidence_url: row.evidence_url, observed_at: row.observed_at, apify_run_id: row.apify_run_id, apify_dataset_id: row.apify_dataset_id, source_signals: row.source_signals, delivery_ledger_id: delivered.id || delivered.rowId || null, idempotency_key: brief.idempotencyKey}}}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        520
+      ],
+      "id": "prepare-snapshot-rows",
+      "name": "Prepare Row-level Snapshot Rows"
     }
   ],
   "connections": {
@@ -734,7 +832,7 @@
       "main": [
         [
           {
-            "node": "Upsert Creative Radar Config Row",
+            "node": "Check Creative Radar Config Before Insert",
             "type": "main",
             "index": 0
           }
@@ -903,17 +1001,6 @@
         []
       ]
     },
-    "Upsert Creative Radar Config Row": {
-      "main": [
-        [
-          {
-            "node": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Annotate Meta Rows with Provenance": {
       "main": [
         [
@@ -963,7 +1050,7 @@
       "main": [
         [
           {
-            "node": "Commit Creative Radar Snapshot Rows",
+            "node": "Prepare Row-level Snapshot Rows",
             "type": "main",
             "index": 0
           }
@@ -975,6 +1062,79 @@
         [
           {
             "node": "No Prior Delivery?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Creative Radar Config Before Insert": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Config Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Config Match": {
+      "main": [
+        [
+          {
+            "node": "Config Needs Insert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config Needs Insert?": {
+      "main": [
+        [
+          {
+            "node": "Insert Creative Radar Config Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Continue After Config Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Creative Radar Config Row": {
+      "main": [
+        [
+          {
+            "node": "Continue After Config Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Continue After Config Check": {
+      "main": [
+        [
+          {
+            "node": "Run Meta Actor (fetch_cat/facebook-ads-library-scraper)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Row-level Snapshot Rows": {
+      "main": [
+        [
+          {
+            "node": "Commit Creative Radar Snapshot Rows",
             "type": "main",
             "index": 0
           }
