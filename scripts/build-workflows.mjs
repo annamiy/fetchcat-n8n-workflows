@@ -1260,6 +1260,370 @@ const redditWorkflow = workflow(
   ])
 );
 
+const telegramIntelligenceSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'hasMaterialSignals',
+    'executiveSummary',
+    'launches',
+    'promotions',
+    'positioningChanges',
+    'topicShifts',
+    'topPosts',
+    'recommendedActions'
+  ],
+  properties: {
+    hasMaterialSignals: { type: 'boolean' },
+    executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
+    launches: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['launch', 'summary', 'postKeys'],
+        properties: {
+          launch: { type: 'string', minLength: 1, maxLength: 180 },
+          summary: { type: 'string', minLength: 1, maxLength: 600 },
+          postKeys: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    promotions: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['promotion', 'summary', 'postKeys'],
+        properties: {
+          promotion: { type: 'string', minLength: 1, maxLength: 180 },
+          summary: { type: 'string', minLength: 1, maxLength: 600 },
+          postKeys: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    positioningChanges: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['change', 'summary', 'postKeys'],
+        properties: {
+          change: { type: 'string', minLength: 1, maxLength: 180 },
+          summary: { type: 'string', minLength: 1, maxLength: 600 },
+          postKeys: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    topicShifts: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['topic', 'summary', 'postKeys'],
+        properties: {
+          topic: { type: 'string', minLength: 1, maxLength: 180 },
+          summary: { type: 'string', minLength: 1, maxLength: 600 },
+          postKeys: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    topPosts: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['postKey', 'reason'],
+        properties: {
+          postKey: { type: 'string', minLength: 1 },
+          reason: { type: 'string', minLength: 1, maxLength: 600 }
+        }
+      }
+    },
+    recommendedActions: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['action', 'rationale', 'postKeys'],
+        properties: {
+          action: { type: 'string', minLength: 1, maxLength: 240 },
+          rationale: { type: 'string', minLength: 1, maxLength: 600 },
+          postKeys: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    }
+  }
+};
+
+const telegramConfigColumns = [
+  { name: 'configKey', type: 'string' },
+  { name: 'channels', type: 'string' },
+  { name: 'marketContext', type: 'string' },
+  { name: 'lookbackHours', type: 'number' },
+  { name: 'maxPostsPerChannel', type: 'number' }
+];
+
+const telegramIntelligenceNodes = [
+  node('70000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1520, 80], {}),
+  node('70000000-', 2, 'Daily Intelligence Schedule', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1520, -100], {
+    rule: { interval: [{ field: 'days', daysInterval: 1, triggerAtHour: 8, triggerAtMinute: 0 }] }
+  }),
+  node('70000000-', 20, 'Ensure Delivery Ledger', 'n8n-nodes-base.dataTable', 1.1, [-1280, 0], createTableParameters('FetchCat Delivery Ledger', ledgerColumns)),
+  node('70000000-', 21, 'Ensure Telegram Config Table', 'n8n-nodes-base.dataTable', 1.1, [-1040, 0], createTableParameters('FetchCat Telegram Intelligence Config', telegramConfigColumns)),
+  { ...node('70000000-', 3, 'Load Telegram Configuration', 'n8n-nodes-base.dataTable', 1.1, [-800, 0], configGetParameters('FetchCat Telegram Intelligence Config')), alwaysOutputData: true },
+  node('70000000-', 4, 'Require Saved Configuration', 'n8n-nodes-base.code', 2, [-560, 0], {
+    jsCode: String.raw`const saved = $input.first()?.json || {};
+if (saved.configKey !== 'default') return [];
+if (!String(saved.channels || '').trim() || !String(saved.marketContext || '').trim()) return [];
+return [{ json: saved }];`
+  }),
+  node('70000000-', 5, 'Build Telegram Actor Input', 'n8n-nodes-base.code', 2, [-320, 0], {
+    jsCode: String.raw`const config = $input.first().json;
+const rawChannels = String(config.channels || '').split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
+const channels = [...new Set(rawChannels)].slice(0, 10);
+if (channels.length === 0) throw new Error('Run the setup form and provide at least one public Telegram channel.');
+for (const channel of channels) {
+  if (/^https?:\/\//i.test(channel)) {
+    let url;
+    try { url = new URL(channel); } catch { throw new Error('Every Telegram channel URL must be valid.'); }
+    if (url.hostname !== 't.me' && url.hostname !== 'telegram.me') throw new Error('Telegram channel URLs must use t.me or telegram.me.');
+  } else if (!/^@?[A-Za-z0-9_]{5,64}$/.test(channel)) {
+    throw new Error('Telegram channel handles may contain letters, numbers, and underscores.');
+  }
+}
+const marketContext = String(config.marketContext || '').trim();
+if (marketContext.length < 20 || marketContext.length > 4000) throw new Error('Market context must be 20 to 4000 characters.');
+const lookbackHours = Math.max(1, Math.min(Number(config.lookbackHours) || 24, 168));
+const maxPostsPerChannel = Math.max(1, Math.min(Number(config.maxPostsPerChannel) || 10, 25));
+const maxPosts = Math.min(channels.length * maxPostsPerChannel, 50);
+const sinceDate = new Date(Date.now() - lookbackHours * 3600000).toISOString();
+return [{ json: {
+  config: { marketContext, lookbackHours },
+  actorInput: {
+    channels,
+    sinceDate,
+    maxPosts,
+    maxPostsPerChannel,
+    includeMedia: false,
+    includeComments: false,
+    includeCommentCount: true,
+    includeRawHtmlSnippet: false
+  }
+} }];`
+  }),
+  node('70000000-', 6, 'Fetch Telegram Channel Posts', '@apify/n8n-nodes-apify.apify', 1, [-80, 0], actorParameters(
+    'IXhSSJjFf5fz1XAir',
+    'Telegram Channel Posts Scraper – Comments & Media',
+    '={{ JSON.stringify($json.actorInput) }}'
+  )),
+  node('70000000-', 7, 'Normalize Recent Posts', 'n8n-nodes-base.code', 2, [160, 0], {
+    jsCode: String.raw`const lookbackHours = Number($('Build Telegram Actor Input').first().json.config.lookbackHours);
+const cutoff = Date.now() - lookbackHours * 3600000;
+const seen = new Set();
+const posts = [];
+for (const item of $input.all()) {
+  const row = item.json || {};
+  const channelHandle = String(row.channelHandle || row.channelUsername || '').replace(/^@/, '').trim();
+  const postId = String(row.postId || '').trim();
+  const postUrl = String(row.postUrl || '').trim();
+  const text = String(row.text || '').trim();
+  const postedAt = String(row.postedAt || row.date || '').trim();
+  const timestamp = Date.parse(postedAt);
+  if (!channelHandle || !postId || !postUrl.startsWith('https://t.me/') || !text || !Number.isFinite(timestamp) || timestamp < cutoff) continue;
+  const itemKey = channelHandle + ':' + postId;
+  if (seen.has(itemKey)) continue;
+  seen.add(itemKey);
+  posts.push({
+    itemKey,
+    postId,
+    channelHandle,
+    channelTitle: String(row.channelTitle || channelHandle),
+    postUrl,
+    text: text.slice(0, 7000),
+    postedAt: new Date(timestamp).toISOString(),
+    views: Number(row.views || 0),
+    reactionCount: Number(row.reactionCount || 0),
+    replyCount: Number(row.replyCount || row.replies || 0),
+    forwards: Number(row.forwards || 0),
+    hashtags: Array.isArray(row.hashtags) ? row.hashtags.slice(0, 20).map(String) : [],
+    links: Array.isArray(row.links) ? row.links.slice(0, 20).map(String) : []
+  });
+}
+posts.sort((a, b) => Date.parse(b.postedAt) - Date.parse(a.postedAt));
+return posts.slice(0, 50).map((json) => ({ json }));`
+  }),
+  node('70000000-', 8, 'Keep Undelivered Posts', 'n8n-nodes-base.dataTable', 1.1, [400, 0], ledgerCheckParameters('telegram-competitor-intelligence', '={{ $json.itemKey }}')),
+  node('70000000-', 9, 'Build Telegram Post Batch', 'n8n-nodes-base.code', 2, [640, 0], {
+    jsCode: String.raw`const posts = $input.all().map((item) => item.json);
+if (posts.length === 0) return [];
+return [{ json: { posts, itemKeys: posts.map((post) => post.itemKey) } }];`
+  }),
+  node('70000000-', 10, 'Analyze Telegram Batch', '@n8n/n8n-nodes-langchain.openAi', 2.3, [880, 0], openAiParameters(
+    '=Competitor and market context:\n{{ $("Build Telegram Actor Input").first().json.config.marketContext }}\n\nAnalyze only these public posts. Every evidence reference must use a supplied itemKey:\n{{ JSON.stringify($json.posts) }}',
+    'telegram_competitor_intelligence',
+    telegramIntelligenceSchema,
+    'Analyze the supplied public Telegram posts for material competitor intelligence: launches, promotions, positioning changes, topic shifts, and unusually strong posts. Use engagement metrics as context, not proof of business impact. Do not invent facts or cite post keys that are not supplied. Set hasMaterialSignals false when no material signal is supported. Return the strict schema.',
+    6000
+  )),
+  node('70000000-', 11, 'Validate Telegram Intelligence', 'n8n-nodes-base.code', 2, [1120, 0], {
+    jsCode: `${parseStructured}
+const batch = $('Build Telegram Post Batch').first().json;
+const parsed = parseStructured($input.first().json, ['hasMaterialSignals', 'executiveSummary', 'launches', 'promotions', 'positioningChanges', 'topicShifts', 'topPosts', 'recommendedActions']);
+if (!parsed) throw new Error('OpenAI returned invalid Telegram competitor intelligence.');
+if (typeof parsed.hasMaterialSignals !== 'boolean' || typeof parsed.executiveSummary !== 'string' || !parsed.executiveSummary.trim()) throw new Error('OpenAI returned malformed Telegram summary fields.');
+const expectedKeys = new Set(batch.itemKeys.map(String));
+const groups = ['launches', 'promotions', 'positioningChanges', 'topicShifts', 'recommendedActions'];
+let insightCount = 0;
+for (const group of groups) {
+  if (!Array.isArray(parsed[group])) throw new Error('OpenAI returned a malformed Telegram insight group.');
+  insightCount += parsed[group].length;
+  for (const entry of parsed[group]) {
+    if (!Array.isArray(entry.postKeys) || entry.postKeys.length === 0) throw new Error('Every Telegram insight must cite at least one post.');
+    const keys = entry.postKeys.map(String);
+    if (keys.some((value) => !expectedKeys.has(value))) throw new Error('OpenAI cited a Telegram post outside the input batch.');
+    entry.postKeys = [...new Set(keys)];
+  }
+}
+if (!Array.isArray(parsed.topPosts)) throw new Error('OpenAI returned malformed Telegram top posts.');
+insightCount += parsed.topPosts.length;
+for (const entry of parsed.topPosts) {
+  entry.postKey = String(entry.postKey);
+  if (!expectedKeys.has(entry.postKey) || typeof entry.reason !== 'string' || !entry.reason.trim()) throw new Error('OpenAI returned an invalid Telegram top-post citation.');
+}
+if (parsed.hasMaterialSignals && insightCount === 0) throw new Error('OpenAI marked the Telegram batch material without evidence.');
+return [{ json: { ...parsed, executiveSummary: parsed.executiveSummary.trim(), insightCount, allKeys: batch.itemKeys, posts: batch.posts } }];`
+  }),
+  node('70000000-', 12, 'Has Material Signals', 'n8n-nodes-base.if', 2.2, [1360, 0], hasItemsParameters('={{ $json.hasMaterialSignals ? $json.insightCount : 0 }}')),
+  node('70000000-', 13, 'Build Slack Intelligence Digest', 'n8n-nodes-base.code', 2, [1600, -100], {
+    jsCode: String.raw`const analysis = $json;
+const byKey = new Map(analysis.posts.map((post) => [String(post.itemKey), post]));
+const escape = (value) => String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function section(title, entries, labelKey, detailKey) {
+  if (!entries.length) return '';
+  const lines = entries.slice(0, 4).map((entry) => {
+    const sources = entry.postKeys.slice(0, 3).map((key) => byKey.get(String(key))).filter(Boolean);
+    const links = sources.map((post) => '<' + post.postUrl + '|' + escape(post.channelTitle) + ' · ' + post.views + ' views>').join(', ');
+    return '• *' + escape(entry[labelKey]) + '* — ' + escape(entry[detailKey]) + '\n  Evidence: ' + links;
+  });
+  return '\n\n*' + title + '*\n' + lines.join('\n');
+}
+let message = '*Telegram Competitor Intelligence Digest*\n' + escape(analysis.executiveSummary);
+message += section('Launches', analysis.launches, 'launch', 'summary');
+message += section('Promotions', analysis.promotions, 'promotion', 'summary');
+message += section('Positioning changes', analysis.positioningChanges, 'change', 'summary');
+message += section('Topic shifts', analysis.topicShifts, 'topic', 'summary');
+if (analysis.topPosts.length) {
+  message += '\n\n*Top posts*\n' + analysis.topPosts.slice(0, 5).map((entry) => {
+    const post = byKey.get(String(entry.postKey));
+    return '• <' + post.postUrl + '|' + escape(post.channelTitle) + ' · ' + post.views + ' views> — ' + escape(entry.reason);
+  }).join('\n');
+}
+message += section('Recommended actions', analysis.recommendedActions, 'action', 'rationale');
+return [{ json: { slackMessage: message.slice(0, 38000) } }];`
+  }),
+  node('70000000-', 14, 'Send Slack Intelligence Digest', 'n8n-nodes-base.slack', 2.5, [1840, -100], {
+    resource: 'message',
+    operation: 'post',
+    select: 'channel',
+    channelId: { __rl: true, mode: 'id', value: 'C0000000000' },
+    messageType: 'text',
+    text: '={{ $json.slackMessage }}',
+    otherOptions: { includeLinkToWorkflow: false, unfurl_links: false, unfurl_media: false }
+  }),
+  node('70000000-', 15, 'Prepare Telegram Ledger', 'n8n-nodes-base.code', 2, [2080, -100], {
+    jsCode: String.raw`return $('Validate Telegram Intelligence').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'telegram-competitor-intelligence', itemKey } }));`
+  }),
+  node('70000000-', 16, 'Commit Delivered Telegram Posts', 'n8n-nodes-base.dataTable', 1.1, [2320, -100], ledgerInsertParameters('Slack')),
+  node('70000000-', 24, 'Telegram Intelligence Setup Form', 'n8n-nodes-base.formTrigger', 2.6, [-1280, 500], {
+    authentication: 'none',
+    formTitle: 'Configure Telegram Competitor Intelligence',
+    formDescription: 'Save the public channels, market context, lookback, and post limit used by daily and manual runs.',
+    formFields: { values: [
+      { fieldLabel: 'Public Telegram channels (one per line, maximum 10)', fieldName: 'channels', fieldType: 'textarea', requiredField: true },
+      { fieldLabel: 'Competitor and market context', fieldName: 'marketContext', fieldType: 'textarea', requiredField: true },
+      { fieldLabel: 'Lookback hours', fieldName: 'lookbackHours', fieldType: 'number', defaultValue: 24, requiredField: true },
+      { fieldLabel: 'Maximum posts per channel', fieldName: 'maxPostsPerChannel', fieldType: 'number', defaultValue: 10, requiredField: true }
+    ] },
+    responseMode: 'lastNode',
+    options: { appendAttribution: false, path: 'telegram-competitor-intelligence-setup', buttonLabel: 'Save configuration', ignoreBots: true, useWorkflowTimezone: true }
+  }),
+  node('70000000-', 25, 'Ensure Setup Delivery Ledger', 'n8n-nodes-base.dataTable', 1.1, [-1040, 500], createTableParameters('FetchCat Delivery Ledger', ledgerColumns)),
+  node('70000000-', 26, 'Ensure Setup Telegram Config', 'n8n-nodes-base.dataTable', 1.1, [-800, 500], createTableParameters('FetchCat Telegram Intelligence Config', telegramConfigColumns)),
+  node('70000000-', 27, 'Validate Telegram Setup', 'n8n-nodes-base.code', 2, [-560, 500], {
+    jsCode: String.raw`const input = $('Telegram Intelligence Setup Form').first().json;
+const rawChannels = String(input.channels || '').split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
+const channels = [...new Set(rawChannels)];
+if (channels.length < 1 || channels.length > 10) throw new Error('Enter one to ten public Telegram channels.');
+for (const channel of channels) {
+  if (/^https?:\/\//i.test(channel)) {
+    let url;
+    try { url = new URL(channel); } catch { throw new Error('Every Telegram channel URL must be valid.'); }
+    if (url.hostname !== 't.me' && url.hostname !== 'telegram.me') throw new Error('Telegram channel URLs must use t.me or telegram.me.');
+  } else if (!/^@?[A-Za-z0-9_]{5,64}$/.test(channel)) {
+    throw new Error('Telegram channel handles may contain letters, numbers, and underscores.');
+  }
+}
+const marketContext = String(input.marketContext || '').trim();
+if (marketContext.length < 20 || marketContext.length > 4000) throw new Error('Market context must be 20 to 4000 characters.');
+const lookbackHours = Number(input.lookbackHours);
+if (!Number.isInteger(lookbackHours) || lookbackHours < 1 || lookbackHours > 168) throw new Error('Lookback hours must be from 1 to 168.');
+const maxPostsPerChannel = Number(input.maxPostsPerChannel);
+if (!Number.isInteger(maxPostsPerChannel) || maxPostsPerChannel < 1 || maxPostsPerChannel > 25) throw new Error('Maximum posts per channel must be from 1 to 25.');
+return [{ json: {
+  configKey: 'default',
+  channels: channels.join('\n'),
+  marketContext,
+  lookbackHours,
+  maxPostsPerChannel
+} }];`
+  }),
+  node('70000000-', 28, 'Save Telegram Setup', 'n8n-nodes-base.dataTable', 1.1, [-320, 500], upsertConfigParameters('FetchCat Telegram Intelligence Config', telegramConfigColumns)),
+  node('70000000-', 29, 'Confirm Telegram Setup', 'n8n-nodes-base.code', 2, [-80, 500], {
+    jsCode: "return [{ json: { formSubmittedText: 'Telegram Competitor Intelligence configuration saved.' } }];"
+  }),
+  sticky('70000000-', 30, 'Workflow Overview', [-1560, -440], 1100, 300, '## Telegram Competitor Intelligence Digest\n\n### How it works\n\nA daily or manual run loads configuration saved by the setup form, runs the FetchCat Telegram Channel Posts Scraper against public channels, validates recent post records, checks a durable Data Table ledger, and sends at most one evidence-linked Slack digest after one structured OpenAI analysis. The model may summarize only supplied public posts, and every cited post key is checked before delivery. Post keys are committed to the ledger only after Slack succeeds.\n\n### Setup\n\nConnect Apify, OpenAI, and Slack credentials. Select the Slack channel in `Send Slack Intelligence Digest`. Run `Telegram Intelligence Setup Form` once with public channel handles or URLs, market context, lookback hours, and the per-channel post limit. Test manually before activating the daily schedule.', 1),
+  sticky('70000000-', 31, 'Monitor Channels', [-1540, -220], 1320, 380, '## Monitor and deduplicate\n\nNormal runs exit before Apify until setup exists. Public posts are capped at 50 and checked against `FetchCat Delivery Ledger` before AI.'),
+  sticky('70000000-', 32, 'Analyze Signals', [760, -220], 780, 380, '## Analyze one batch\n\nOne strict OpenAI request identifies material competitor signals. Validation rejects unknown post keys and malformed groups.'),
+  sticky('70000000-', 33, 'Deliver Intelligence', [1520, -220], 1040, 380, '## Deliver then commit\n\nSlack receives one source-linked digest only when material signals exist. Post keys are committed only after delivery succeeds.'),
+  sticky('70000000-', 34, 'Configure Monitor', [-1320, 360], 1440, 360, '## Configure without editing code\n\nThe setup form validates channels, context, lookback, and limits, then saves one reusable configuration row. Repeating setup updates that row.')
+];
+
+const telegramIntelligenceWorkflow = workflow(
+  'Telegram Competitor Intelligence Digest',
+  telegramIntelligenceNodes,
+  connectionMap([
+    ['Manual Trigger', 'Ensure Delivery Ledger'],
+    ['Daily Intelligence Schedule', 'Ensure Delivery Ledger'],
+    ['Ensure Delivery Ledger', 'Ensure Telegram Config Table'],
+    ['Ensure Telegram Config Table', 'Load Telegram Configuration'],
+    ['Load Telegram Configuration', 'Require Saved Configuration'],
+    ['Require Saved Configuration', 'Build Telegram Actor Input'],
+    ['Build Telegram Actor Input', 'Fetch Telegram Channel Posts'],
+    ['Fetch Telegram Channel Posts', 'Normalize Recent Posts'],
+    ['Normalize Recent Posts', 'Keep Undelivered Posts'],
+    ['Keep Undelivered Posts', 'Build Telegram Post Batch'],
+    ['Build Telegram Post Batch', 'Analyze Telegram Batch'],
+    ['Analyze Telegram Batch', 'Validate Telegram Intelligence'],
+    ['Validate Telegram Intelligence', 'Has Material Signals'],
+    ['Has Material Signals', 'Build Slack Intelligence Digest'],
+    ['Build Slack Intelligence Digest', 'Send Slack Intelligence Digest'],
+    ['Send Slack Intelligence Digest', 'Prepare Telegram Ledger'],
+    ['Prepare Telegram Ledger', 'Commit Delivered Telegram Posts'],
+    ['Telegram Intelligence Setup Form', 'Ensure Setup Delivery Ledger'],
+    ['Ensure Setup Delivery Ledger', 'Ensure Setup Telegram Config'],
+    ['Ensure Setup Telegram Config', 'Validate Telegram Setup'],
+    ['Validate Telegram Setup', 'Save Telegram Setup'],
+    ['Save Telegram Setup', 'Confirm Telegram Setup']
+  ])
+);
+
 const vintedNodes = [
   node('50000000-', 1, 'Manual Start Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1840, 212], {}),
   node('50000000-', 2, 'Hourly Alert Trigger', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1840, 12], {
@@ -1636,6 +2000,22 @@ const definitions = [
       integrations: ['Apify', 'OpenAI', 'Telegram', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.33 },
       releaseState: 'qa-passed'
+    }
+  },
+  {
+    slug: 'telegram-competitor-intelligence',
+    workflow: telegramIntelligenceWorkflow,
+    metadata: {
+      slug: 'telegram-competitor-intelligence',
+      title: 'Telegram Competitor Intelligence Digest',
+      workflowKind: 'actor-template',
+      actorId: 'IXhSSJjFf5fz1XAir',
+      actorSlug: 'fetch_cat/telegram-channel-posts-scraper',
+      version: '1.0.0',
+      minimumN8nVersion: '2.26.8',
+      integrations: ['Apify', 'OpenAI', 'Slack', 'n8n Data Tables'],
+      testLimits: { actorItems: 10, apifyBackedExecutions: 2, budgetUsd: 3.33 },
+      releaseState: 'development'
     }
   },
   {

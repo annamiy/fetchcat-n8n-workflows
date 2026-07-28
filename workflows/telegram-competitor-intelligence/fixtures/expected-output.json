@@ -1,0 +1,14 @@
+{
+  "assertions": [
+    "Every insight cites sample_competitor:2001 or sample_competitor:2002 and no unknown post key.",
+    "At most one Slack digest is produced for the complete batch.",
+    "The duplicate replay makes no OpenAI request and no Slack write.",
+    "Delivery ledger rows are inserted only after Slack reports success."
+  ],
+  "syntheticDigestContains": [
+    "Telegram Competitor Intelligence Digest",
+    "Teams plan",
+    "30 percent off",
+    "t.me"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "description": "Synthetic public Telegram post batch for deterministic validation and message rendering.",
+  "items": [
+    {
+      "itemKey": "sample_competitor:2001",
+      "postId": "2001",
+      "channelHandle": "sample_competitor",
+      "channelTitle": "Sample Competitor",
+      "postUrl": "https://t.me/sample_competitor/2001",
+      "text": "We are launching the new Teams plan next week with shared workspaces and audit logs.",
+      "postedAt": "2026-07-26T08:00:00.000Z",
+      "views": 12400,
+      "reactionCount": 620,
+      "replyCount": 84,
+      "forwards": 210,
+      "hashtags": [
+        "launch"
+      ],
+      "links": []
+    },
+    {
+      "itemKey": "sample_competitor:2002",
+      "postId": "2002",
+      "channelHandle": "sample_competitor",
+      "channelTitle": "Sample Competitor",
+      "postUrl": "https://t.me/sample_competitor/2002",
+      "text": "Annual plans are 30 percent off through Friday for new customers.",
+      "postedAt": "2026-07-27T08:00:00.000Z",
+      "views": 9800,
+      "reactionCount": 410,
+      "replyCount": 30,
+      "forwards": 120,
+      "hashtags": [
+        "offer"
+      ],
+      "links": []
+    }
+  ]
+}

@@ -164,15 +164,32 @@ for (const slug of workflowSlugs()) {
   if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts'].includes(slug)) {
     validateAutoAnnotatedStickies(slug, workflow);
   }
-  if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {
+  if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts', 'telegram-competitor-intelligence'].includes(slug)) {
     const openAiNodes = workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi');
     if (openAiNodes.length !== 1) fail(slug, 'must use exactly one OpenAI batch node');
     if (!serialized.includes('FetchCat Delivery Ledger')) fail(slug, 'does not reference the shared delivery ledger');
-    if (slug === 'reddit-buying-intent-alerts') {
+    if (['reddit-buying-intent-alerts', 'telegram-competitor-intelligence'].includes(slug)) {
       if (!workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.formTrigger' && /Setup Form$/.test(entry.name))) {
         fail(slug, 'does not provide a nontechnical setup form');
       }
       if (!fs.existsSync(path.join(dir, 'assets/setup-form.png'))) fail(slug, 'missing publication asset assets/setup-form.png');
+    }
+  }
+  if (slug === 'telegram-competitor-intelligence') {
+    for (const requiredNode of ['Daily Intelligence Schedule', 'Fetch Telegram Channel Posts', 'Send Slack Intelligence Digest', 'Commit Delivered Telegram Posts']) {
+      if (!names.has(requiredNode)) fail(slug, `missing required Telegram node ${requiredNode}`);
+    }
+    if (workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.slack').length !== 1) {
+      fail(slug, 'must use exactly one Slack destination node');
+    }
+    if (!serialized.includes('postKeys') || !serialized.includes('OpenAI cited a Telegram post outside the input batch')) {
+      fail(slug, 'must validate every AI citation against the Telegram input batch');
+    }
+    if (!serialized.includes('includeComments: false')) {
+      fail(slug, 'must keep Telegram comment-body extraction disabled');
+    }
+    if (!serialized.includes('includeMedia: false')) {
+      fail(slug, 'must keep Telegram media extraction disabled');
     }
   }
   if (slug === 'linkedin-job-match-digest') {

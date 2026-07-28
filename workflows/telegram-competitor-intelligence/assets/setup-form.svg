@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-opacity=".25"/></filter><style>.h{font:700 30px Inter,Arial,sans-serif;fill:#1f2430}.p{font:400 16px Inter,Arial,sans-serif;fill:#667085}.l{font:600 15px Inter,Arial,sans-serif;fill:#344054}.v{font:400 16px Inter,Arial,sans-serif;fill:#1f2430}.hint{font:400 13px Inter,Arial,sans-serif;fill:#8a8f9c}</style></defs>
+  <rect width="1200" height="900" fill="#f3f5f8"/><rect x="220" y="55" width="760" height="790" rx="24" fill="#fff" filter="url(#s)"/>
+  <circle cx="270" cy="108" r="20" fill="#2aabee"/><path d="M258 109l25-10-7 26-7-8-6 5 2-8z" fill="#fff"/>
+  <text x="310" y="114" class="h">Telegram Competitor Intelligence</text><text x="270" y="150" class="p">Save the public channels used by daily and manual runs.</text>
+  <text x="270" y="205" class="l">Public Telegram channels · maximum 10</text><rect x="270" y="220" width="660" height="92" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/><text x="290" y="252" class="v">@sample_competitor</text><text x="290" y="282" class="v">https://t.me/sample_market_news</text>
+  <text x="270" y="350" class="l">Competitor and market context</text><rect x="270" y="365" width="660" height="105" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/><text x="290" y="398" class="v">B2B workflow tools. Focus on launches, promotions, product</text><text x="290" y="426" class="v">positioning, topic changes, and unusually strong engagement.</text>
+  <text x="270" y="512" class="l">Lookback hours</text><rect x="270" y="527" width="310" height="52" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/><text x="290" y="559" class="v">24</text>
+  <text x="620" y="512" class="l">Maximum posts per channel</text><rect x="620" y="527" width="310" height="52" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/><text x="640" y="559" class="v">10</text>
+  <rect x="270" y="632" width="660" height="68" rx="12" fill="#f2faff" stroke="#a7dcfa"/><text x="294" y="660" class="l">Only public preview data is monitored.</text><text x="294" y="682" class="hint">Media downloads, comment bodies, and outreach remain disabled.</text>
+  <rect x="270" y="745" width="660" height="60" rx="12" fill="#2aabee"/><text x="520" y="783" style="font:700 17px Inter,Arial,sans-serif;fill:#fff">Save configuration</text>
+</svg>
