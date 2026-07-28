@@ -2014,8 +2014,14 @@ const definitions = [
       version: '1.0.0',
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Slack', 'n8n Data Tables'],
-      testLimits: { actorItems: 10, apifyBackedExecutions: 2, budgetUsd: 3.33 },
-      releaseState: 'development'
+      testLimits: {
+        actorItems: 10,
+        apifyBackedExecutions: 2,
+        openAiCallsPerHappyRun: 1,
+        slackWritesPerHappyRun: 1,
+        budgetUsd: 3.33
+      },
+      releaseState: 'qa-passed'
     }
   },
   {

@@ -15,7 +15,9 @@
   "testLimits": {
     "actorItems": 10,
     "apifyBackedExecutions": 2,
+    "openAiCallsPerHappyRun": 1,
+    "slackWritesPerHappyRun": 1,
     "budgetUsd": 3.33
   },
-  "releaseState": "development"
+  "releaseState": "qa-passed"
 }

@@ -62,3 +62,13 @@ missing-credential paths. Export, sanitize, reimport, and confirm that the
 round-trip copy remains inactive.
 
 Fixtures contain synthetic channels and posts only.
+
+## QA status
+
+QA passed on n8n 2.26.8 on 2026-07-28. The private draft remained inactive
+after credential-free import, private credential attachment, sanitized export,
+and exact-ID reimport. Setup was repeatable, the capped Actor checks completed
+without destination writes, and the deterministic two-post fixture produced
+one evidence-linked Slack digest. Replaying that fixture stopped before the AI
+and Slack nodes, malformed citations failed closed in deterministic validation,
+and ledger rows were inserted only after successful delivery.
