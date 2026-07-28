@@ -1,0 +1,21 @@
+{
+  "slug": "shopify-app-review-intelligence",
+  "title": "Shopify App Review Intelligence",
+  "workflowKind": "actor-template",
+  "actorId": "Zmw1t0sjxZybalRCz",
+  "actorSlug": "fetch_cat/shopify-app-reviews-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Slack",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 2,
+    "budgetUsd": 3.33
+  },
+  "releaseState": "development"
+}

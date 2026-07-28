@@ -1,0 +1,31 @@
+{
+  "description": "Synthetic Shopify App Store review batch for deterministic validation and message rendering.",
+  "items": [
+    {
+      "itemKey": "sample-subscriptions:review-1001",
+      "reviewId": "review-1001",
+      "appHandle": "sample-subscriptions",
+      "appName": "Sample Subscriptions",
+      "reviewUrl": "https://apps.shopify.com/sample-subscriptions/reviews?review_id=review-1001",
+      "rating": 1,
+      "reviewText": "Bulk plan changes fail for larger catalogs and support could not recover the update.",
+      "reviewDate": "2026-07-20T10:00:00.000Z",
+      "merchantName": "Synthetic Merchant A",
+      "merchantCountry": "PT",
+      "developerReplyText": ""
+    },
+    {
+      "itemKey": "sample-subscriptions:review-1002",
+      "reviewId": "review-1002",
+      "appHandle": "sample-subscriptions",
+      "appName": "Sample Subscriptions",
+      "reviewUrl": "https://apps.shopify.com/sample-subscriptions/reviews?review_id=review-1002",
+      "rating": 2,
+      "reviewText": "We need an audit log and a preview before applying subscription changes.",
+      "reviewDate": "2026-07-21T10:00:00.000Z",
+      "merchantName": "Synthetic Merchant B",
+      "merchantCountry": "US",
+      "developerReplyText": ""
+    }
+  ]
+}

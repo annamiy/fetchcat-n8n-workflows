@@ -1260,6 +1260,344 @@ const redditWorkflow = workflow(
   ])
 );
 
+const shopifyReviewSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'hasActionableInsights',
+    'executiveSummary',
+    'recurringComplaints',
+    'featureRequests',
+    'positiveSignals',
+    'urgentIssues',
+    'recommendedActions'
+  ],
+  properties: {
+    hasActionableInsights: { type: 'boolean' },
+    executiveSummary: { type: 'string', minLength: 1, maxLength: 1200 },
+    recurringComplaints: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['theme', 'summary', 'reviewIds'],
+        properties: {
+          theme: { type: 'string', minLength: 1, maxLength: 160 },
+          summary: { type: 'string', minLength: 1, maxLength: 600 },
+          reviewIds: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    featureRequests: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['feature', 'reason', 'reviewIds'],
+        properties: {
+          feature: { type: 'string', minLength: 1, maxLength: 160 },
+          reason: { type: 'string', minLength: 1, maxLength: 600 },
+          reviewIds: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    positiveSignals: {
+      type: 'array',
+      maxItems: 5,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['signal', 'summary', 'reviewIds'],
+        properties: {
+          signal: { type: 'string', minLength: 1, maxLength: 160 },
+          summary: { type: 'string', minLength: 1, maxLength: 600 },
+          reviewIds: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    urgentIssues: {
+      type: 'array',
+      maxItems: 5,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['issue', 'reason', 'reviewIds'],
+        properties: {
+          issue: { type: 'string', minLength: 1, maxLength: 160 },
+          reason: { type: 'string', minLength: 1, maxLength: 600 },
+          reviewIds: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    },
+    recommendedActions: {
+      type: 'array',
+      maxItems: 6,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['action', 'rationale', 'reviewIds'],
+        properties: {
+          action: { type: 'string', minLength: 1, maxLength: 240 },
+          rationale: { type: 'string', minLength: 1, maxLength: 600 },
+          reviewIds: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string', minLength: 1 } }
+        }
+      }
+    }
+  }
+};
+
+const shopifyConfigColumns = [
+  { name: 'configKey', type: 'string' },
+  { name: 'appTargets', type: 'string' },
+  { name: 'productContext', type: 'string' },
+  { name: 'ratings', type: 'string' },
+  { name: 'lookbackDays', type: 'number' },
+  { name: 'maxReviewsPerApp', type: 'number' }
+];
+
+const shopifyNodes = [
+  node('60000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1520, 80], {}),
+  node('60000000-', 2, 'Weekly Monday Schedule', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1520, -100], {
+    rule: { interval: [{ field: 'weeks', weeksInterval: 1, triggerAtDay: [1], triggerAtHour: 9, triggerAtMinute: 0 }] }
+  }),
+  node('60000000-', 20, 'Ensure Delivery Ledger', 'n8n-nodes-base.dataTable', 1.1, [-1280, 0], createTableParameters('FetchCat Delivery Ledger', ledgerColumns)),
+  node('60000000-', 21, 'Ensure Shopify Config Table', 'n8n-nodes-base.dataTable', 1.1, [-1040, 0], createTableParameters('FetchCat Shopify Review Config', shopifyConfigColumns)),
+  { ...node('60000000-', 3, 'Load Shopify Configuration', 'n8n-nodes-base.dataTable', 1.1, [-800, 0], configGetParameters('FetchCat Shopify Review Config')), alwaysOutputData: true },
+  node('60000000-', 4, 'Require Saved Configuration', 'n8n-nodes-base.code', 2, [-560, 0], {
+    jsCode: String.raw`const saved = $input.first()?.json || {};
+if (saved.configKey !== 'default') return [];
+if (!String(saved.appTargets || '').trim() || !String(saved.productContext || '').trim()) return [];
+return [{ json: saved }];`
+  }),
+  node('60000000-', 5, 'Build Shopify Actor Input', 'n8n-nodes-base.code', 2, [-320, 0], {
+    jsCode: String.raw`const config = $input.first().json;
+const rawTargets = String(config.appTargets || '').split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
+const targets = [...new Set(rawTargets)].slice(0, 3);
+if (targets.length === 0) throw new Error('Run the setup form and provide at least one Shopify app.');
+const appUrls = [];
+const appHandles = [];
+for (const target of targets) {
+  if (/^https?:\/\//i.test(target)) {
+    let url;
+    try { url = new URL(target); } catch { throw new Error('Every Shopify app URL must be valid.'); }
+    if (url.hostname !== 'apps.shopify.com') throw new Error('Shopify app URLs must use apps.shopify.com.');
+    appUrls.push(url.toString());
+  } else {
+    const handle = target.replace(/^@/, '').replace(/^\/+|\/+$/g, '');
+    if (!/^[a-z0-9][a-z0-9-]{1,99}$/i.test(handle)) throw new Error('Shopify app handles may contain letters, numbers, and hyphens.');
+    appHandles.push(handle);
+  }
+}
+const productContext = String(config.productContext || '').trim();
+if (productContext.length < 20 || productContext.length > 4000) throw new Error('Product context must be 20 to 4000 characters.');
+const ratings = [...new Set(String(config.ratings || '1,2,3').split(/[\s,]+/).map(Number).filter((value) => Number.isInteger(value) && value >= 1 && value <= 5))].sort().map(String);
+if (ratings.length === 0) throw new Error('Ratings must contain one or more values from 1 to 5.');
+const lookbackDays = Math.max(1, Math.min(Number(config.lookbackDays) || 30, 90));
+const maxReviewsPerApp = Math.max(1, Math.min(Number(config.maxReviewsPerApp) || 10, 25));
+return [{ json: {
+  config: { productContext, lookbackDays },
+  actorInput: { appUrls, appHandles, ratings, sortBy: 'newest', locale: 'en', maxReviewsPerApp }
+} }];`
+  }),
+  node('60000000-', 6, 'Fetch Shopify App Reviews', '@apify/n8n-nodes-apify.apify', 1, [-80, 0], actorParameters(
+    'Zmw1t0sjxZybalRCz',
+    'Shopify App Reviews Scraper & Monitor',
+    '={{ JSON.stringify($json.actorInput) }}'
+  )),
+  node('60000000-', 7, 'Normalize Recent Reviews', 'n8n-nodes-base.code', 2, [160, 0], {
+    jsCode: String.raw`const lookbackDays = Number($('Build Shopify Actor Input').first().json.config.lookbackDays);
+const cutoff = Date.now() - lookbackDays * 86400000;
+const seen = new Set();
+const reviews = [];
+for (const item of $input.all()) {
+  const row = item.json || {};
+  const appHandle = String(row.appHandle || '').trim();
+  const reviewId = String(row.reviewId || '').trim();
+  const reviewUrl = String(row.reviewUrl || '').trim();
+  const reviewText = String(row.reviewText || '').trim();
+  const reviewDate = String(row.reviewDate || '').trim();
+  const timestamp = Date.parse(reviewDate);
+  if (!appHandle || !reviewId || !reviewUrl.startsWith('https://apps.shopify.com/') || !reviewText || !Number.isFinite(timestamp) || timestamp < cutoff) continue;
+  const itemKey = appHandle + ':' + reviewId;
+  if (seen.has(itemKey)) continue;
+  seen.add(itemKey);
+  reviews.push({
+    itemKey,
+    reviewId,
+    appHandle,
+    appName: String(row.appName || appHandle),
+    appUrl: String(row.appUrl || ''),
+    reviewUrl,
+    rating: Number(row.rating || 0),
+    reviewText: reviewText.slice(0, 5000),
+    reviewDate: new Date(timestamp).toISOString(),
+    merchantName: String(row.merchantName || ''),
+    merchantCountry: String(row.merchantCountry || ''),
+    developerReplyText: String(row.developerReplyText || '').slice(0, 2000)
+  });
+}
+reviews.sort((a, b) => Date.parse(b.reviewDate) - Date.parse(a.reviewDate));
+return reviews.slice(0, 30).map((json) => ({ json }));`
+  }),
+  node('60000000-', 8, 'Keep Undelivered Reviews', 'n8n-nodes-base.dataTable', 1.1, [400, 0], ledgerCheckParameters('shopify-app-review-intelligence', '={{ $json.itemKey }}')),
+  node('60000000-', 9, 'Build Review Batch', 'n8n-nodes-base.code', 2, [640, 0], {
+    jsCode: String.raw`const reviews = $input.all().map((item) => item.json);
+if (reviews.length === 0) return [];
+return [{ json: { reviews, itemKeys: reviews.map((review) => review.itemKey), reviewIds: reviews.map((review) => review.reviewId) } }];`
+  }),
+  node('60000000-', 10, 'Analyze Review Batch', '@n8n/n8n-nodes-langchain.openAi', 2.3, [880, 0], openAiParameters(
+    '=Product and market context:\n{{ $("Build Shopify Actor Input").first().json.config.productContext }}\n\nAnalyze only these reviews. Every evidence reference must use a supplied reviewId:\n{{ JSON.stringify($json.reviews) }}',
+    'shopify_app_review_intelligence',
+    shopifyReviewSchema,
+    'Analyze the supplied Shopify App Store reviews as product evidence. Identify recurring complaints, explicit feature requests, positive differentiation, urgent issues, and practical actions. Do not invent facts or cite review IDs that are not supplied. Set hasActionableInsights false only when the batch contains no material product or market signal. Return the strict schema.',
+    6000
+  )),
+  node('60000000-', 11, 'Validate Review Intelligence', 'n8n-nodes-base.code', 2, [1120, 0], {
+    jsCode: `${parseStructured}
+const batch = $('Build Review Batch').first().json;
+const parsed = parseStructured($input.first().json, ['hasActionableInsights', 'executiveSummary', 'recurringComplaints', 'featureRequests', 'positiveSignals', 'urgentIssues', 'recommendedActions']);
+if (!parsed) throw new Error('OpenAI returned invalid Shopify review intelligence.');
+if (typeof parsed.hasActionableInsights !== 'boolean' || typeof parsed.executiveSummary !== 'string' || !parsed.executiveSummary.trim()) throw new Error('OpenAI returned malformed Shopify summary fields.');
+const groups = ['recurringComplaints', 'featureRequests', 'positiveSignals', 'urgentIssues', 'recommendedActions'];
+const expectedIds = new Set(batch.reviewIds.map(String));
+let insightCount = 0;
+for (const group of groups) {
+  if (!Array.isArray(parsed[group])) throw new Error('OpenAI returned a malformed Shopify insight group.');
+  insightCount += parsed[group].length;
+  for (const entry of parsed[group]) {
+    if (!Array.isArray(entry.reviewIds) || entry.reviewIds.length === 0) throw new Error('Every Shopify insight must cite at least one review.');
+    const ids = entry.reviewIds.map(String);
+    if (ids.some((value) => !expectedIds.has(value))) throw new Error('OpenAI cited a Shopify review outside the input batch.');
+    entry.reviewIds = [...new Set(ids)];
+  }
+}
+if (parsed.hasActionableInsights && insightCount === 0) throw new Error('OpenAI marked the Shopify batch actionable without evidence.');
+return [{ json: { ...parsed, executiveSummary: parsed.executiveSummary.trim(), insightCount, allKeys: batch.itemKeys, reviews: batch.reviews } }];`
+  }),
+  node('60000000-', 12, 'Has Actionable Insights', 'n8n-nodes-base.if', 2.2, [1360, 0], hasItemsParameters('={{ $json.hasActionableInsights ? $json.insightCount : 0 }}')),
+  node('60000000-', 13, 'Build Slack Review Digest', 'n8n-nodes-base.code', 2, [1600, -100], {
+    jsCode: String.raw`const analysis = $json;
+const byId = new Map(analysis.reviews.map((review) => [String(review.reviewId), review]));
+const escape = (value) => String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function section(title, entries, labelKey, detailKey) {
+  if (!entries.length) return '';
+  const lines = entries.slice(0, 4).map((entry) => {
+    const sources = entry.reviewIds.slice(0, 3).map((id) => byId.get(String(id))).filter(Boolean);
+    const links = sources.map((review) => '<' + review.reviewUrl + '|' + escape(review.appName) + ' · ' + review.rating + '★>').join(', ');
+    return '• *' + escape(entry[labelKey]) + '* — ' + escape(entry[detailKey]) + '\n  Evidence: ' + links;
+  });
+  return '\n\n*' + title + '*\n' + lines.join('\n');
+}
+let message = '*Shopify App Review Intelligence*\n' + escape(analysis.executiveSummary);
+message += section('Urgent issues', analysis.urgentIssues, 'issue', 'reason');
+message += section('Recurring complaints', analysis.recurringComplaints, 'theme', 'summary');
+message += section('Feature requests', analysis.featureRequests, 'feature', 'reason');
+message += section('Positive signals', analysis.positiveSignals, 'signal', 'summary');
+message += section('Recommended actions', analysis.recommendedActions, 'action', 'rationale');
+return [{ json: { slackMessage: message.slice(0, 38000) } }];`
+  }),
+  node('60000000-', 14, 'Send Slack Review Digest', 'n8n-nodes-base.slack', 2.5, [1840, -100], {
+    resource: 'message',
+    operation: 'post',
+    select: 'channel',
+    channelId: { __rl: true, mode: 'id', value: 'C0000000000' },
+    messageType: 'text',
+    text: '={{ $json.slackMessage }}',
+    otherOptions: { includeLinkToWorkflow: false, unfurl_links: false, unfurl_media: false }
+  }),
+  node('60000000-', 15, 'Prepare Review Ledger', 'n8n-nodes-base.code', 2, [2080, -100], {
+    jsCode: String.raw`return $('Validate Review Intelligence').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'shopify-app-review-intelligence', itemKey } }));`
+  }),
+  node('60000000-', 16, 'Commit Delivered Reviews', 'n8n-nodes-base.dataTable', 1.1, [2320, -100], ledgerInsertParameters('Slack')),
+  node('60000000-', 24, 'Shopify Review Setup Form', 'n8n-nodes-base.formTrigger', 2.6, [-1280, 500], {
+    authentication: 'none',
+    formTitle: 'Configure Shopify App Review Intelligence',
+    formDescription: 'Save the Shopify apps, ratings, lookback, and product context used by weekly and manual runs.',
+    formFields: { values: [
+      { fieldLabel: 'Shopify app URLs or handles (one per line, maximum 3)', fieldName: 'appTargets', fieldType: 'textarea', requiredField: true },
+      { fieldLabel: 'Product and market context', fieldName: 'productContext', fieldType: 'textarea', requiredField: true },
+      { fieldLabel: 'Ratings to monitor (comma-separated)', fieldName: 'ratings', fieldType: 'text', defaultValue: '1,2,3', requiredField: true },
+      { fieldLabel: 'Lookback days', fieldName: 'lookbackDays', fieldType: 'number', defaultValue: 30, requiredField: true },
+      { fieldLabel: 'Maximum reviews per app', fieldName: 'maxReviewsPerApp', fieldType: 'number', defaultValue: 10, requiredField: true }
+    ] },
+    responseMode: 'lastNode',
+    options: { appendAttribution: false, path: 'shopify-app-review-intelligence-setup', buttonLabel: 'Save configuration', ignoreBots: true, useWorkflowTimezone: true }
+  }),
+  node('60000000-', 25, 'Ensure Setup Delivery Ledger', 'n8n-nodes-base.dataTable', 1.1, [-1040, 500], createTableParameters('FetchCat Delivery Ledger', ledgerColumns)),
+  node('60000000-', 26, 'Ensure Setup Shopify Config', 'n8n-nodes-base.dataTable', 1.1, [-800, 500], createTableParameters('FetchCat Shopify Review Config', shopifyConfigColumns)),
+  node('60000000-', 27, 'Validate Shopify Setup', 'n8n-nodes-base.code', 2, [-560, 500], {
+    jsCode: String.raw`const input = $('Shopify Review Setup Form').first().json;
+const rawTargets = String(input.appTargets || '').split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
+const targets = [...new Set(rawTargets)];
+if (targets.length < 1 || targets.length > 3) throw new Error('Enter one to three Shopify app URLs or handles.');
+for (const target of targets) {
+  if (/^https?:\/\//i.test(target)) {
+    let url;
+    try { url = new URL(target); } catch { throw new Error('Every Shopify app URL must be valid.'); }
+    if (url.hostname !== 'apps.shopify.com') throw new Error('Shopify app URLs must use apps.shopify.com.');
+  } else if (!/^[a-z0-9][a-z0-9-]{1,99}$/i.test(target.replace(/^@/, ''))) {
+    throw new Error('Shopify app handles may contain letters, numbers, and hyphens.');
+  }
+}
+const productContext = String(input.productContext || '').trim();
+if (productContext.length < 20 || productContext.length > 4000) throw new Error('Product context must be 20 to 4000 characters.');
+const ratingValues = [...new Set(String(input.ratings || '').split(/[\s,]+/).map(Number).filter(Number.isFinite))];
+if (ratingValues.length < 1 || ratingValues.some((value) => !Number.isInteger(value) || value < 1 || value > 5)) throw new Error('Ratings must be comma-separated integers from 1 to 5.');
+const lookbackDays = Number(input.lookbackDays);
+if (!Number.isInteger(lookbackDays) || lookbackDays < 1 || lookbackDays > 90) throw new Error('Lookback days must be from 1 to 90.');
+const maxReviewsPerApp = Number(input.maxReviewsPerApp);
+if (!Number.isInteger(maxReviewsPerApp) || maxReviewsPerApp < 1 || maxReviewsPerApp > 25) throw new Error('Maximum reviews per app must be from 1 to 25.');
+return [{ json: {
+  configKey: 'default',
+  appTargets: targets.join('\n'),
+  productContext,
+  ratings: ratingValues.sort().join(','),
+  lookbackDays,
+  maxReviewsPerApp
+} }];`
+  }),
+  node('60000000-', 28, 'Save Shopify Setup', 'n8n-nodes-base.dataTable', 1.1, [-320, 500], upsertConfigParameters('FetchCat Shopify Review Config', shopifyConfigColumns)),
+  node('60000000-', 29, 'Confirm Shopify Setup', 'n8n-nodes-base.code', 2, [-80, 500], {
+    jsCode: "return [{ json: { formSubmittedText: 'Shopify App Review Intelligence configuration saved.' } }];"
+  }),
+  sticky('60000000-', 30, 'Workflow Overview', [-1560, -440], 1100, 300, '## Shopify App Review Intelligence\n\n### How it works\n\nA weekly or manual run loads configuration saved by the setup form, runs the FetchCat Shopify App Reviews Scraper, validates recent review records, checks a durable Data Table ledger, and sends at most one evidence-linked Slack digest after one structured OpenAI analysis. The model may summarize only supplied reviews, and every cited review ID is checked before delivery. Reviews are committed to the ledger only after Slack succeeds.\n\n### Setup\n\nConnect Apify, OpenAI, and Slack credentials. Select the Slack channel in `Send Slack Review Digest`. Run `Shopify Review Setup Form` once with one to three app URLs or handles, product context, ratings, lookback days, and the per-app limit. Test manually before activating the schedule.', 1),
+  sticky('60000000-', 31, 'Monitor Reviews', [-1540, -220], 1320, 380, '## Monitor and deduplicate\n\nNormal runs exit before Apify until setup exists. Recent valid reviews are capped at 30 and checked against `FetchCat Delivery Ledger` before AI.'),
+  sticky('60000000-', 32, 'Analyze Evidence', [760, -220], 780, 380, '## Analyze one batch\n\nOne strict OpenAI request identifies product signals. Validation rejects unknown review IDs, malformed groups, and unsupported actionable claims.'),
+  sticky('60000000-', 33, 'Deliver Digest', [1520, -220], 1040, 380, '## Deliver then commit\n\nSlack receives one concise evidence-linked digest only when actionable insights exist. Review keys are committed only after delivery succeeds.'),
+  sticky('60000000-', 34, 'Configure Monitor', [-1320, 360], 1440, 360, '## Configure without editing code\n\nThe setup form validates targets, context, ratings, lookback, and limits, then saves one reusable configuration row. Repeating setup updates that row.')
+];
+
+const shopifyWorkflow = workflow(
+  'Shopify App Review Intelligence',
+  shopifyNodes,
+  connectionMap([
+    ['Manual Trigger', 'Ensure Delivery Ledger'],
+    ['Weekly Monday Schedule', 'Ensure Delivery Ledger'],
+    ['Ensure Delivery Ledger', 'Ensure Shopify Config Table'],
+    ['Ensure Shopify Config Table', 'Load Shopify Configuration'],
+    ['Load Shopify Configuration', 'Require Saved Configuration'],
+    ['Require Saved Configuration', 'Build Shopify Actor Input'],
+    ['Build Shopify Actor Input', 'Fetch Shopify App Reviews'],
+    ['Fetch Shopify App Reviews', 'Normalize Recent Reviews'],
+    ['Normalize Recent Reviews', 'Keep Undelivered Reviews'],
+    ['Keep Undelivered Reviews', 'Build Review Batch'],
+    ['Build Review Batch', 'Analyze Review Batch'],
+    ['Analyze Review Batch', 'Validate Review Intelligence'],
+    ['Validate Review Intelligence', 'Has Actionable Insights'],
+    ['Has Actionable Insights', 'Build Slack Review Digest'],
+    ['Build Slack Review Digest', 'Send Slack Review Digest'],
+    ['Send Slack Review Digest', 'Prepare Review Ledger'],
+    ['Prepare Review Ledger', 'Commit Delivered Reviews'],
+    ['Shopify Review Setup Form', 'Ensure Setup Delivery Ledger'],
+    ['Ensure Setup Delivery Ledger', 'Ensure Setup Shopify Config'],
+    ['Ensure Setup Shopify Config', 'Validate Shopify Setup'],
+    ['Validate Shopify Setup', 'Save Shopify Setup'],
+    ['Save Shopify Setup', 'Confirm Shopify Setup']
+  ])
+);
+
 const vintedNodes = [
   node('50000000-', 1, 'Manual Start Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1840, 212], {}),
   node('50000000-', 2, 'Hourly Alert Trigger', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1840, 12], {
@@ -1636,6 +1974,22 @@ const definitions = [
       integrations: ['Apify', 'OpenAI', 'Telegram', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 3.33 },
       releaseState: 'qa-passed'
+    }
+  },
+  {
+    slug: 'shopify-app-review-intelligence',
+    workflow: shopifyWorkflow,
+    metadata: {
+      slug: 'shopify-app-review-intelligence',
+      title: 'Shopify App Review Intelligence',
+      workflowKind: 'actor-template',
+      actorId: 'Zmw1t0sjxZybalRCz',
+      actorSlug: 'fetch_cat/shopify-app-reviews-scraper',
+      version: '1.0.0',
+      minimumN8nVersion: '2.26.8',
+      integrations: ['Apify', 'OpenAI', 'Slack', 'n8n Data Tables'],
+      testLimits: { actorItems: 10, apifyBackedExecutions: 2, budgetUsd: 3.33 },
+      releaseState: 'development'
     }
   },
   {

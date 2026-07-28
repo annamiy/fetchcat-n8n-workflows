@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#14151a"/><stop offset="1" stop-color="#23252d"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-opacity=".28"/></filter>
+    <style>
+      .title{font:700 34px Inter,Arial,sans-serif;fill:#fff}.sub{font:400 18px Inter,Arial,sans-serif;fill:#b9bdc9}
+      .group{fill:#20222a;stroke:#3b3e49;stroke-width:2}.gt{font:700 18px Inter,Arial,sans-serif;fill:#e9eaf0}
+      .node{fill:#30333d;stroke:#565b69;stroke-width:2;filter:url(#shadow)}.accent{stroke:#ff6d5a}
+      .nt{font:600 14px Inter,Arial,sans-serif;fill:#fff}.small{font:400 12px Inter,Arial,sans-serif;fill:#b9bdc9}
+      .line{stroke:#7c8292;stroke-width:3;fill:none}.dot{fill:#ff6d5a}
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="70" y="70" class="title">Shopify App Review Intelligence</text>
+  <text x="70" y="104" class="sub">Inactive private n8n draft · weekly monitoring · evidence-bound AI · Slack delivery</text>
+  <rect x="55" y="145" width="1460" height="590" rx="24" class="group"/>
+  <text x="82" y="184" class="gt">Scheduled intelligence path</text>
+  <path class="line" d="M190 310H305M475 310H575M745 310H845M1015 310H1115M1285 310H1390"/>
+  <circle cx="247" cy="310" r="6" class="dot"/><circle cx="525" cy="310" r="6" class="dot"/><circle cx="795" cy="310" r="6" class="dot"/><circle cx="1065" cy="310" r="6" class="dot"/><circle cx="1337" cy="310" r="6" class="dot"/>
+  <g>
+    <rect x="80" y="245" width="110" height="130" rx="16" class="node accent"/><text x="103" y="290" class="nt">Trigger</text><text x="98" y="320" class="small">Manual or</text><text x="94" y="340" class="small">Monday 09:00</text>
+    <rect x="305" y="245" width="170" height="130" rx="16" class="node"/><text x="334" y="285" class="nt">Configuration</text><text x="334" y="315" class="small">Create tables</text><text x="334" y="336" class="small">Load saved setup</text>
+    <rect x="575" y="245" width="170" height="130" rx="16" class="node accent"/><text x="608" y="285" class="nt">FetchCat Actor</text><text x="608" y="315" class="small">Shopify reviews</text><text x="608" y="336" class="small">Newest first</text>
+    <rect x="845" y="245" width="170" height="130" rx="16" class="node"/><text x="878" y="285" class="nt">Validate + dedupe</text><text x="878" y="315" class="small">Recent review keys</text><text x="878" y="336" class="small">30 item AI cap</text>
+    <rect x="1115" y="245" width="170" height="130" rx="16" class="node accent"/><text x="1150" y="285" class="nt">OpenAI batch</text><text x="1150" y="315" class="small">Strict JSON schema</text><text x="1150" y="336" class="small">Verify citations</text>
+    <rect x="1390" y="245" width="100" height="130" rx="16" class="node"/><text x="1417" y="285" class="nt">Slack</text><text x="1408" y="315" class="small">One digest</text><text x="1406" y="336" class="small">Then ledger</text>
+  </g>
+  <rect x="80" y="455" width="1410" height="220" rx="20" fill="#1b1d23" stroke="#373a44" stroke-width="2"/>
+  <text x="110" y="497" class="gt">Safety and cost controls</text>
+  <g class="small">
+    <text x="110" y="540">✓ Exits before Apify until setup exists</text>
+    <text x="110" y="575">✓ Up to 3 apps · 25 reviews per app · 90-day lookback</text>
+    <text x="110" y="610">✓ Empty and duplicate paths make no AI or Slack write</text>
+    <text x="750" y="540">✓ Every insight cites a supplied review ID</text>
+    <text x="750" y="575">✓ Malformed AI output fails closed</text>
+    <text x="750" y="610">✓ Ledger commits only after Slack succeeds</text>
+  </g>
+  <text x="70" y="805" class="sub">FetchCat · n8n 2.26.8 · Apify · OpenAI · Slack · n8n Data Tables</text>
+</svg>

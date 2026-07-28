@@ -1,0 +1,14 @@
+{
+  "assertions": [
+    "Every insight cites review-1001 or review-1002 and no unknown review ID.",
+    "At most one Slack digest is produced for the complete batch.",
+    "The duplicate replay makes no OpenAI request and no Slack write.",
+    "Delivery ledger rows are inserted only after Slack reports success."
+  ],
+  "syntheticDigestContains": [
+    "Shopify App Review Intelligence",
+    "Bulk plan changes",
+    "Audit log",
+    "apps.shopify.com"
+  ]
+}

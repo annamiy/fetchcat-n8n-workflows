@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-opacity=".28"/></filter>
+  <style>.app{font:700 18px Inter,Arial,sans-serif;fill:#fff}.meta{font:400 13px Inter,Arial,sans-serif;fill:#9da3ae}.h{font:700 20px Inter,Arial,sans-serif;fill:#f5f6f8}.t{font:400 16px Inter,Arial,sans-serif;fill:#dde0e6}.b{font:700 16px Inter,Arial,sans-serif;fill:#fff}.link{font:600 15px Inter,Arial,sans-serif;fill:#5ea7ff}</style></defs>
+  <rect width="1200" height="900" fill="#1a1d21"/>
+  <rect x="120" y="60" width="960" height="780" rx="18" fill="#22262b" filter="url(#s)"/>
+  <rect x="120" y="60" width="960" height="74" rx="18" fill="#2d3138"/><circle cx="170" cy="97" r="22" fill="#ff6d5a"/><text x="205" y="92" class="app">FetchCat QA</text><text x="205" y="114" class="meta">APP · 09:04</text>
+  <text x="165" y="178" class="h">Shopify App Review Intelligence</text>
+  <text x="165" y="212" class="t">Two recent reviews point to a reliability problem in bulk plan changes and a</text><text x="165" y="237" class="t">clear request for safer previews and auditability.</text>
+  <text x="165" y="288" class="b">Urgent issues</text>
+  <text x="180" y="322" class="t">• Bulk subscription updates can fail without a recovery path.</text>
+  <text x="195" y="351" class="link">Sample Subscriptions · 1★ ↗</text>
+  <text x="165" y="405" class="b">Feature requests</text>
+  <text x="180" y="439" class="t">• Add a preview and audit log before applying catalog-wide changes.</text>
+  <text x="195" y="468" class="link">Sample Subscriptions · 2★ ↗</text>
+  <text x="165" y="522" class="b">Recommended actions</text>
+  <text x="180" y="556" class="t">• Prioritize an idempotent bulk-update job with rollback reporting.</text>
+  <text x="195" y="585" class="t">Evidence: review-1001</text>
+  <text x="180" y="625" class="t">• Prototype a change preview and searchable audit log.</text>
+  <text x="195" y="654" class="t">Evidence: review-1002</text>
+  <rect x="165" y="718" width="870" height="68" rx="10" fill="#1b1e22" stroke="#3b414a"/>
+  <text x="190" y="746" class="meta">Synthetic QA preview · direct review links preserved · no merchant outreach</text>
+  <text x="190" y="770" class="meta">Ledger commit occurs only after this Slack delivery succeeds.</text>
+</svg>

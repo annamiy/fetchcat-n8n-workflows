@@ -164,15 +164,26 @@ for (const slug of workflowSlugs()) {
   if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts'].includes(slug)) {
     validateAutoAnnotatedStickies(slug, workflow);
   }
-  if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {
+  if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts', 'shopify-app-review-intelligence'].includes(slug)) {
     const openAiNodes = workflow.nodes.filter((entry) => entry.type === '@n8n/n8n-nodes-langchain.openAi');
     if (openAiNodes.length !== 1) fail(slug, 'must use exactly one OpenAI batch node');
     if (!serialized.includes('FetchCat Delivery Ledger')) fail(slug, 'does not reference the shared delivery ledger');
-    if (slug === 'reddit-buying-intent-alerts') {
+    if (['reddit-buying-intent-alerts', 'shopify-app-review-intelligence'].includes(slug)) {
       if (!workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.formTrigger' && /Setup Form$/.test(entry.name))) {
         fail(slug, 'does not provide a nontechnical setup form');
       }
       if (!fs.existsSync(path.join(dir, 'assets/setup-form.png'))) fail(slug, 'missing publication asset assets/setup-form.png');
+    }
+  }
+  if (slug === 'shopify-app-review-intelligence') {
+    for (const requiredNode of ['Weekly Monday Schedule', 'Fetch Shopify App Reviews', 'Send Slack Review Digest', 'Commit Delivered Reviews']) {
+      if (!names.has(requiredNode)) fail(slug, `missing required Shopify node ${requiredNode}`);
+    }
+    if (workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.slack').length !== 1) {
+      fail(slug, 'must use exactly one Slack destination node');
+    }
+    if (!serialized.includes('reviewIds') || !serialized.includes('OpenAI cited a Shopify review outside the input batch')) {
+      fail(slug, 'must validate every AI citation against the Shopify input batch');
     }
   }
   if (slug === 'linkedin-job-match-digest') {

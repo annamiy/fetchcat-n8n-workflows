@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-opacity=".25"/></filter>
+  <style>.h{font:700 32px Inter,Arial,sans-serif;fill:#1f2430}.p{font:400 16px Inter,Arial,sans-serif;fill:#667085}.l{font:600 15px Inter,Arial,sans-serif;fill:#344054}.v{font:400 16px Inter,Arial,sans-serif;fill:#1f2430}.hint{font:400 13px Inter,Arial,sans-serif;fill:#8a8f9c}</style>
+  </defs>
+  <rect width="1200" height="900" fill="#f3f5f8"/>
+  <rect x="220" y="55" width="760" height="790" rx="24" fill="#fff" filter="url(#s)"/>
+  <circle cx="270" cy="108" r="20" fill="#ff6d5a"/><path d="M261 108h18M270 99v18" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <text x="310" y="114" class="h">Shopify App Review Intelligence</text>
+  <text x="270" y="150" class="p">Save the inputs used by weekly and manual runs.</text>
+  <text x="270" y="205" class="l">Shopify app URLs or handles · maximum 3</text>
+  <rect x="270" y="220" width="660" height="92" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/>
+  <text x="290" y="252" class="v">https://apps.shopify.com/sample-subscriptions</text><text x="290" y="282" class="v">sample-bundles</text>
+  <text x="270" y="350" class="l">Product and market context</text>
+  <rect x="270" y="365" width="660" height="105" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/>
+  <text x="290" y="398" class="v">Subscription and bundle apps for mid-market Shopify</text><text x="290" y="426" class="v">merchants. Focus on reliability and missing workflows.</text>
+  <text x="270" y="512" class="l">Ratings to monitor</text><rect x="270" y="527" width="205" height="52" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/><text x="290" y="559" class="v">1,2,3</text>
+  <text x="500" y="512" class="l">Lookback days</text><rect x="500" y="527" width="205" height="52" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/><text x="520" y="559" class="v">30</text>
+  <text x="730" y="512" class="l">Reviews per app</text><rect x="730" y="527" width="200" height="52" rx="10" fill="#fff" stroke="#d6d9e0" stroke-width="2"/><text x="750" y="559" class="v">10</text>
+  <rect x="270" y="632" width="660" height="68" rx="12" fill="#fff7f5" stroke="#ffc4ba"/>
+  <text x="294" y="660" class="l">The workflow creates both required Data Tables automatically.</text><text x="294" y="682" class="hint">Submitting again updates the same configuration row.</text>
+  <rect x="270" y="745" width="660" height="60" rx="12" fill="#ff6d5a"/><text x="520" y="783" style="font:700 17px Inter,Arial,sans-serif;fill:#fff">Save configuration</text>
+</svg>
