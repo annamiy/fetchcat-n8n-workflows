@@ -1989,7 +1989,7 @@ const definitions = [
       minimumN8nVersion: '2.26.8',
       integrations: ['Apify', 'OpenAI', 'Slack', 'n8n Data Tables'],
       testLimits: { actorItems: 10, apifyBackedExecutions: 2, budgetUsd: 3.33 },
-      releaseState: 'development'
+      releaseState: 'qa-passed'
     }
   },
   {

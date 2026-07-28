@@ -60,3 +60,7 @@ missing-credential paths. Export, sanitize, reimport, and confirm that the
 round-trip copy remains inactive.
 
 Fixtures contain synthetic stores and reviews only.
+
+Private QA passed on 2026-07-28 with two successful ten-item Actor runs, one
+source-linked Slack delivery, a zero-write duplicate replay, repeatable setup,
+credential-negative validation, and a clean export/sanitize/reimport round trip.

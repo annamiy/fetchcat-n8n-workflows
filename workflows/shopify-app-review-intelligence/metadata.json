@@ -17,5 +17,5 @@
     "apifyBackedExecutions": 2,
     "budgetUsd": 3.33
   },
-  "releaseState": "development"
+  "releaseState": "qa-passed"
 }
