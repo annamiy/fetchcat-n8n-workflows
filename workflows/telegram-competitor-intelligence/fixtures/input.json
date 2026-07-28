@@ -1,0 +1,35 @@
+{
+  "description": "Synthetic Telegram Actor output for deterministic transformation tests.",
+  "items": [
+    {
+      "id": "competitor-alpha:101",
+      "postId": "101",
+      "channelId": "competitor-alpha",
+      "channelUsername": "competitor_alpha",
+      "channelTitle": "Competitor Alpha",
+      "url": "https://t.me/competitor_alpha/101",
+      "date": "2026-01-01T10:00:00.000Z",
+      "text": "Launch week: we introduced annual plans, partner onboarding, and a new analytics dashboard for agencies.",
+      "views": 4200,
+      "reactions": 118,
+      "replies": 14,
+      "links": ["https://example.com/launch"],
+      "hashtags": ["launch", "analytics"]
+    },
+    {
+      "id": "competitor-beta:88",
+      "postId": "88",
+      "channelId": "competitor-beta",
+      "channelUsername": "competitor_beta",
+      "channelTitle": "Competitor Beta",
+      "url": "https://t.me/competitor_beta/88",
+      "date": "2026-01-01T09:00:00.000Z",
+      "text": "Reminder: support hours are unchanged during the holiday.",
+      "views": 300,
+      "reactions": 4,
+      "replies": 0,
+      "links": [],
+      "hashtags": []
+    }
+  ]
+}

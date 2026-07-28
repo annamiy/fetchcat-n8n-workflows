@@ -1,0 +1,17 @@
+{
+  "description": "Expected behavior for the synthetic Telegram fixture.",
+  "assertions": [
+    "Only undelivered Telegram post IDs are sent to the AI node.",
+    "The happy path uses exactly one OpenAI batch request.",
+    "The Slack digest cites https://t.me/competitor_alpha/101 as evidence.",
+    "Ledger rows are prepared only after the Slack delivery node succeeds.",
+    "Duplicate or empty runs create no Slack messages and no new ledger rows."
+  ],
+  "qualifiedSignals": [
+    {
+      "itemKey": "telegram-competitor-intelligence:competitor-alpha:101",
+      "signalType": "launch",
+      "evidenceUrl": "https://t.me/competitor_alpha/101"
+    }
+  ]
+}

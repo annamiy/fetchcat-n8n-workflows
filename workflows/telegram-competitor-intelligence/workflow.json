@@ -1,0 +1,1184 @@
+{
+  "name": "Telegram Competitor Intelligence Digest",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "30000000-0000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000002",
+      "name": "Every Two Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1520,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Delivery Ledger",
+        "columns": {
+          "column": [
+            {
+              "name": "workflowSlug",
+              "type": "string"
+            },
+            {
+              "name": "itemKey",
+              "type": "string"
+            },
+            {
+              "name": "destination",
+              "type": "string"
+            },
+            {
+              "name": "deliveredAt",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000020",
+      "name": "Ensure Delivery Ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Telegram Intelligence Config",
+        "columns": {
+          "column": [
+            {
+              "name": "configKey",
+              "type": "string"
+            },
+            {
+              "name": "channels",
+              "type": "string"
+            },
+            {
+              "name": "productContext",
+              "type": "string"
+            },
+            {
+              "name": "minimumScore",
+              "type": "number"
+            },
+            {
+              "name": "maxItems",
+              "type": "number"
+            },
+            {
+              "name": "slackChannelId",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000021",
+      "name": "Ensure Telegram Config Table",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1040,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Telegram Intelligence Config"
+        },
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "configKey",
+              "condition": "eq",
+              "keyValue": "default"
+            }
+          ]
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000003",
+      "name": "Load Telegram Configuration",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const saved = $input.first()?.json || {};\nconst channels = String(saved.channels || saved.channelUsernames || 'competitor_alpha,competitor_beta');\nreturn [{ json: {\n  configKey: 'default',\n  channels,\n  productContext: String(saved.productContext || 'Competitor product launches, promotions, positioning changes, topic shifts, and unusually strong organic Telegram posts.'),\n  minimumScore: Math.max(0, Math.min(Number(saved.minimumScore) || 70, 100)),\n  maxItems: Math.max(1, Math.min(Number(saved.maxItems) || 10, 10)),\n  slackChannelId: String(saved.slackChannelId || '')\n} }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000022",
+      "name": "Apply Telegram Defaults",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Telegram Intelligence Config"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "configKey",
+              "condition": "eq",
+              "keyValue": "default"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "configKey": "={{ $json.configKey }}",
+            "searchQuery": "={{ $json.searchQuery }}",
+            "subtelegram": "={{ $json.subtelegram }}",
+            "sort": "={{ $json.sort }}",
+            "timeFilter": "={{ $json.timeFilter }}",
+            "productContext": "={{ $json.productContext }}",
+            "minimumScore": "={{ $json.minimumScore }}",
+            "maxItems": "={{ $json.maxItems }}"
+          },
+          "schema": [
+            {
+              "id": "configKey",
+              "displayName": "configKey",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "searchQuery",
+              "displayName": "searchQuery",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subtelegram",
+              "displayName": "subtelegram",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sort",
+              "displayName": "sort",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timeFilter",
+              "displayName": "timeFilter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "productContext",
+              "displayName": "productContext",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "minimumScore",
+              "displayName": "minimumScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "maxItems",
+              "displayName": "maxItems",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000023",
+      "name": "Save Default Telegram Configuration",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $input.first()?.json;\nif (!config) throw new Error('Add a default row to the FetchCat Telegram Intelligence Config data table.');\nconst channels = String(config.channels || '').split(/[\\n,]/).map((value) => value.trim().replace(/^https?:\\/\\/t\\.me\\//i, '').replace(/^@/, '')).filter(Boolean).slice(0, 10);\nif (channels.length === 0) throw new Error('Configure at least one public Telegram channel username.');\nif (!config.productContext || String(config.productContext).length < 20) throw new Error('Product context must be at least 20 characters.');\nconst maxItems = Math.max(1, Math.min(Number(config.maxItems) || 10, 10));\nconst minimumScore = Math.max(0, Math.min(Number(config.minimumScore) || 70, 100));\nreturn [{ json: { config: { productContext: String(config.productContext), minimumScore, slackChannelId: String(config.slackChannelId || '') }, actorInput: {\n  channels,\n  maxItems,\n  maxPostsPerChannel: Math.max(1, Math.ceil(maxItems / channels.length)),\n  includeComments: false,\n  includeMedia: false\n} } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000004",
+      "name": "Build Actor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Actors",
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "IXhSSJjFf5fz1XAir",
+          "cachedResultName": "Telegram Scraper"
+        },
+        "customBody": "={{ JSON.stringify($json.actorInput) }}",
+        "timeout": 300,
+        "memory": 1024,
+        "build": "latest"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000005",
+      "name": "Fetch Telegram Posts",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalized = [];\nfor (const item of $input.all()) {\n  const post = item.json;\n  const postId = post.id || post.postId || post.messageId || post.url;\n  const text = String(post.text || post.message || post.caption || '').trim();\n  if (!postId || text.length < 20) continue;\n  const channel = String(post.channelUsername || post.channelTitle || post.channelId || '').replace(/^@/, '');\n  normalized.push({ json: {\n    telegramId: String(postId),\n    itemKey: 'telegram-competitor-intelligence:' + String(postId),\n    channel,\n    title: text.split(/\\n/)[0].slice(0, 140),\n    text: text.slice(0, 8000),\n    url: String(post.url || post.postUrl || ''),\n    createdAt: String(post.date || post.createdAt || post.timestamp || ''),\n    views: Number(post.views || 0),\n    reactions: Number(post.reactions || post.reactionsCount || 0),\n    replies: Number(post.replies || post.repliesCount || post.commentsCount || 0),\n    links: Array.isArray(post.links) ? post.links.slice(0, 5) : [],\n    hashtags: Array.isArray(post.hashtags) ? post.hashtags.slice(0, 10) : []\n  } });\n  if (normalized.length === 10) break;\n}\nreturn normalized;"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000006",
+      "name": "Normalize and Cap Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workflowSlug",
+              "condition": "eq",
+              "keyValue": "telegram-competitor-intelligence"
+            },
+            {
+              "keyName": "itemKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.telegramId }}"
+            }
+          ]
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000007",
+      "name": "Keep Undelivered Posts",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const posts = $input.all().map((item) => item.json);\nif (posts.length === 0) return [];\nreturn [{ json: { posts, telegramIds: posts.map((post) => post.telegramId) } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000008",
+      "name": "Build Telegram Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "user",
+              "content": "=Product/market context:\n{{ $(\"Build Actor Input\").first().json.config.productContext }}\n\nMinimum signal score: {{ $(\"Build Actor Input\").first().json.config.minimumScore }}\n\nAnalyze these public Telegram posts exactly once and preserve each telegramId. Cite only supplied urls:\n{{ JSON.stringify($json.posts) }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "builtInTools": {},
+        "options": {
+          "instructions": "Identify competitor launches, promotions, positioning shifts, recurring topics, and unusually strong Telegram posts. Return exactly one result for every supplied telegramId and no others. Qualified means material competitive intelligence with score at or above the supplied minimum. Every qualified result must be evidence-bound to the supplied post URL.",
+          "maxTokens": 4000,
+          "reasoning": {
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "verbosity": "low",
+              "name": "telegram_competitor_intelligence_batch",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"results\"],\"properties\":{\"results\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":10,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"telegramId\",\"qualified\",\"signalType\",\"score\",\"reason\",\"summary\",\"evidenceUrl\"],\"properties\":{\"telegramId\":{\"type\":\"string\",\"minLength\":1},\"qualified\":{\"type\":\"boolean\"},\"signalType\":{\"type\":\"string\",\"enum\":[\"launch\",\"promotion\",\"positioning\",\"topic_shift\",\"high_engagement\",\"other\",\"none\"]},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"reason\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500},\"evidenceUrl\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":1000}}}}}}",
+              "description": "Identify competitor launches, promotions, positioning shifts, recurring topics, and unusually strong Telegram posts. Return exactly one result for every supplied telegramId and no others. Qualified means material competitive intelligence with score at or above the supplied minimum. Every qualified result must be evidence-bound to the supplied post URL.",
+              "strict": true
+            }
+          }
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000009",
+      "name": "Classify Telegram Batch",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^```(?:json)?s*/i, '').replace(/s*```$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\nconst batch = $('Build Telegram Batch').first().json;\nconst parsed = parseStructured($input.first().json, ['results']);\nif (!parsed || !Array.isArray(parsed.results)) throw new Error('OpenAI returned an invalid Telegram intelligence batch.');\nconst expectedIds = new Set(batch.telegramIds);\nconst actualIds = parsed.results.map((result) => String(result.telegramId));\nif (actualIds.length !== expectedIds.size || new Set(actualIds).size !== actualIds.length || actualIds.some((value) => !expectedIds.has(value))) throw new Error('OpenAI result IDs do not exactly match the Telegram input batch.');\nconst minimumScore = Number($('Build Actor Input').first().json.config.minimumScore);\nconst signalTypes = new Set(['launch','promotion','positioning','topic_shift','high_engagement','other','none']);\nconst byId = new Map(batch.posts.map((post) => [post.telegramId, post]));\nconst qualifiedPosts = [];\nfor (const result of parsed.results) {\n  if (typeof result.qualified !== 'boolean' || !signalTypes.has(result.signalType) || !Number.isInteger(result.score) || result.score < 0 || result.score > 100 || typeof result.reason !== 'string' || !result.reason.trim() || typeof result.summary !== 'string' || !result.summary.trim() || typeof result.evidenceUrl !== 'string') throw new Error('OpenAI returned a malformed Telegram result.');\n  const post = byId.get(String(result.telegramId));\n  if (result.qualified && result.evidenceUrl !== post.url) throw new Error('OpenAI cited evidence outside the supplied Telegram post URL.');\n  if (!result.qualified || result.signalType === 'none' || result.score < minimumScore) continue;\n  qualifiedPosts.push({ ...post, intent: result.signalType, intentScore: result.score, reason: result.reason.trim(), summary: result.summary.trim() });\n}\nreturn [{ json: { allKeys: batch.posts.map((post) => post.itemKey), qualifiedPosts } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000010",
+      "name": "Validate Telegram Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "00000000-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.qualifiedPosts.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000011",
+      "name": "Has Qualified Posts",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const posts = $json.qualifiedPosts.sort((a, b) => b.intentScore - a.intentScore).slice(0, 5);\nif (posts.length === 0) return [];\nconst lines = posts.map((post, index) => {\n  const engagement = Number(post.views || 0) + ' views | ' + Number(post.reactions || 0) + ' reactions | ' + Number(post.replies || 0) + ' replies';\n  const created = post.createdAt ? ' | ' + post.createdAt : '';\n  return (index + 1) + '. *' + post.title + '* [' + post.intent + ', ' + post.intentScore + '/100]\\n' + (post.channel || 'Telegram') + ' | ' + engagement + created + '\\n' + post.summary + '\\nWhy it matters: ' + post.reason + '\\nEvidence: ' + post.url;\n});\nreturn [{ json: { digestText: '*Telegram Competitor Intelligence Digest*\\n\\n' + lines.join('\\n\\n'), slackChannelId: $(\"Build Actor Input\").first().json.config.slackChannelId } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000012",
+      "name": "Build Telegram Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": "={{ $json.slackChannelId || \"C0123456789\" }}",
+        "text": "={{ $json.digestText }}",
+        "otherOptions": {}
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000013",
+      "name": "Send Slack Digest",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2080,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Validate Telegram Batch').first().json.allKeys.map((itemKey) => ({ json: { workflowSlug: 'telegram-competitor-intelligence', itemKey } }));"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000014",
+      "name": "Prepare Delivery Ledger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "workflowSlug": "={{ $json.workflowSlug }}",
+            "itemKey": "={{ $json.itemKey }}",
+            "destination": "Telegram",
+            "deliveredAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "workflowSlug",
+              "displayName": "workflowSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itemKey",
+              "displayName": "itemKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination",
+              "displayName": "destination",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000015",
+      "name": "Commit Delivered Posts",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2560,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "formTitle": "Configure Telegram Competitor Intelligence Digest",
+        "formDescription": "Save the Telegram search and product context used by scheduled and manual runs.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Public Telegram channels (comma or newline separated)",
+              "fieldName": "channels",
+              "fieldType": "textarea",
+              "defaultValue": "competitor_alpha, competitor_beta",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Product or market context",
+              "fieldName": "productContext",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Slack channel ID or name",
+              "fieldName": "slackChannelId",
+              "fieldType": "text"
+            },
+            {
+              "fieldLabel": "Minimum signal score",
+              "fieldName": "minimumScore",
+              "fieldType": "number",
+              "defaultValue": 70,
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Maximum posts per run",
+              "fieldName": "maxItems",
+              "fieldType": "number",
+              "defaultValue": 10,
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "appendAttribution": false,
+          "path": "telegram-competitor-intelligence-setup",
+          "buttonLabel": "Save configuration",
+          "ignoreBots": true,
+          "useWorkflowTimezone": true
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000024",
+      "name": "Telegram Setup Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -1280,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Delivery Ledger",
+        "columns": {
+          "column": [
+            {
+              "name": "workflowSlug",
+              "type": "string"
+            },
+            {
+              "name": "itemKey",
+              "type": "string"
+            },
+            {
+              "name": "destination",
+              "type": "string"
+            },
+            {
+              "name": "deliveredAt",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000025",
+      "name": "Ensure Setup Delivery Ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1040,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Telegram Intelligence Config",
+        "columns": {
+          "column": [
+            {
+              "name": "configKey",
+              "type": "string"
+            },
+            {
+              "name": "channels",
+              "type": "string"
+            },
+            {
+              "name": "productContext",
+              "type": "string"
+            },
+            {
+              "name": "minimumScore",
+              "type": "number"
+            },
+            {
+              "name": "maxItems",
+              "type": "number"
+            },
+            {
+              "name": "slackChannelId",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000026",
+      "name": "Ensure Setup Telegram Config",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Telegram Setup Form').first().json;\nconst channels = String(input.channels || '').split(/[\\n,]/).map((value) => value.trim()).filter(Boolean);\nconst productContext = String(input.productContext || '').trim();\nconst minimumScore = Number(input.minimumScore);\nconst maxItems = Number(input.maxItems);\nconst slackChannelId = String(input.slackChannelId || '').trim();\nif (channels.length < 1 || channels.length > 10) throw new Error('Enter 1 to 10 public Telegram channel usernames or t.me URLs.');\nif (productContext.length < 20 || productContext.length > 4000) throw new Error('Product context must be 20 to 4000 characters.');\nif (!Number.isFinite(minimumScore) || minimumScore < 0 || minimumScore > 100) throw new Error('Minimum score must be between 0 and 100.');\nif (!Number.isFinite(maxItems) || maxItems < 1 || maxItems > 10) throw new Error('Max items must be between 1 and 10.');\nreturn [{ json: { configKey: 'default', channels: channels.join(','), productContext, minimumScore, maxItems, slackChannelId } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000027",
+      "name": "Validate Telegram Setup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Telegram Intelligence Config"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "configKey",
+              "condition": "eq",
+              "keyValue": "default"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "configKey": "={{ $json.configKey }}",
+            "searchQuery": "={{ $json.searchQuery }}",
+            "subtelegram": "={{ $json.subtelegram }}",
+            "sort": "={{ $json.sort }}",
+            "timeFilter": "={{ $json.timeFilter }}",
+            "productContext": "={{ $json.productContext }}",
+            "minimumScore": "={{ $json.minimumScore }}",
+            "maxItems": "={{ $json.maxItems }}"
+          },
+          "schema": [
+            {
+              "id": "configKey",
+              "displayName": "configKey",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "searchQuery",
+              "displayName": "searchQuery",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subtelegram",
+              "displayName": "subtelegram",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sort",
+              "displayName": "sort",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timeFilter",
+              "displayName": "timeFilter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "productContext",
+              "displayName": "productContext",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "minimumScore",
+              "displayName": "minimumScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "maxItems",
+              "displayName": "maxItems",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000028",
+      "name": "Save Telegram Setup",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -320,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { formSubmittedText: 'Telegram Competitor Intelligence Digest configuration saved.' } }];"
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000029",
+      "name": "Confirm Telegram Setup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "width": 920,
+        "height": 270,
+        "content": "## Telegram Competitor Intelligence Digest\n\nUse the setup form once to save the search, subtelegram, sorting, time window, product context, threshold, and item limit. Normal runs create the ledger and configuration tables automatically with safe defaults. Connect Apify, OpenAI, and Telegram, then select the destination group.",
+        "color": 7
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000016",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1560,
+        -440
+      ]
+    },
+    {
+      "parameters": {
+        "width": 1040,
+        "height": 270,
+        "content": "## Monitoring and delivery\n\nComments are disabled and the workflow never contacts authors. One strict AI call classifies the batch. A Telegram digest contains at most five posts. IDs are written to `FetchCat Delivery Ledger` only after delivery succeeds; empty and fully delivered runs send nothing.",
+        "color": 7
+      },
+      "id": "30000000-0000-0000-4000-8000-000000000017",
+      "name": "Safety Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -440
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Two Hours": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Telegram Config Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Telegram Config Table": {
+      "main": [
+        [
+          {
+            "node": "Load Telegram Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Telegram Configuration": {
+      "main": [
+        [
+          {
+            "node": "Apply Telegram Defaults",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Telegram Defaults": {
+      "main": [
+        [
+          {
+            "node": "Save Default Telegram Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Default Telegram Configuration": {
+      "main": [
+        [
+          {
+            "node": "Build Actor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Actor Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch Telegram Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Telegram Posts": {
+      "main": [
+        [
+          {
+            "node": "Normalize and Cap Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize and Cap Posts": {
+      "main": [
+        [
+          {
+            "node": "Keep Undelivered Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Undelivered Posts": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Batch": {
+      "main": [
+        [
+          {
+            "node": "Classify Telegram Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Telegram Batch": {
+      "main": [
+        [
+          {
+            "node": "Validate Telegram Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Telegram Batch": {
+      "main": [
+        [
+          {
+            "node": "Has Qualified Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Qualified Posts": {
+      "main": [
+        [
+          {
+            "node": "Build Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Telegram Digest": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Commit Delivered Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Setup Form": {
+      "main": [
+        [
+          {
+            "node": "Ensure Setup Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Setup Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Setup Telegram Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Setup Telegram Config": {
+      "main": [
+        [
+          {
+            "node": "Validate Telegram Setup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Telegram Setup": {
+      "main": [
+        [
+          {
+            "node": "Save Telegram Setup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Telegram Setup": {
+      "main": [
+        [
+          {
+            "node": "Confirm Telegram Setup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Digest": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
