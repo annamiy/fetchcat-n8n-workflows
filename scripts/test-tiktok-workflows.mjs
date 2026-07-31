@@ -63,6 +63,9 @@ const baseline = compare([]);
 assert.equal(baseline.shouldAlert, true);
 assert.equal(baseline.rows[0].changeStatus, 'Baseline created');
 assert.match(baseline.telegramMessage, /baseline created/i);
+assert.match(baseline.telegramMessage, /12,500 followers \| 120 videos/);
+assert.match(baseline.telegramMessage, /First snapshot saved\. Future runs will show changes\./);
+assert.doesNotMatch(baseline.telegramMessage, /baseline, baseline/i);
 
 const growth = compare([{
   'TikTok handle': '@sample_creator', Followers: 11500, 'Total likes': 470000,
@@ -74,6 +77,7 @@ assert.equal(growth.rows[0].videoChange, 3);
 assert.equal(growth.rows[0].qualification, 'Qualified');
 assert.equal(growth.rows[0].changeStatus, 'Growth alert');
 assert.match(growth.telegramMessage, /\+1,000/);
+assert.match(growth.telegramMessage, /Follower change: \+1,000 \(\+8\.7%\) \| Video change: \+3/);
 
 const unchanged = compare([{
   'TikTok handle': '@sample_creator', Followers: 12500, 'Total likes': 486000,

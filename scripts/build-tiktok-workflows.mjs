@@ -422,14 +422,18 @@ const rows = current.map((profile) => {
 const alertRows = rows.filter((row) => row.shouldAlert).sort((a, b) => (b.followerGrowthPercent ?? -Infinity) - (a.followerGrowthPercent ?? -Infinity));
 const escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const formatNumber = (value) => value === null ? 'unavailable' : Number(value).toLocaleString('en-US');
-const formatSigned = (value) => value === null ? 'baseline' : (value > 0 ? '+' : '') + formatNumber(value);
+const formatSigned = (value) => (value > 0 ? '+' : '') + formatNumber(value);
+const formatPercent = (value) => value === null ? 'unavailable' : (value > 0 ? '+' : '') + value + '%';
 const title = rows.every((row) => row.changeStatus === 'Baseline created') ? 'TikTok creator baseline created' : 'TikTok creator changes';
 const lines = alertRows.slice(0, 10).map((row, index) => {
-  const growth = row.followerGrowthPercent === null ? 'baseline' : (row.followerGrowthPercent > 0 ? '+' : '') + row.followerGrowthPercent + '%';
   const label = row.label ? ' | ' + escapeHtml(row.label) : '';
-  return (index + 1) + '. <a href="' + escapeHtml(row.profileUrl) + '"><b>' + escapeHtml(row.handle) + '</b></a>' + label + '\n' +
-    formatNumber(row.followers) + ' followers (' + formatSigned(row.followerChange) + ', ' + growth + ') | ' +
-    formatSigned(row.videoChange) + ' videos\n' + escapeHtml(row.qualification) + ' | ' + escapeHtml(row.changeStatus);
+  const heading = (index + 1) + '. <a href="' + escapeHtml(row.profileUrl) + '"><b>' + escapeHtml(row.handle) + '</b></a>' + label;
+  const totals = formatNumber(row.followers) + ' followers | ' + formatNumber(row.videosCount) + ' videos';
+  if (row.changeStatus === 'Baseline created') {
+    return heading + '\n' + totals + '\n' + escapeHtml(row.qualification) + ' | First snapshot saved. Future runs will show changes.';
+  }
+  return heading + '\n' + totals + '\nFollower change: ' + formatSigned(row.followerChange) + ' (' + formatPercent(row.followerGrowthPercent) + ') | Video change: ' +
+    formatSigned(row.videoChange) + '\n' + escapeHtml(row.qualification) + ' | ' + escapeHtml(row.changeStatus);
 });
 const telegramMessage = '<b>' + title + '</b>\n\n' + lines.join('\n\n') + (alertRows.length > 10 ? '\n\n+' + (alertRows.length - 10) + ' more changed creators in Google Sheets.' : '');
 return [{ json: { rows, shouldAlert: alertRows.length > 0, alertCount: alertRows.length, telegramMessage } }];`
@@ -610,7 +614,7 @@ export function buildTikTokDefinitions() {
         workflowKind: 'actor-template',
         actorId: ACTOR_ID,
         actorSlug: ACTOR_SLUG,
-        version: '1.0.0',
+        version: '1.0.1',
         minimumN8nVersion: '2.26.8',
         integrations: ['Apify', 'Google Sheets', 'Telegram'],
         testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },
