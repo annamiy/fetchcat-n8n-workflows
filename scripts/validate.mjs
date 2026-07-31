@@ -107,9 +107,12 @@ for (const slug of workflowSlugs()) {
   if (!workflow.connections || typeof workflow.connections !== 'object') fail(slug, 'workflow connections are missing');
 
   const names = new Set();
+  const nodeIds = new Set();
   for (const node of workflow.nodes ?? []) {
     if (!node.name || names.has(node.name)) fail(slug, `duplicate or missing node name: ${node.name ?? '<empty>'}`);
     names.add(node.name);
+    if (!node.id || nodeIds.has(node.id)) fail(slug, `duplicate or missing node ID: ${node.id ?? '<empty>'}`);
+    nodeIds.add(node.id);
     if (node.credentials) fail(slug, `${node.name} contains a credential reference`);
     if (!Array.isArray(node.position) || node.position.length !== 2) fail(slug, `${node.name} has no stable position`);
   }

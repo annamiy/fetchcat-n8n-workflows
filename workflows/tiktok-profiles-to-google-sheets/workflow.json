@@ -25,7 +25,7 @@
           ]
         }
       },
-      "id": "60000000-0000-0000-4000-8000-000000000007",
+      "id": "60000000-0000-0000-4000-8000-000000000008",
       "name": "Daily 09:00 Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
@@ -61,7 +61,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1328,
+        -1296,
         80
       ]
     },
@@ -74,7 +74,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1088,
+        -1056,
         80
       ]
     },
@@ -120,7 +120,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -848,
+        -816,
         80
       ]
     },
@@ -157,7 +157,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -608,
+        -576,
         80
       ]
     },
@@ -170,7 +170,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -368,
+        -336,
         80
       ]
     },
@@ -409,7 +409,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        -128,
+        -96,
         80
       ]
     },
@@ -431,50 +431,66 @@
     },
     {
       "parameters": {
-        "width": 480,
-        "height": 560,
-        "content": "## Enter the profile list\n\nStart manually or every day at 09:00, then use the editable Set node to provide TikTok handles or full profile URLs and choose a batch limit.",
+        "width": 240,
+        "height": 496,
+        "content": "## Trigger workflow\n\nRun manually while setting up and testing, or publish the workflow to run it every day at 09:00.",
         "color": 7
       },
       "id": "60000000-0000-0000-4000-8000-000000000021",
-      "name": "Enter Profile List",
+      "name": "Trigger Workflow",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         -1616,
-        -240
+        -176
       ]
     },
     {
       "parameters": {
-        "width": 480,
-        "height": 480,
-        "content": "## Run the FetchCat Actor\n\nValidates and deduplicates the input, runs `fetch_cat/tiktok-profile-scraper` once, and downloads the completed dataset.",
+        "width": 432,
+        "height": 304,
+        "content": "## Profile input and validation\n\nEnter TikTok handles or full profile URLs, choose a batch limit, and validate and deduplicate the list before using Actor credits.",
         "color": 7
       },
       "id": "60000000-0000-0000-4000-8000-000000000022",
-      "name": "Run Profile Scraper",
+      "name": "Profile Input and Validation",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -1136,
-        -240
+        -1344,
+        -48
       ]
     },
     {
       "parameters": {
-        "width": 768,
-        "height": 480,
-        "content": "## Save a readable profile table\n\nNormalizes dates, metrics, links, and account signals, then updates Google Sheets using TikTok handle as the unique key.",
+        "width": 432,
+        "height": 304,
+        "content": "## Scrape and download data\n\nRun `fetch_cat/tiktok-profile-scraper` once for the complete batch, wait for completion, and download the resulting public profile dataset.",
         "color": 7
       },
       "id": "60000000-0000-0000-4000-8000-000000000023",
-      "name": "Save Profile Table",
+      "name": "Scrape and Download Data",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -656,
-        -240
+        -864,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 304,
+        "content": "## Process and save to Sheets\n\nCreate human-readable dates, metrics, links, and account labels, then update Google Sheets using TikTok handle as the unique key.",
+        "color": 7
+      },
+      "id": "60000000-0000-0000-4000-8000-000000000024",
+      "name": "Process and Save to Sheets",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -48
       ]
     }
   ],

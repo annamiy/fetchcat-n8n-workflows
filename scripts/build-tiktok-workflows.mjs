@@ -171,10 +171,10 @@ return rows.map((profile) => {
 
 const simpleNodes = [
   node('60000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1568, 160], {}),
-  node('60000000-', 7, 'Daily 09:00 Trigger', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1568, -40], {
+  node('60000000-', 8, 'Daily 09:00 Trigger', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1568, -40], {
     rule: { interval: [{ field: 'days', daysInterval: 1, triggerAtHour: 9, triggerAtMinute: 0 }] }
   }),
-  node('60000000-', 2, '1. Enter TikTok Profiles', 'n8n-nodes-base.set', 3.4, [-1328, 80], {
+  node('60000000-', 2, '1. Enter TikTok Profiles', 'n8n-nodes-base.set', 3.4, [-1296, 80], {
     mode: 'manual',
     duplicateItem: false,
     assignments: { assignments: [
@@ -183,7 +183,7 @@ const simpleNodes = [
     ] },
     options: {}
   }),
-  node('60000000-', 3, 'Validate Profiles and Build Actor Input', 'n8n-nodes-base.code', 2, [-1088, 80], {
+  node('60000000-', 3, 'Validate Profiles and Build Actor Input', 'n8n-nodes-base.code', 2, [-1056, 80], {
     jsCode: String.raw`const input = $input.first()?.json || {};
 const raw = String(input.profiles || '').split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
 const maxProfiles = Math.max(1, Math.min(500, Math.floor(Number(input.maxProfiles) || 25)));
@@ -204,10 +204,10 @@ for (const value of raw) {
 if (seen.size > maxProfiles) throw new Error('You entered ' + seen.size + ' unique profiles but maxProfiles is ' + maxProfiles + '.');
 return [{ json: { maxProfiles, actorInput: { handles, profileUrls, maxProfiles, includeRecentVideos: false, maxVideosPerProfile: 0, maxConcurrency: 3, runTimeSecs: 180, proxyConfiguration: { useApifyProxy: true } } } }];`
   }),
-  node('60000000-', 4, '2. Run FetchCat TikTok Profile Scraper', 'n8n-nodes-base.httpRequest', 4.3, [-848, 80], apifyRunParameters('={{ $json.actorInput }}')),
-  node('60000000-', 5, 'Download TikTok Profile Results', 'n8n-nodes-base.httpRequest', 4.3, [-608, 80], apifyDatasetParameters('={{ $("Validate Profiles and Build Actor Input").first().json.maxProfiles }}')),
-  node('60000000-', 6, 'Prepare Human-Readable Profile Rows', 'n8n-nodes-base.code', 2, [-368, 80], { jsCode: normalizeProfileCode }),
-  node('60000000-', 7, '3. Save Profiles to Google Sheets', 'n8n-nodes-base.googleSheets', 4.7, [-128, 80], {
+  node('60000000-', 4, '2. Run FetchCat TikTok Profile Scraper', 'n8n-nodes-base.httpRequest', 4.3, [-816, 80], apifyRunParameters('={{ $json.actorInput }}')),
+  node('60000000-', 5, 'Download TikTok Profile Results', 'n8n-nodes-base.httpRequest', 4.3, [-576, 80], apifyDatasetParameters('={{ $("Validate Profiles and Build Actor Input").first().json.maxProfiles }}')),
+  node('60000000-', 6, 'Prepare Human-Readable Profile Rows', 'n8n-nodes-base.code', 2, [-336, 80], { jsCode: normalizeProfileCode }),
+  node('60000000-', 7, '3. Save Profiles to Google Sheets', 'n8n-nodes-base.googleSheets', 4.7, [-96, 80], {
     operation: 'appendOrUpdate',
     ...sheetRef('TikTok Profiles'),
     columns: {
@@ -262,9 +262,10 @@ Collect current public TikTok profile data with \`${ACTOR_SLUG}\` and save one c
 - [ ] Run manually and inspect the resulting profile table, then publish the workflow to enable the daily schedule.
 
 Recent videos are intentionally disabled because TikTok does not expose them consistently.`, 1),
-  sticky('60000000-', 21, 'Enter Profile List', [-1616, -240], 480, 560, '## Enter the profile list\n\nStart manually or every day at 09:00, then use the editable Set node to provide TikTok handles or full profile URLs and choose a batch limit.'),
-  sticky('60000000-', 22, 'Run Profile Scraper', [-1136, -240], 480, 480, `## Run the FetchCat Actor\n\nValidates and deduplicates the input, runs \`${ACTOR_SLUG}\` once, and downloads the completed dataset.`),
-  sticky('60000000-', 23, 'Save Profile Table', [-656, -240], 768, 480, '## Save a readable profile table\n\nNormalizes dates, metrics, links, and account signals, then updates Google Sheets using TikTok handle as the unique key.')
+  sticky('60000000-', 21, 'Trigger Workflow', [-1616, -176], 240, 496, '## Trigger workflow\n\nRun manually while setting up and testing, or publish the workflow to run it every day at 09:00.'),
+  sticky('60000000-', 22, 'Profile Input and Validation', [-1344, -48], 432, 304, '## Profile input and validation\n\nEnter TikTok handles or full profile URLs, choose a batch limit, and validate and deduplicate the list before using Actor credits.'),
+  sticky('60000000-', 23, 'Scrape and Download Data', [-864, -48], 432, 304, `## Scrape and download data\n\nRun \`${ACTOR_SLUG}\` once for the complete batch, wait for completion, and download the resulting public profile dataset.`),
+  sticky('60000000-', 24, 'Process and Save to Sheets', [-384, -48], 432, 304, '## Process and save to Sheets\n\nCreate human-readable dates, metrics, links, and account labels, then update Google Sheets using TikTok handle as the unique key.')
 ];
 
 const simpleWorkflow = workflow(
