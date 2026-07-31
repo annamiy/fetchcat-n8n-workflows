@@ -11,12 +11,10 @@ and Google Sheets nodes, and does not require OpenAI or an n8n community node.
 
 ## Setup
 
-1. Create a Google Sheet tab named `TikTok Profiles` with this header row:
-
-```text
-Updated at | Profile | TikTok handle | Name | Bio | Followers | Following | Total likes | Videos | Likes per video | Follower/following ratio | Verified | Private account | Region | Language | Bio link | Commerce account | TikTok seller | Live now | User ID
-```
-
+1. Open the [public spreadsheet template](https://docs.google.com/spreadsheets/d/11sXzrv9g7rECryFt6HkWcXQxh7hpyHteuRT-cxcQZrE/edit?usp=drive_link),
+   choose **File > Make a copy**, and save your private copy in Google Drive.
+   The included `TikTok Profiles` tab already has the expected headers and
+   formatting.
 2. Import `workflow.json` into n8n.
 3. Open `1. Enter TikTok Profiles` and paste handles or full profile URLs into
    `profiles`, separated by commas or new lines. The included examples are
@@ -24,11 +22,18 @@ Updated at | Profile | TikTok handle | Name | Bio | Followers | Following | Tota
 4. Set `maxProfiles` from 1 through 500. The default public template uses 25.
 5. Create an HTTP Header Auth credential with header `Authorization` and value
    `Bearer YOUR_APIFY_TOKEN`. Select it in both FetchCat HTTP Request nodes.
-6. Connect Google Sheets in `3. Save Profiles to Google Sheets`, then select the
-   spreadsheet and `TikTok Profiles` tab.
-7. Run the workflow manually and format `Updated at` as a Google Sheets date and
-   time column. Publish the workflow only after the test succeeds to enable its
-   daily 09:00 schedule.
+6. Connect Google Sheets in `3. Save Profiles to Google Sheets`, then select
+   your copied spreadsheet and its `TikTok Profiles` tab.
+7. Run the workflow manually and confirm that it updates your copied sheet.
+   Publish the workflow only after the test succeeds to enable its daily 09:00
+   schedule.
+
+If you prefer to create a spreadsheet manually, name its tab `TikTok Profiles`
+and add this header row:
+
+```text
+Updated at | Profile | TikTok handle | Name | Bio | Followers | Following | Total likes | Videos | Likes per video | Follower/following ratio | Verified | Private account | Region | Language | Bio link | Commerce account | TikTok seller | Live now | User ID
+```
 
 Positive states are self-describing: `☑ Verified`, `☑ Private account`,
 `☑ Commerce account`, `☑ TikTok seller`, or `☑ Live now`. Negative states are

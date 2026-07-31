@@ -21,11 +21,15 @@ profile ratios when TikTok exposes them.
 
 ## Setup
 
+Open the [public spreadsheet template](https://docs.google.com/spreadsheets/d/11sXzrv9g7rECryFt6HkWcXQxh7hpyHteuRT-cxcQZrE/edit?usp=drive_link),
+choose **File > Make a copy**, and save your private copy in Google Drive. Its
+`TikTok Profiles` tab already contains the required columns and formatting.
+
 Create an n8n HTTP Header Auth credential with header `Authorization` and value
-`Bearer YOUR_APIFY_TOKEN`, then select it in both FetchCat request nodes. Create
-the documented `TikTok Profiles` sheet, connect Google Sheets, select the tab,
-and replace the example handles in `1. Enter TikTok Profiles`. Test manually,
-then publish the workflow to enable the daily schedule.
+`Bearer YOUR_APIFY_TOKEN`, then select it in both FetchCat request nodes.
+Connect Google Sheets, select your copied spreadsheet and its `TikTok Profiles`
+tab, and replace the example handles in `1. Enter TikTok Profiles`. Test
+manually, then publish the workflow to enable the daily schedule.
 
 The workflow runs on n8n Cloud or self-hosted n8n, uses built-in nodes, and does
 not require an AI model. At current Free-tier Actor pricing, 25 profiles cost

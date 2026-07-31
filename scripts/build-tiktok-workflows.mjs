@@ -255,10 +255,10 @@ Collect current public TikTok profile data with \`${ACTOR_SLUG}\` and save one c
 
 ### Setup
 
+- [ ] [Open the public spreadsheet template](https://docs.google.com/spreadsheets/d/11sXzrv9g7rECryFt6HkWcXQxh7hpyHteuRT-cxcQZrE/edit?usp=drive_link), choose File > Make a copy, and save the copy in your Google Drive.
 - [ ] Paste up to 500 handles or profile URLs into 1. Enter TikTok Profiles.
 - [ ] Create an Apify HTTP Header Auth credential and select it in both FetchCat request nodes.
-- [ ] Create a TikTok Profiles sheet with the documented headers.
-- [ ] Connect Google Sheets and select the spreadsheet and tab in 3. Save Profiles to Google Sheets.
+- [ ] Connect Google Sheets and select your copied spreadsheet and its TikTok Profiles tab in 3. Save Profiles to Google Sheets.
 - [ ] Run manually and inspect the resulting profile table, then publish the workflow to enable the daily schedule.
 
 Recent videos are intentionally disabled because TikTok does not expose them consistently.`, 1),
