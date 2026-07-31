@@ -35,7 +35,7 @@ assert.equal(simpleRows.length, 1);
 assert.equal(simpleRows[0].json.handle, '@sample_creator');
 assert.equal(simpleRows[0].json.followers, 12500);
 assert.equal(simpleRows[0].json.verified, '✕ No');
-assert.equal(simpleRows[0].json.commerceUser, '✓ Yes');
+assert.equal(simpleRows[0].json.commerceUser, '☑ Commerce account');
 assert.match(simpleRows[0].json.profileLink, /HYPERLINK/);
 assert.ok(Number.isFinite(simpleRows[0].json.updatedAt));
 assert.equal(simple.nodes.find((entry) => entry.name === '3. Save Profiles to Google Sheets').parameters.operation, 'appendOrUpdate');

@@ -14,8 +14,8 @@ trigger. It works on n8n Cloud or self-hosted n8n and does not use OpenAI.
 Create one spreadsheet with three tabs.
 
 Format `Updated at` and `Snapshot at` as date-time columns. Use `Active` or
-`Paused` in the watchlist control column. `Verified` is written as `✓ Yes` or
-`✕ No`; optional conditional formatting can color these green and red.
+`Paused` in the watchlist control column. `Verified` is written as `☑ Verified`
+or `✕ No`; optional conditional formatting can color these green and light gray.
 Snapshot keys are written as readable values such as
 `@apify | 2026-07-31 09:46:23 UTC`.
 

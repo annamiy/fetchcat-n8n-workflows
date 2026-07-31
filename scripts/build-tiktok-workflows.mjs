@@ -137,7 +137,7 @@ const serial = (value) => {
 };
 const numberOrNull = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
 const formula = (url, label) => url ? '=HYPERLINK("' + String(url).replace(/"/g, '""') + '","' + String(label).replace(/"/g, '""') + '")' : '';
-const yesNo = (value) => value === true ? '✓ Yes' : '✕ No';
+const stateLabel = (value, label) => value === true ? '☑ ' + label : '✕ No';
 return rows.map((profile) => {
   const handleKey = String(profile.handle).trim().replace(/^@/, '').toLowerCase();
   const profileUrl = String(profile.profileUrl || ('https://www.tiktok.com/@' + handleKey));
@@ -156,15 +156,15 @@ return rows.map((profile) => {
     videosCount: numberOrNull(profile.videosCount),
     likesPerVideo: numberOrNull(profile.likesPerVideo),
     followerFollowingRatio: numberOrNull(profile.followerFollowingRatio),
-    verified: yesNo(profile.verified),
-    privateAccount: yesNo(profile.privateAccount),
+    verified: stateLabel(profile.verified, 'Verified'),
+    privateAccount: stateLabel(profile.privateAccount, 'Private account'),
     region: String(profile.region || ''),
     language: String(profile.language || ''),
     bioLink: formula(profile.bioLink, 'Open bio link'),
     bioLinkUrl: String(profile.bioLink || ''),
-    commerceUser: yesNo(profile.commerceUser),
-    tiktokSeller: yesNo(profile.tiktokSeller),
-    isLive: yesNo(profile.isLive),
+    commerceUser: stateLabel(profile.commerceUser, 'Commerce account'),
+    tiktokSeller: stateLabel(profile.tiktokSeller, 'TikTok seller'),
+    isLive: stateLabel(profile.isLive, 'Live now'),
     userId: String(profile.userId || '')
   } };
 });`;
@@ -603,7 +603,7 @@ export function buildTikTokDefinitions() {
         workflowKind: 'actor-template',
         actorId: ACTOR_ID,
         actorSlug: ACTOR_SLUG,
-        version: '1.1.1',
+        version: '1.1.2',
         minimumN8nVersion: '2.26.8',
         integrations: ['Apify', 'Google Sheets'],
         testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },
@@ -619,7 +619,7 @@ export function buildTikTokDefinitions() {
         workflowKind: 'actor-template',
         actorId: ACTOR_ID,
         actorSlug: ACTOR_SLUG,
-        version: '1.0.3',
+        version: '1.0.4',
         minimumN8nVersion: '2.26.8',
         integrations: ['Apify', 'Google Sheets', 'Telegram'],
         testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

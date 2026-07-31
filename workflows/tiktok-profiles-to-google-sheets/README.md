@@ -30,9 +30,10 @@ Updated at | Profile | TikTok handle | Name | Bio | Followers | Following | Tota
    time column. Publish the workflow only after the test succeeds to enable its
    daily 09:00 schedule.
 
-`Verified`, `Private account`, `Commerce account`, `TikTok seller`, and `Live
-now` are written as `✓ Yes` or `✕ No`. Optional Google Sheets conditional
-formatting can display Yes with a pale green fill and No with a pale red fill.
+Positive states are self-describing: `☑ Verified`, `☑ Private account`,
+`☑ Commerce account`, `☑ TikTok seller`, or `☑ Live now`. Negative states are
+written as `✕ No`. Optional Google Sheets conditional formatting can display
+positive states with a pale green fill and No with a quiet light gray fill.
 Format `User ID` as plain text so long numeric IDs remain consistently aligned.
 
 ## Output
