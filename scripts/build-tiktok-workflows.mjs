@@ -116,14 +116,14 @@ const simpleFields = [
   { name: 'Videos', type: 'number' },
   { name: 'Likes per video', type: 'number' },
   { name: 'Follower/following ratio', type: 'number' },
-  { name: 'Verified', type: 'boolean' },
-  { name: 'Private account', type: 'boolean' },
+  { name: 'Verified' },
+  { name: 'Private account' },
   { name: 'Region' },
   { name: 'Language' },
   { name: 'Bio link' },
-  { name: 'Commerce account', type: 'boolean' },
-  { name: 'TikTok seller', type: 'boolean' },
-  { name: 'Live now', type: 'boolean' },
+  { name: 'Commerce account' },
+  { name: 'TikTok seller' },
+  { name: 'Live now' },
   { name: 'User ID' }
 ];
 
@@ -137,6 +137,7 @@ const serial = (value) => {
 };
 const numberOrNull = (value) => Number.isFinite(Number(value)) ? Number(value) : null;
 const formula = (url, label) => url ? '=HYPERLINK("' + String(url).replace(/"/g, '""') + '","' + String(label).replace(/"/g, '""') + '")' : '';
+const yesNo = (value) => value === true ? '✓ Yes' : '✕ No';
 return rows.map((profile) => {
   const handleKey = String(profile.handle).trim().replace(/^@/, '').toLowerCase();
   const profileUrl = String(profile.profileUrl || ('https://www.tiktok.com/@' + handleKey));
@@ -155,15 +156,15 @@ return rows.map((profile) => {
     videosCount: numberOrNull(profile.videosCount),
     likesPerVideo: numberOrNull(profile.likesPerVideo),
     followerFollowingRatio: numberOrNull(profile.followerFollowingRatio),
-    verified: profile.verified === true,
-    privateAccount: profile.privateAccount === true,
+    verified: yesNo(profile.verified),
+    privateAccount: yesNo(profile.privateAccount),
     region: String(profile.region || ''),
     language: String(profile.language || ''),
     bioLink: formula(profile.bioLink, 'Open bio link'),
     bioLinkUrl: String(profile.bioLink || ''),
-    commerceUser: profile.commerceUser === true,
-    tiktokSeller: profile.tiktokSeller === true,
-    isLive: profile.isLive === true,
+    commerceUser: yesNo(profile.commerceUser),
+    tiktokSeller: yesNo(profile.tiktokSeller),
+    isLive: yesNo(profile.isLive),
     userId: String(profile.userId || '')
   } };
 });`;
@@ -314,7 +315,7 @@ const currentFields = [
   { name: 'Videos', type: 'number' },
   { name: 'Video count change', type: 'number' },
   { name: 'Likes per video', type: 'number' },
-  { name: 'Verified', type: 'boolean' },
+  { name: 'Verified' },
   { name: 'Region' },
   { name: 'Language' },
   { name: 'Bio link' },
@@ -334,7 +335,7 @@ const monitorNodes = [
   }), alwaysOutputData: true },
   node('61000000-', 4, 'Validate Watchlist and Build Actor Input', 'n8n-nodes-base.code', 2, [-1568, 80], {
     jsCode: String.raw`const rows = $input.all().map((item) => item.json || {});
-const isActive = (value) => !['false', 'no', '0', 'inactive'].includes(String(value ?? '').trim().toLowerCase());
+const isActive = (value) => !['false', 'no', '0', 'inactive', 'paused'].includes(String(value ?? '').trim().toLowerCase());
 const numberOr = (value, fallback) => value === '' || value === null || value === undefined || !Number.isFinite(Number(value)) ? fallback : Number(value);
 const configs = [];
 const seen = new Set();
@@ -602,7 +603,7 @@ export function buildTikTokDefinitions() {
         workflowKind: 'actor-template',
         actorId: ACTOR_ID,
         actorSlug: ACTOR_SLUG,
-        version: '1.1.0',
+        version: '1.1.1',
         minimumN8nVersion: '2.26.8',
         integrations: ['Apify', 'Google Sheets'],
         testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },
@@ -618,7 +619,7 @@ export function buildTikTokDefinitions() {
         workflowKind: 'actor-template',
         actorId: ACTOR_ID,
         actorSlug: ACTOR_SLUG,
-        version: '1.0.2',
+        version: '1.0.3',
         minimumN8nVersion: '2.26.8',
         integrations: ['Apify', 'Google Sheets', 'Telegram'],
         testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

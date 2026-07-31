@@ -163,7 +163,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst rows = $input.all().map((item) => item.json).filter((item) => item && item.handle && !item.error);\nif (rows.length === 0) throw new Error('TikTok returned no public profiles. Check the handles or profile URLs and inspect the Actor run.');\nconst sheetsEpochOffset = 25569;\nconst serial = (value) => {\n  const date = new Date(value || Date.now());\n  return Number.isFinite(date.getTime()) ? date.getTime() / 86400000 + sheetsEpochOffset : null;\n};\nconst numberOrNull = (value) => Number.isFinite(Number(value)) ? Number(value) : null;\nconst formula = (url, label) => url ? '=HYPERLINK(\"' + String(url).replace(/\"/g, '\"\"') + '\",\"' + String(label).replace(/\"/g, '\"\"') + '\")' : '';\nreturn rows.map((profile) => {\n  const handleKey = String(profile.handle).trim().replace(/^@/, '').toLowerCase();\n  const profileUrl = String(profile.profileUrl || ('https://www.tiktok.com/@' + handleKey));\n  return { json: {\n    updatedAt: serial(profile.scrapedAt),\n    scrapedAtIso: new Date(profile.scrapedAt || Date.now()).toISOString(),\n    profileLink: formula(profileUrl, '@' + handleKey),\n    profileUrl,\n    handle: '@' + handleKey,\n    handleKey,\n    nickname: String(profile.nickname || ''),\n    bio: String(profile.signature || ''),\n    followers: numberOrNull(profile.followers),\n    following: numberOrNull(profile.following),\n    likes: numberOrNull(profile.likes),\n    videosCount: numberOrNull(profile.videosCount),\n    likesPerVideo: numberOrNull(profile.likesPerVideo),\n    followerFollowingRatio: numberOrNull(profile.followerFollowingRatio),\n    verified: profile.verified === true,\n    privateAccount: profile.privateAccount === true,\n    region: String(profile.region || ''),\n    language: String(profile.language || ''),\n    bioLink: formula(profile.bioLink, 'Open bio link'),\n    bioLinkUrl: String(profile.bioLink || ''),\n    commerceUser: profile.commerceUser === true,\n    tiktokSeller: profile.tiktokSeller === true,\n    isLive: profile.isLive === true,\n    userId: String(profile.userId || '')\n  } };\n});"
+        "jsCode": "\nconst rows = $input.all().map((item) => item.json).filter((item) => item && item.handle && !item.error);\nif (rows.length === 0) throw new Error('TikTok returned no public profiles. Check the handles or profile URLs and inspect the Actor run.');\nconst sheetsEpochOffset = 25569;\nconst serial = (value) => {\n  const date = new Date(value || Date.now());\n  return Number.isFinite(date.getTime()) ? date.getTime() / 86400000 + sheetsEpochOffset : null;\n};\nconst numberOrNull = (value) => Number.isFinite(Number(value)) ? Number(value) : null;\nconst formula = (url, label) => url ? '=HYPERLINK(\"' + String(url).replace(/\"/g, '\"\"') + '\",\"' + String(label).replace(/\"/g, '\"\"') + '\")' : '';\nconst yesNo = (value) => value === true ? '✓ Yes' : '✕ No';\nreturn rows.map((profile) => {\n  const handleKey = String(profile.handle).trim().replace(/^@/, '').toLowerCase();\n  const profileUrl = String(profile.profileUrl || ('https://www.tiktok.com/@' + handleKey));\n  return { json: {\n    updatedAt: serial(profile.scrapedAt),\n    scrapedAtIso: new Date(profile.scrapedAt || Date.now()).toISOString(),\n    profileLink: formula(profileUrl, '@' + handleKey),\n    profileUrl,\n    handle: '@' + handleKey,\n    handleKey,\n    nickname: String(profile.nickname || ''),\n    bio: String(profile.signature || ''),\n    followers: numberOrNull(profile.followers),\n    following: numberOrNull(profile.following),\n    likes: numberOrNull(profile.likes),\n    videosCount: numberOrNull(profile.videosCount),\n    likesPerVideo: numberOrNull(profile.likesPerVideo),\n    followerFollowingRatio: numberOrNull(profile.followerFollowingRatio),\n    verified: yesNo(profile.verified),\n    privateAccount: yesNo(profile.privateAccount),\n    region: String(profile.region || ''),\n    language: String(profile.language || ''),\n    bioLink: formula(profile.bioLink, 'Open bio link'),\n    bioLinkUrl: String(profile.bioLink || ''),\n    commerceUser: yesNo(profile.commerceUser),\n    tiktokSeller: yesNo(profile.tiktokSeller),\n    isLive: yesNo(profile.isLive),\n    userId: String(profile.userId || '')\n  } };\n});"
       },
       "id": "60000000-0000-0000-4000-8000-000000000006",
       "name": "Prepare Human-Readable Profile Rows",
@@ -321,7 +321,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "boolean",
+              "type": "string",
               "canBeUsedToMatch": true
             },
             {
@@ -330,7 +330,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "boolean",
+              "type": "string",
               "canBeUsedToMatch": true
             },
             {
@@ -366,7 +366,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "boolean",
+              "type": "string",
               "canBeUsedToMatch": true
             },
             {
@@ -375,7 +375,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "boolean",
+              "type": "string",
               "canBeUsedToMatch": true
             },
             {
@@ -384,7 +384,7 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "boolean",
+              "type": "string",
               "canBeUsedToMatch": true
             },
             {

@@ -34,6 +34,8 @@ const simpleRows = runCode(code(simple, 'Prepare Human-Readable Profile Rows'), 
 assert.equal(simpleRows.length, 1);
 assert.equal(simpleRows[0].json.handle, '@sample_creator');
 assert.equal(simpleRows[0].json.followers, 12500);
+assert.equal(simpleRows[0].json.verified, '✕ No');
+assert.equal(simpleRows[0].json.commerceUser, '✓ Yes');
 assert.match(simpleRows[0].json.profileLink, /HYPERLINK/);
 assert.ok(Number.isFinite(simpleRows[0].json.updatedAt));
 assert.equal(simple.nodes.find((entry) => entry.name === '3. Save Profiles to Google Sheets').parameters.operation, 'appendOrUpdate');
@@ -41,7 +43,7 @@ assert.equal(simple.nodes.find((entry) => entry.name === '3. Save Profiles to Go
 const watchlist = runCode(code(monitor, 'Validate Watchlist and Build Actor Input'), {
   all: () => [
     { json: { Active: true, 'TikTok handle or URL': '@sample_creator', Label: 'Cycling', 'Minimum followers': 10000, 'Maximum followers': 100000, 'Alert growth %': 5, 'Alert follower gain': 500 } },
-    { json: { Active: false, 'TikTok handle or URL': '@skip_me' } }
+    { json: { Active: 'Paused', 'TikTok handle or URL': '@skip_me' } }
   ]
 })[0].json;
 assert.deepEqual(watchlist.actorInput.handles, ['sample_creator']);

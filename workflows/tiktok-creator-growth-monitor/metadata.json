@@ -4,7 +4,7 @@
   "workflowKind": "actor-template",
   "actorId": "B5qu4d1iteAp2TaF1",
   "actorSlug": "fetch_cat/tiktok-profile-scraper",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minimumN8nVersion": "2.26.8",
   "integrations": [
     "Apify",

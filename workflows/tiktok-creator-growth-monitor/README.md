@@ -13,9 +13,11 @@ trigger. It works on n8n Cloud or self-hosted n8n and does not use OpenAI.
 
 Create one spreadsheet with three tabs.
 
-Format `Updated at` and `Snapshot at` as date-time columns. Format `Active` and
-`Verified` as checkbox columns. Snapshot keys are written as readable values
-such as `@apify | 2026-07-31 09:46:23 UTC`.
+Format `Updated at` and `Snapshot at` as date-time columns. Use `Active` or
+`Paused` in the watchlist control column. `Verified` is written as `✓ Yes` or
+`✕ No`; optional conditional formatting can color these green and red.
+Snapshot keys are written as readable values such as
+`@apify | 2026-07-31 09:46:23 UTC`.
 
 ### Creators
 
@@ -26,12 +28,12 @@ Active | TikTok handle or URL | Label | Minimum followers | Maximum followers | 
 Example rows:
 
 ```text
-TRUE | tiktok | Brand account | 0 | 1000000000 | 5 | 1000
-TRUE | https://www.tiktok.com/@apify | Technology | 1000 | 500000 | 5 | 500
+Active | tiktok | Brand account | 0 | 1000000000 | 5 | 1000
+Active | https://www.tiktok.com/@apify | Technology | 1000 | 500000 | 5 | 500
 ```
 
-Blank `Active` values are treated as active. Use `FALSE`, `No`, `0`, or
-`inactive` to skip a row. Qualification is deterministic: a creator is
+Blank `Active` values are treated as active. Use `Paused` to skip a row.
+`FALSE`, `No`, `0`, and `inactive` also remain supported. Qualification is deterministic: a creator is
 `Qualified`, `Below minimum`, `Above maximum`, or `Needs review`.
 
 ### Current Profiles
