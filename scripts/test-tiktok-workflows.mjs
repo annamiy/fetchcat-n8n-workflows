@@ -64,6 +64,8 @@ function compare(previousRows) {
 const baseline = compare([]);
 assert.equal(baseline.shouldAlert, true);
 assert.equal(baseline.rows[0].changeStatus, 'Baseline created');
+assert.match(baseline.rows[0].snapshotKey, /^@sample_creator \| \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC$/);
+assert.doesNotMatch(baseline.rows[0].snapshotKey, /\dT|Z\|/);
 assert.match(baseline.telegramMessage, /baseline created/i);
 assert.match(baseline.telegramMessage, /12,500 followers \| 120 videos/);
 assert.match(baseline.telegramMessage, /First snapshot saved\. Future runs will show changes\./);

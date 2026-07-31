@@ -420,7 +420,7 @@ const rows = current.map((profile) => {
     qualification,
     changeStatus,
     shouldAlert,
-    snapshotKey: profile.scrapedAtIso + '|' + profile.handleKey
+    snapshotKey: '@' + profile.handleKey + ' | ' + profile.scrapedAtIso.replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
   };
 });
 const alertRows = rows.filter((row) => row.shouldAlert).sort((a, b) => (b.followerGrowthPercent ?? -Infinity) - (a.followerGrowthPercent ?? -Infinity));
@@ -618,7 +618,7 @@ export function buildTikTokDefinitions() {
         workflowKind: 'actor-template',
         actorId: ACTOR_ID,
         actorSlug: ACTOR_SLUG,
-        version: '1.0.1',
+        version: '1.0.2',
         minimumN8nVersion: '2.26.8',
         integrations: ['Apify', 'Google Sheets', 'Telegram'],
         testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

@@ -30,6 +30,10 @@ Updated at | Profile | TikTok handle | Name | Bio | Followers | Following | Tota
    time column. Publish the workflow only after the test succeeds to enable its
    daily 09:00 schedule.
 
+For a cleaner Sheet, format `Verified`, `Private account`, `Commerce account`,
+`TikTok seller`, and `Live now` as checkbox columns. Format `User ID` as plain
+text so long numeric IDs remain consistently aligned.
+
 ## Output
 
 Each row contains a clickable profile link, handle, display name, bio, follower
