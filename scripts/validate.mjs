@@ -141,8 +141,12 @@ for (const slug of workflowSlugs()) {
     if (!metadata.actorId || !serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
     if (!metadata.actorSlug || !readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
     const usesDataTableLedger = serialized.includes('n8n-nodes-base.dataTable');
+    const sheetUpsertCount = workflow.nodes.filter((entry) =>
+      entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate'
+    ).length;
     const usesSheetsUpsert = slug === 'pinterest-content-opportunity-research'
-      && workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate').length === 2;
+      ? sheetUpsertCount === 2
+      : sheetUpsertCount >= 1;
     if (!usesDataTableLedger && !usesSheetsUpsert) fail(slug, 'does not use durable destination-backed upserts or a Data Table ledger');
     if (usesDataTableLedger) {
       const tableCreateNodes = workflow.nodes.filter((entry) =>
@@ -161,7 +165,7 @@ for (const slug of workflowSlugs()) {
   if (metadata.integrations.includes('OpenAI') && !serialized.includes('gpt-5.4-mini')) {
     fail(slug, 'does not pin gpt-5.4-mini');
   }
-  if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts'].includes(slug)) {
+  if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts', 'tiktok-profiles-to-google-sheets', 'tiktok-creator-growth-monitor'].includes(slug)) {
     validateAutoAnnotatedStickies(slug, workflow);
   }
   if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {

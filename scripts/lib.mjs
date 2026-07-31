@@ -51,7 +51,7 @@ export function sanitizeWorkflow(workflow) {
   ];
   for (const key of topLevelKeys) delete copy[key];
 
-  const recursiveKeys = new Set(['credentials', 'instanceId', 'webhookId']);
+  const recursiveKeys = new Set(['credentials', 'instanceId', 'webhookId', 'cachedResultName']);
 
   function clean(value) {
     if (Array.isArray(value)) {

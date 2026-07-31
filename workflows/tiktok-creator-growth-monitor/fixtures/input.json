@@ -1,0 +1,19 @@
+{
+  "description": "Synthetic current and previous TikTok metrics for growth comparison tests.",
+  "items": [
+    {
+      "handle": "sample_creator",
+      "followers": 12500,
+      "following": 240,
+      "likes": 486000,
+      "videosCount": 120,
+      "previousFollowers": 11500,
+      "previousLikes": 470000,
+      "previousVideosCount": 117,
+      "minimumFollowers": 10000,
+      "maximumFollowers": 100000,
+      "alertGrowthPercent": 5,
+      "alertFollowerGain": 500
+    }
+  ]
+}

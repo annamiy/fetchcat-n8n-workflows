@@ -1,0 +1,8 @@
+{
+  "assertions": [
+    "The first successful snapshot is labelled Baseline created and produces a Telegram digest.",
+    "An unchanged rerun updates history and current profile data without sending Telegram.",
+    "Follower, likes, and video deltas are numeric and qualification uses configured limits.",
+    "Alerting executions send Telegram before committing Current Profiles."
+  ]
+}

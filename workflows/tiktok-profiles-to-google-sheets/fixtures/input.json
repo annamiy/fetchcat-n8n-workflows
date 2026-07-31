@@ -1,0 +1,27 @@
+{
+  "description": "Synthetic TikTok profile records for profile-table normalization tests.",
+  "items": [
+    {
+      "profileUrl": "https://www.tiktok.com/@sample_creator",
+      "handle": "sample_creator",
+      "userId": "synthetic-1001",
+      "nickname": "Sample Creator",
+      "signature": "Synthetic creator biography",
+      "verified": false,
+      "privateAccount": false,
+      "region": "PT",
+      "language": "en",
+      "followers": 12500,
+      "following": 240,
+      "likes": 486000,
+      "videosCount": 120,
+      "likesPerVideo": 4050,
+      "followerFollowingRatio": 52.08,
+      "bioLink": "https://example.com/sample",
+      "commerceUser": true,
+      "tiktokSeller": false,
+      "isLive": false,
+      "scrapedAt": "2026-07-31T10:00:00.000Z"
+    }
+  ]
+}

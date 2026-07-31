@@ -13,6 +13,8 @@ and is designed to fail closed before writing to an external service.
 | [YouTube Research Brief to Notion](workflows/youtube-research-brief-to-notion/) | `fetch_cat/youtube-transcript-scraper` | Notion | QA passed |
 | [Reddit Buying-Intent Alerts](workflows/reddit-buying-intent-alerts/) | `fetch_cat/reddit-scraper` | Telegram | QA passed |
 | [Vinted New-Listing Alerts](workflows/vinted-new-listing-alerts/) | `fetch_cat/vinted-search-scraper` | Telegram | QA passed |
+| [TikTok Profiles to Google Sheets](workflows/tiktok-profiles-to-google-sheets/) | `fetch_cat/tiktok-profile-scraper` | Google Sheets | QA passed |
+| [TikTok Creator Growth Monitor](workflows/tiktok-creator-growth-monitor/) | `fetch_cat/tiktok-profile-scraper` | Google Sheets, Telegram | QA passed |
 | [Private Workflow Error Alerts](workflows/shared-error-notifications/) | Companion workflow | Telegram | QA passed |
 
 All schedules are inactive in Git. Importing through the n8n CLI also forces them

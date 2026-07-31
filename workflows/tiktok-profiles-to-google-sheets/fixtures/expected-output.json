@@ -1,0 +1,8 @@
+{
+  "assertions": [
+    "Profile URLs and handles are normalized and deduplicated case-insensitively before the Actor starts.",
+    "Google Sheets uses TikTok handle as its append-or-update key.",
+    "Updated at is a numeric Google Sheets date-time value and profile links use readable labels.",
+    "Recent-video collection and OpenAI analysis are not required."
+  ]
+}

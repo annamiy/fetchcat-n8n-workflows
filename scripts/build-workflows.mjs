@@ -1,4 +1,5 @@
 import { workflowPath, writeJson } from './lib.mjs';
+import { buildTikTokDefinitions } from './build-tiktok-workflows.mjs';
 
 const OPENAI_MODEL = 'gpt-5.4-mini';
 
@@ -1669,7 +1670,8 @@ const definitions = [
       testLimits: { actorItems: 0, apifyBackedExecutions: 0, budgetUsd: 0 },
       releaseState: 'qa-passed'
     }
-  }
+  },
+  ...buildTikTokDefinitions()
 ];
 
 for (const definition of definitions) {
