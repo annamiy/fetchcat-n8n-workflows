@@ -19,7 +19,8 @@ and Google Sheets nodes, and does not require OpenAI or an n8n community node.
 3. Open `1. Enter TikTok Profiles` and paste handles or full profile URLs into
    `profiles`, separated by commas or new lines. The included examples are
    `tiktok` and `apify`.
-4. Set `maxProfiles` from 1 through 500. The default public template uses 25.
+4. Set `Maximum Profiles Per Run` from 1 through 500. The default public
+   template uses 25.
 5. Create an HTTP Header Auth credential with header `Authorization` and value
    `Bearer YOUR_APIFY_TOKEN`. Select it in both FetchCat HTTP Request nodes.
 6. Connect Google Sheets in `3. Save Profiles to Google Sheets`, then select

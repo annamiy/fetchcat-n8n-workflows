@@ -17,7 +17,7 @@ for (const workflow of [simple, monitor]) {
 const simpleInput = runCode(code(simple, 'Validate Profiles and Build Actor Input'), {
   first: () => ({ json: {
     profiles: 'TikTok\n@tiktok\nhttps://www.tiktok.com/@apify',
-    maxProfiles: 10
+    'Maximum Profiles Per Run': 10
   } })
 })[0].json;
 assert.deepEqual(simpleInput.actorInput.handles, ['TikTok']);

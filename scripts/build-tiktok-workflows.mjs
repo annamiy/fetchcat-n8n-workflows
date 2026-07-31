@@ -179,14 +179,14 @@ const simpleNodes = [
     duplicateItem: false,
     assignments: { assignments: [
       { id: 'tiktok-profiles', name: 'profiles', value: 'tiktok\napify', type: 'string' },
-      { id: 'tiktok-limit', name: 'maxProfiles', value: 25, type: 'number' }
+      { id: 'tiktok-limit', name: 'Maximum Profiles Per Run', value: 25, type: 'number' }
     ] },
     options: {}
   }),
   node('60000000-', 3, 'Validate Profiles and Build Actor Input', 'n8n-nodes-base.code', 2, [-1056, 192], {
     jsCode: String.raw`const input = $input.first()?.json || {};
 const raw = String(input.profiles || '').split(/[\n,]+/).map((value) => value.trim()).filter(Boolean);
-const maxProfiles = Math.max(1, Math.min(500, Math.floor(Number(input.maxProfiles) || 25)));
+const maxProfiles = Math.max(1, Math.min(500, Math.floor(Number(input['Maximum Profiles Per Run']) || 25)));
 if (raw.length === 0) throw new Error('Enter at least one TikTok handle or profile URL.');
 const handles = [];
 const profileUrls = [];
@@ -201,7 +201,7 @@ for (const value of raw) {
   if (urlMatch) profileUrls.push({ url: 'https://www.tiktok.com/@' + handle });
   else handles.push(handle);
 }
-if (seen.size > maxProfiles) throw new Error('You entered ' + seen.size + ' unique profiles but maxProfiles is ' + maxProfiles + '.');
+if (seen.size > maxProfiles) throw new Error('You entered ' + seen.size + ' unique profiles but Maximum Profiles Per Run is ' + maxProfiles + '.');
 return [{ json: { maxProfiles, actorInput: { handles, profileUrls, maxProfiles, includeRecentVideos: false, maxVideosPerProfile: 0, maxConcurrency: 3, runTimeSecs: 180, proxyConfiguration: { useApifyProxy: true } } } }];`
   }),
   node('60000000-', 4, '2. Run FetchCat TikTok Profile Scraper', 'n8n-nodes-base.httpRequest', 4.3, [-816, 192], apifyRunParameters('={{ $json.actorInput }}')),

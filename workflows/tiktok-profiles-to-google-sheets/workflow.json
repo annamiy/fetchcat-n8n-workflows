@@ -48,7 +48,7 @@
             },
             {
               "id": "tiktok-limit",
-              "name": "maxProfiles",
+              "name": "Maximum Profiles Per Run",
               "value": 25,
               "type": "number"
             }
@@ -67,7 +67,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first()?.json || {};\nconst raw = String(input.profiles || '').split(/[\\n,]+/).map((value) => value.trim()).filter(Boolean);\nconst maxProfiles = Math.max(1, Math.min(500, Math.floor(Number(input.maxProfiles) || 25)));\nif (raw.length === 0) throw new Error('Enter at least one TikTok handle or profile URL.');\nconst handles = [];\nconst profileUrls = [];\nconst seen = new Set();\nfor (const value of raw) {\n  const urlMatch = value.match(/(?:https?:\\/\\/)?(?:www\\.)?tiktok\\.com\\/@([A-Za-z0-9._-]+)/i);\n  const handle = (urlMatch?.[1] || value.replace(/^@/, '')).trim();\n  if (!/^[A-Za-z0-9._-]{2,64}$/.test(handle)) throw new Error('Invalid TikTok profile: ' + value);\n  const key = handle.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  if (urlMatch) profileUrls.push({ url: 'https://www.tiktok.com/@' + handle });\n  else handles.push(handle);\n}\nif (seen.size > maxProfiles) throw new Error('You entered ' + seen.size + ' unique profiles but maxProfiles is ' + maxProfiles + '.');\nreturn [{ json: { maxProfiles, actorInput: { handles, profileUrls, maxProfiles, includeRecentVideos: false, maxVideosPerProfile: 0, maxConcurrency: 3, runTimeSecs: 180, proxyConfiguration: { useApifyProxy: true } } } }];"
+        "jsCode": "const input = $input.first()?.json || {};\nconst raw = String(input.profiles || '').split(/[\\n,]+/).map((value) => value.trim()).filter(Boolean);\nconst maxProfiles = Math.max(1, Math.min(500, Math.floor(Number(input['Maximum Profiles Per Run']) || 25)));\nif (raw.length === 0) throw new Error('Enter at least one TikTok handle or profile URL.');\nconst handles = [];\nconst profileUrls = [];\nconst seen = new Set();\nfor (const value of raw) {\n  const urlMatch = value.match(/(?:https?:\\/\\/)?(?:www\\.)?tiktok\\.com\\/@([A-Za-z0-9._-]+)/i);\n  const handle = (urlMatch?.[1] || value.replace(/^@/, '')).trim();\n  if (!/^[A-Za-z0-9._-]{2,64}$/.test(handle)) throw new Error('Invalid TikTok profile: ' + value);\n  const key = handle.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  if (urlMatch) profileUrls.push({ url: 'https://www.tiktok.com/@' + handle });\n  else handles.push(handle);\n}\nif (seen.size > maxProfiles) throw new Error('You entered ' + seen.size + ' unique profiles but Maximum Profiles Per Run is ' + maxProfiles + '.');\nreturn [{ json: { maxProfiles, actorInput: { handles, profileUrls, maxProfiles, includeRecentVideos: false, maxVideosPerProfile: 0, maxConcurrency: 3, runTimeSecs: 180, proxyConfiguration: { useApifyProxy: true } } } }];"
       },
       "id": "60000000-0000-0000-4000-8000-000000000003",
       "name": "Validate Profiles and Build Actor Input",
