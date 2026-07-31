@@ -1,6 +1,6 @@
 # Export TikTok Profiles to Google Sheets with Apify
 
-Runs the [FetchCat TikTok Profile Scraper](https://apify.com/fetch_cat/tiktok-profile-scraper)
+Runs daily at 09:00 or manually with the [FetchCat TikTok Profile Scraper](https://apify.com/fetch_cat/tiktok-profile-scraper)
 (`fetch_cat/tiktok-profile-scraper`) for a pasted list of public TikTok handles
 or profile URLs and maintains one current, sortable Google Sheets row per
 creator. Rerunning the workflow updates matching handles instead of adding
@@ -27,7 +27,8 @@ Updated at | Profile | TikTok handle | Name | Bio | Followers | Following | Tota
 6. Connect Google Sheets in `3. Save Profiles to Google Sheets`, then select the
    spreadsheet and `TikTok Profiles` tab.
 7. Run the workflow manually and format `Updated at` as a Google Sheets date and
-   time column.
+   time column. Publish the workflow only after the test succeeds to enable its
+   daily 09:00 schedule.
 
 ## Output
 

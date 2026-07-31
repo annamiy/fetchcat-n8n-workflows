@@ -169,7 +169,10 @@ return rows.map((profile) => {
 });`;
 
 const simpleNodes = [
-  node('60000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1568, 80], {}),
+  node('60000000-', 1, 'Manual Trigger', 'n8n-nodes-base.manualTrigger', 1, [-1568, 160], {}),
+  node('60000000-', 7, 'Daily 09:00 Trigger', 'n8n-nodes-base.scheduleTrigger', 1.3, [-1568, -40], {
+    rule: { interval: [{ field: 'days', daysInterval: 1, triggerAtHour: 9, triggerAtMinute: 0 }] }
+  }),
   node('60000000-', 2, '1. Enter TikTok Profiles', 'n8n-nodes-base.set', 3.4, [-1328, 80], {
     mode: 'manual',
     duplicateItem: false,
@@ -243,7 +246,7 @@ Collect current public TikTok profile data with \`${ACTOR_SLUG}\` and save one c
 
 ### How it works
 
-1. Reads handles or full TikTok profile URLs from one editable Set node.
+1. Starts manually or every day at 09:00 and reads handles or full TikTok profile URLs from one editable Set node.
 2. Validates and deduplicates the list before spending Actor credits.
 3. Runs the FetchCat TikTok Profile Scraper once for the complete batch.
 4. Converts public metrics and account signals into human-readable columns.
@@ -255,10 +258,10 @@ Collect current public TikTok profile data with \`${ACTOR_SLUG}\` and save one c
 - [ ] Create an Apify HTTP Header Auth credential and select it in both FetchCat request nodes.
 - [ ] Create a TikTok Profiles sheet with the documented headers.
 - [ ] Connect Google Sheets and select the spreadsheet and tab in 3. Save Profiles to Google Sheets.
-- [ ] Run manually and inspect the resulting profile table.
+- [ ] Run manually and inspect the resulting profile table, then publish the workflow to enable the daily schedule.
 
 Recent videos are intentionally disabled because TikTok does not expose them consistently.`, 1),
-  sticky('60000000-', 21, 'Enter Profile List', [-1616, -240], 480, 480, '## Enter the profile list\n\nStart manually, then paste TikTok handles or full profile URLs and choose a batch limit.'),
+  sticky('60000000-', 21, 'Enter Profile List', [-1616, -240], 480, 560, '## Enter the profile list\n\nStart manually or every day at 09:00, then use the editable Set node to provide TikTok handles or full profile URLs and choose a batch limit.'),
   sticky('60000000-', 22, 'Run Profile Scraper', [-1136, -240], 480, 480, `## Run the FetchCat Actor\n\nValidates and deduplicates the input, runs \`${ACTOR_SLUG}\` once, and downloads the completed dataset.`),
   sticky('60000000-', 23, 'Save Profile Table', [-656, -240], 768, 480, '## Save a readable profile table\n\nNormalizes dates, metrics, links, and account signals, then updates Google Sheets using TikTok handle as the unique key.')
 ];
@@ -268,6 +271,7 @@ const simpleWorkflow = workflow(
   simpleNodes,
   connectionMap([
     ['Manual Trigger', '1. Enter TikTok Profiles'],
+    ['Daily 09:00 Trigger', '1. Enter TikTok Profiles'],
     ['1. Enter TikTok Profiles', 'Validate Profiles and Build Actor Input'],
     ['Validate Profiles and Build Actor Input', '2. Run FetchCat TikTok Profile Scraper'],
     ['2. Run FetchCat TikTok Profile Scraper', 'Download TikTok Profile Results'],
@@ -598,7 +602,7 @@ export function buildTikTokDefinitions() {
         workflowKind: 'actor-template',
         actorId: ACTOR_ID,
         actorSlug: ACTOR_SLUG,
-        version: '1.0.0',
+        version: '1.1.0',
         minimumN8nVersion: '2.26.8',
         integrations: ['Apify', 'Google Sheets'],
         testLimits: { actorItems: 10, apifyBackedExecutions: 3, budgetUsd: 1 },

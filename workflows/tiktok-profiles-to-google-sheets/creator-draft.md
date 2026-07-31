@@ -2,7 +2,8 @@
 
 Export public TikTok profile data to Google Sheets with
 `fetch_cat/tiktok-profile-scraper`. Paste TikTok usernames or profile URLs,
-run one efficient Apify batch, and maintain one clean, current row per creator.
+run one efficient Apify batch manually or every day at 09:00, and maintain one
+clean, current row per creator.
 
 The workflow is useful for influencer research, creator-list enrichment,
 competitor research, campaign planning, and TikTok profile data collection. It
@@ -12,7 +13,7 @@ profile ratios when TikTok exposes them.
 
 ## How it works
 
-1. Accepts comma- or newline-separated TikTok handles and profile URLs.
+1. Starts manually or every day at 09:00 and accepts comma- or newline-separated TikTok handles and profile URLs.
 2. Validates and deduplicates up to 500 creators.
 3. Runs the FetchCat TikTok Profile Scraper once for the complete list.
 4. Normalizes public profile data into readable spreadsheet columns.
@@ -23,7 +24,8 @@ profile ratios when TikTok exposes them.
 Create an n8n HTTP Header Auth credential with header `Authorization` and value
 `Bearer YOUR_APIFY_TOKEN`, then select it in both FetchCat request nodes. Create
 the documented `TikTok Profiles` sheet, connect Google Sheets, select the tab,
-and replace the example handles in `1. Enter TikTok Profiles`.
+and replace the example handles in `1. Enter TikTok Profiles`. Test manually,
+then publish the workflow to enable the daily schedule.
 
 The workflow runs on n8n Cloud or self-hosted n8n, uses built-in nodes, and does
 not require an AI model. At current Free-tier Actor pricing, 25 profiles cost

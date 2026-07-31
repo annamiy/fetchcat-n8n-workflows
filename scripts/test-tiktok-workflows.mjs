@@ -24,6 +24,8 @@ assert.deepEqual(simpleInput.actorInput.handles, ['TikTok']);
 assert.deepEqual(simpleInput.actorInput.profileUrls, [{ url: 'https://www.tiktok.com/@apify' }]);
 assert.equal(simpleInput.actorInput.maxProfiles, 10);
 assert.equal(simpleInput.actorInput.includeRecentVideos, false);
+assert.equal(simple.nodes.find((entry) => entry.name === 'Daily 09:00 Trigger').parameters.rule.interval[0].daysInterval, 1);
+assert.equal(simple.connections['Daily 09:00 Trigger'].main[0][0].node, '1. Enter TikTok Profiles');
 
 const simpleFixture = JSON.parse(fs.readFileSync(new URL('tiktok-profiles-to-google-sheets/fixtures/input.json', root)));
 const simpleRows = runCode(code(simple, 'Prepare Human-Readable Profile Rows'), {
