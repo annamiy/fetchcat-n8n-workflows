@@ -97,5 +97,8 @@ assert.equal(monitor.nodes.find((entry) => entry.name === 'Compare Growth and Qu
 assert.equal(alertConnections[0][0].node, '3. Send Creator Changes to Telegram');
 assert.equal(monitor.connections['3. Send Creator Changes to Telegram'].main[0][0].node, 'Prepare Snapshot Rows');
 assert.equal(monitor.connections['5. Update Current Profiles'].main[0][0].node, 'Creator Monitor Complete');
+const currentProfilesNode = monitor.nodes.find((entry) => entry.name === '5. Update Current Profiles');
+const verifiedColumn = currentProfilesNode.parameters.columns.schema.find((entry) => entry.id === 'Verified');
+assert.equal(verifiedColumn.type, 'string');
 
 console.log('TikTok workflows passed input, normalization, baseline, growth, quiet-run, and routing tests.');
