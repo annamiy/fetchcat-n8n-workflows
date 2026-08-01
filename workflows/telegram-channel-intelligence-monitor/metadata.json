@@ -1,0 +1,22 @@
+{
+  "slug": "telegram-channel-intelligence-monitor",
+  "title": "Monitor Telegram Channels for Market Intelligence with Apify, OpenAI, Google Sheets and Telegram",
+  "workflowKind": "actor-template",
+  "actorId": "IXhSSJjFf5fz1XAir",
+  "actorSlug": "fetch_cat/telegram-channel-posts-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets",
+    "Telegram",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "qa-passed"
+}

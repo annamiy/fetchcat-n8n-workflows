@@ -168,7 +168,7 @@ for (const slug of workflowSlugs()) {
   if (metadata.integrations.includes('OpenAI') && !serialized.includes('gpt-5.4-mini')) {
     fail(slug, 'does not pin gpt-5.4-mini');
   }
-  if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts', 'tiktok-profiles-to-google-sheets', 'tiktok-creator-growth-monitor'].includes(slug)) {
+  if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts', 'tiktok-profiles-to-google-sheets', 'tiktok-creator-growth-monitor', 'telegram-channel-posts-to-google-sheets', 'telegram-channel-intelligence-monitor'].includes(slug)) {
     validateAutoAnnotatedStickies(slug, workflow);
   }
   if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {

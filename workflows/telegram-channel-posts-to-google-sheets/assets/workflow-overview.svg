@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+  <rect width="1600" height="700" fill="#f7f8f3"/>
+  <style>
+    .title{font-family:Arial,sans-serif;font-size:28px;font-weight:700;fill:#11130f}.sub{font-family:Arial,sans-serif;font-size:15px;font-weight:400;fill:#62685d}.group{fill:#fff;stroke:#d3d8cc;stroke-width:2}.gtitle{font-family:Arial,sans-serif;font-size:17px;font-weight:600;fill:#11130f}.node{fill:#fff;stroke:#9aa291;stroke-width:2}.label{font-family:Arial,sans-serif;font-size:13px;font-weight:500;fill:#11130f}.line{stroke:#838b7d;stroke-width:3}.accent{fill:#d9f23f}.icon{font-family:Arial,sans-serif;font-size:20px;font-weight:700;fill:#11130f}.note{fill:#11130f}.noteText{font-family:Arial,sans-serif;font-size:14px;font-weight:500;fill:#d9f23f}
+  </style>
+  <text x="70" y="62" class="title">Export Telegram Channel Posts to Google Sheets with Apify</text>
+  <text x="70" y="92" class="sub">Manual or daily collection, human-readable rows, and duplicate-safe updates</text>
+  <rect x="70" y="130" width="300" height="450" rx="8" class="group"/><text x="92" y="165" class="gtitle">Start the export</text>
+  <rect x="410" y="130" width="620" height="450" rx="8" class="group"/><text x="432" y="165" class="gtitle">Configure and collect</text>
+  <rect x="1070" y="130" width="460" height="450" rx="8" class="group"/><text x="1092" y="165" class="gtitle">Prepare and save posts</text>
+  <line x1="310" y1="340" x2="460" y2="340" class="line"/><line x1="650" y1="340" x2="730" y2="340" class="line"/><line x1="920" y1="340" x2="1120" y2="340" class="line"/><line x1="1310" y1="340" x2="1390" y2="340" class="line"/>
+  <g transform="translate(110 275)"><rect width="200" height="130" rx="8" class="node"/><circle cx="100" cy="42" r="24" class="accent"/><text x="93" y="50" class="icon">1</text><text x="57" y="93" class="label">Manual or daily</text><text x="78" y="113" class="label">trigger</text></g>
+  <g transform="translate(460 275)"><rect width="190" height="130" rx="8" class="node"/><circle cx="95" cy="42" r="24" class="accent"/><text x="88" y="50" class="icon">2</text><text x="45" y="93" class="label">Enter channels</text><text x="63" y="113" class="label">and limits</text></g>
+  <g transform="translate(730 275)"><rect width="190" height="130" rx="8" class="node"/><circle cx="95" cy="42" r="24" class="accent"/><text x="88" y="50" class="icon">3</text><text x="45" y="93" class="label">Run Telegram</text><text x="58" y="113" class="label">scraper</text></g>
+  <g transform="translate(1120 275)"><rect width="190" height="130" rx="8" class="node"/><circle cx="95" cy="42" r="24" class="accent"/><text x="88" y="50" class="icon">4</text><text x="42" y="93" class="label">Normalize dates,</text><text x="58" y="113" class="label">links, metrics</text></g>
+  <g transform="translate(1390 275)"><rect width="110" height="130" rx="8" class="node"/><circle cx="55" cy="42" r="24" class="accent"/><text x="48" y="50" class="icon">5</text><text x="20" y="93" class="label">Upsert to</text><text x="27" y="113" class="label">Sheets</text></g>
+  <rect x="70" y="610" width="1460" height="48" rx="6" class="note"/><text x="95" y="641" class="noteText">Cloud-compatible built-in nodes | No OpenAI required | Stable channel:postId key prevents duplicate rows</text>
+</svg>

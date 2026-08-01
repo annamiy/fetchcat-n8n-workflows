@@ -1,0 +1,10 @@
+{
+  "description": "Assertions for batch analysis, human-readable delivery, and transaction-safe deduplication.",
+  "assertions": [
+    "OpenAI returns exactly one strict-schema result for every supplied itemKey.",
+    "Only qualified posts meeting the configured score are saved to Google Sheets.",
+    "Telegram receives one digest containing no more than Maximum Alerts Per Digest posts.",
+    "All evaluated post keys are committed only after required Sheets and Telegram delivery succeeds.",
+    "A duplicate rerun sends no Telegram message and creates no duplicate spreadsheet row."
+  ]
+}

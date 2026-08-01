@@ -1,0 +1,16 @@
+{
+  "description": "Synthetic Telegram intelligence batch used to verify strict AI output and delivery behavior.",
+  "items": [
+    {
+      "itemKey": "example_news:412",
+      "channel": "@example_news",
+      "date": "2026-08-01T08:30:00.000Z",
+      "text": "We launched a new enterprise automation product with a regional partner.",
+      "views": 2400,
+      "reactions": 83,
+      "replies": 12,
+      "intelligenceGoal": "Track product launches, partnerships, material risks, and competitor moves in automation software.",
+      "minimumRelevanceScore": 70
+    }
+  ]
+}

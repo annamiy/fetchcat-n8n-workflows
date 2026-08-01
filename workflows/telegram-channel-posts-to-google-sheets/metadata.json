@@ -1,0 +1,19 @@
+{
+  "slug": "telegram-channel-posts-to-google-sheets",
+  "title": "Export Telegram Channel Posts to Google Sheets with Apify",
+  "workflowKind": "actor-template",
+  "actorId": "IXhSSJjFf5fz1XAir",
+  "actorSlug": "fetch_cat/telegram-channel-posts-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "Google Sheets"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "qa-passed"
+}

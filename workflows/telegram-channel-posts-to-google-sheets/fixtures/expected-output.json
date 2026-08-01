@@ -1,0 +1,9 @@
+{
+  "description": "Assertions for readable Telegram post rows and destination-backed deduplication.",
+  "assertions": [
+    "The stable Post key is example_news:412 and is used as the Google Sheets append-or-update key.",
+    "Post and collection timestamps are numeric Google Sheets date-time values.",
+    "The source URL is displayed with the readable label Open post.",
+    "A duplicate rerun refreshes the existing row and creates no duplicate Post key."
+  ]
+}
