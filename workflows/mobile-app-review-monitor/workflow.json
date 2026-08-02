@@ -1,0 +1,1098 @@
+{
+  "name": "Monitor App Store and Google Play Reviews with Apify, OpenAI, Google Sheets and Slack",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "39000000-0000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000002",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1520,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Delivery Ledger",
+        "columns": {
+          "column": [
+            {
+              "name": "workflowSlug",
+              "type": "string"
+            },
+            {
+              "name": "itemKey",
+              "type": "string"
+            },
+            {
+              "name": "destination",
+              "type": "string"
+            },
+            {
+              "name": "deliveredAt",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000003",
+      "name": "Ensure Delivery Ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1280,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config-1",
+              "name": "appUrlsOrIds",
+              "value": "id284882215",
+              "type": "string"
+            },
+            {
+              "id": "config-2",
+              "name": "googlePlayApps",
+              "value": "com.spotify.music",
+              "type": "string"
+            },
+            {
+              "id": "config-3",
+              "name": "minimumScore",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "config-4",
+              "name": "maxItems",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000004",
+      "name": "1. Configure This Workflow",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$input.first().json; const appUrlsOrIds=String(c.appUrlsOrIds||'').split(',').map(v=>v.trim()).filter(Boolean); if(!appUrlsOrIds.length) throw new Error('Add at least one App Store ID or URL.'); const maxItems=Math.max(2,Math.min(Number(c.maxItems)||10,10)); const perStoreLimit=Math.max(1,Math.ceil(maxItems/2)); return [{json:{maxItems,perStoreLimit,minimumScore:Number(c.minimumScore)||1,actorInput:{appUrlsOrIds,country:'us',sort:'mostRecent',maxReviewsPerApp:perStoreLimit}}}];"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000005",
+      "name": "Validate Settings and Build Actor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/2B1XcWTM5BwOC6pjr/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Encoding",
+              "value": "identity"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "waitForFinish",
+              "value": "300"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.actorInput }}",
+        "options": {
+          "timeout": 310000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000006",
+      "name": "2. Run fetch_cat/apple-app-store-reviews-scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -560,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clean",
+              "value": "true"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $(\"Validate Settings and Build Actor Input\").first().json.maxItems }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000007",
+      "name": "Download Actor Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -320,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$('1. Configure This Workflow').first().json; const apps=String(c.googlePlayApps||'').split(',').map(v=>v.trim()).filter(Boolean); if(!apps.length) throw new Error('Add at least one Google Play package ID.'); const perStoreLimit=$('Validate Settings and Build Actor Input').first().json.perStoreLimit; return [{json:{actorInput:{apps,maxReviews:perStoreLimit,country:'us',language:'en',sort:'newest'}}}];"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000050",
+      "name": "Build Secondary Actor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/xNpv1zJdooz9PbmvH/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Encoding",
+              "value": "identity"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "waitForFinish",
+              "value": "300"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.actorInput }}",
+        "options": {
+          "timeout": 310000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000051",
+      "name": "Run fetch_cat/google-play-reviews-scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        160,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clean",
+              "value": "true"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $(\"Validate Settings and Build Actor Input\").first().json.perStoreLimit }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000052",
+      "name": "Download Secondary Actor Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        400,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const apple=$('Download Actor Results').all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const google=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]); const rows=[]; for(let i=0;rows.length<10&&(i<apple.length||i<google.length);i++){if(apple[i]) rows.push(apple[i]); if(rows.length<10&&google[i]) rows.push(google[i]);} const serial=d=>new Date(d||Date.now()).getTime()/86400000+25569; return rows.filter(r=>r.reviewId||r.content||r.reviewText).map(r=>({json:{itemKey:String(r.reviewId||[r.appId,r.authorName||r.reviewerName,r.updatedAt||r.reviewDate].join('|')),title:String(r.appName||'App review'),source:String(r.authorName||r.reviewerName||'Anonymous'),metric:String(r.rating||'')+'/5',status:(r.developerResponse||r.developerReply||r.developerReplyText)?'Already answered':'Needs review',summary:String(r.content||r.reviewText||'').slice(0,3000),url:String(r.reviewUrl||r.appUrl||''),observedAt:serial(r.updatedAt||r.reviewDate)}}));"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000008",
+      "name": "Normalize Public Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workflowSlug",
+              "condition": "eq",
+              "keyValue": "mobile-app-review-monitor"
+            },
+            {
+              "keyName": "itemKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.itemKey }}"
+            }
+          ]
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000009",
+      "name": "Keep Undelivered Items",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.all().map(i=>i.json).slice(0,10); if(!items.length) return []; return [{json:{items,itemKeys:items.map(i=>i.itemKey),minimumScore:Number($('Validate Settings and Build Actor Input').first().json.minimumScore)||0,context:String($('Validate Settings and Build Actor Input').first().json.context||'')}}];"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000010",
+      "name": "Build One Bounded Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "user",
+              "content": "=Context: {{ $json.context }}\nMinimum score: {{ $json.minimumScore }}\nAnalyze every supplied item exactly once and preserve itemKey:\n{{ JSON.stringify($json.items) }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "builtInTools": {},
+        "options": {
+          "instructions": "Classify sentiment, bugs, feature requests, and urgency. Draft a factual response for human approval; never claim it was posted.",
+          "maxTokens": 5000,
+          "reasoning": {
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "verbosity": "low",
+              "name": "fetchcat_demand_batch",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"results\"],\"properties\":{\"results\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":10,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"itemKey\",\"qualified\",\"score\",\"insight\",\"action\"],\"properties\":{\"itemKey\":{\"type\":\"string\",\"minLength\":1},\"qualified\":{\"type\":\"boolean\"},\"score\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":100},\"insight\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":700},\"action\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":500}}}}}}",
+              "description": "Classify sentiment, bugs, feature requests, and urgency. Draft a factual response for human approval; never claim it was posted.",
+              "strict": true
+            }
+          }
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000011",
+      "name": "3. Analyze Results in One Batch",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1360,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction parseStructured(root, requiredKeys) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) return value;\n    for (const key of ['output_text', 'outputText', 'text', 'content', 'output', 'message', 'response', 'data']) {\n      if (Object.prototype.hasOwnProperty.call(value, key)) { const found = visit(value[key]); if (found) return found; }\n    }\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) { const found = visit(nested); if (found) return found; }\n    return null;\n  }\n  return visit(root);\n}\nconst batch=$('Build One Bounded Batch').first().json; const parsed=parseStructured($input.first().json,['results']); if(!parsed||!Array.isArray(parsed.results)) throw new Error('OpenAI returned invalid structured output.'); const expected=new Set(batch.itemKeys); const actual=parsed.results.map(r=>String(r.itemKey)); if(actual.length!==expected.size||new Set(actual).size!==actual.length||actual.some(k=>!expected.has(k))) throw new Error('OpenAI result keys do not exactly match the input batch.'); const byKey=new Map(batch.items.map(i=>[i.itemKey,i])); const selected=[]; for(const r of parsed.results){if(typeof r.qualified!=='boolean'||!Number.isInteger(r.score)||r.score<0||r.score>100||!String(r.insight||'').trim()||!String(r.action||'').trim()) throw new Error('Malformed analysis result.'); if(r.qualified&&r.score>=batch.minimumScore) selected.push({...byKey.get(String(r.itemKey)),score:r.score,insight:String(r.insight).trim(),action:String(r.action).trim()});} return [{json:{allKeys:batch.itemKeys,selected}}];"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000012",
+      "name": "Validate Structured Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source=$input.first().json; const selected=[...source.selected].sort((a,b)=>b.score-a.score); if(!selected.length) return []; const serial=v=>v||Date.now()/86400000+25569; const safe=v=>{const s=String(v??''); return /^[=+\\-@]/.test(s)?\"'\"+s:s}; const rows=selected.map(i=>({ 'Observed at':serial(i.observedAt),'Item':safe(i.title),'Source':safe(i.source),'Metric':safe(i.metric),'Status':safe(i.status+(i.score!==undefined?' | Priority '+i.score+'/100':'')),'Insight':safe(i.insight),'Recommended action':safe(i.action),'Link':i.url?'=HYPERLINK(\"'+String(i.url).replace(/\"/g,'\"\"')+'\",\"Open source\")':'','Item key':safe(i.itemKey) })); const lines=selected.slice(0,5).map((i,x)=>(x+1)+'. '+i.title+'\\n'+i.metric+' | '+i.status+'\\n'+i.insight+'\\n'+i.url); return [{json:{allKeys:source.allKeys,rows,notification:\"Monitor App Store and Google Play Reviews with Apify, OpenAI, Google Sheets and Slack\"+'\\n\\n'+lines.join('\\n\\n')}}];"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000013",
+      "name": "Prepare Human-Readable Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $json.rows.map(row=>({json:row}));"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000014",
+      "name": "Expand Rows for Destination",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0000000000000000000000000000000000000000000"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0",
+          "cachedResultName": "App reviews"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Item key"
+          ],
+          "value": {
+            "Observed at": "={{ $json[\"Observed at\"] }}",
+            "Item": "={{ $json[\"Item\"] }}",
+            "Source": "={{ $json[\"Source\"] }}",
+            "Metric": "={{ $json[\"Metric\"] }}",
+            "Status": "={{ $json[\"Status\"] }}",
+            "Insight": "={{ $json[\"Insight\"] }}",
+            "Recommended action": "={{ $json[\"Recommended action\"] }}",
+            "Link": "={{ $json[\"Link\"] }}",
+            "Item key": "={{ $json[\"Item key\"] }}"
+          },
+          "schema": [
+            {
+              "id": "Observed at",
+              "displayName": "Observed at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Item",
+              "displayName": "Item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Metric",
+              "displayName": "Metric",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Insight",
+              "displayName": "Insight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommended action",
+              "displayName": "Recommended action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Link",
+              "displayName": "Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Item key",
+              "displayName": "Item key",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000015",
+      "name": "4. Save Results to App reviews",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2320,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:$('Prepare Human-Readable Delivery').first().json}];"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000016",
+      "name": "Restore Delivery Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0000000000"
+        },
+        "messageType": "text",
+        "text": "={{ $json.notification }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000017",
+      "name": "5. Send One Slack Digest",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        2800,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Prepare Human-Readable Delivery').first().json.allKeys.map(itemKey=>({json:{workflowSlug:\"mobile-app-review-monitor\",itemKey}}));"
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000018",
+      "name": "Prepare Delivered Item Keys",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        80
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "workflowSlug": "={{ $json.workflowSlug }}",
+            "itemKey": "={{ $json.itemKey }}",
+            "destination": "Google Sheets and Slack",
+            "deliveredAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "workflowSlug",
+              "displayName": "workflowSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itemKey",
+              "displayName": "itemKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination",
+              "displayName": "destination",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000019",
+      "name": "Commit Delivered Item Keys",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3280,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "width": 496,
+        "height": 1040,
+        "content": "## Monitor App Store and Google Play Reviews with Apify, OpenAI, Google Sheets and Slack\n\n### How it works\n\n1. Starts manually or on the editable schedule and creates the delivery ledger if it is missing.\n2. Reads all user settings from the numbered configuration node and validates limits before any paid request.\n3. Runs `fetch_cat/apple-app-store-reviews-scraper` and `fetch_cat/google-play-reviews-scraper` through Cloud-compatible HTTP Request nodes and downloads at most 10 public results.\n4. Normalizes stable IDs and human-readable fields, skips states already delivered, evaluates every unseen item in one strict gpt-5.4-mini batch, and prepares one concise destination batch.\n5. Writes the selected results to Google Sheets, sends one Slack digest, then records item keys only after both destinations succeed. Failed deliveries remain retryable.\n\n### Setup\n\n- [ ] Add the Actor to Apify if required and create HTTP Header Auth with `Authorization: Bearer YOUR_APIFY_TOKEN`.\n- [ ] Select that credential in both Apify request nodes.\n- [ ] Connect OpenAI in the numbered analysis node. The model is pinned to `gpt-5.4-mini`.\n- [ ] Connect Google Sheets and select the `App reviews` tab.\n- [ ] Connect Slack and choose the private QA destination.\n- [ ] Edit the numbered configuration node, run manually twice, and confirm the duplicate run sends nothing.\n- [ ] Publish the workflow only when you are ready to enable its schedule.\n\n### Customization\n\nChange the schedule, search inputs, threshold, result limit, destination, and digest wording without editing Code nodes. Keep live tests at 10 Actor items or fewer.",
+        "color": 1
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000080",
+      "name": "Workflow Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2112,
+        -416
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 480,
+        "content": "## Start safely\n\nRun manually or on schedule and create durable delivery state.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000081",
+      "name": "Section 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 480,
+        "content": "## Configure and validate\n\nEdit visible inputs and validate limits before paid requests.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000082",
+      "name": "Section 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Collect primary data\n\nRun `fetch_cat/apple-app-store-reviews-scraper` and build the second Actor input.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000083",
+      "name": "Section 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Enrich or combine\n\nRun `fetch_cat/google-play-reviews-scraper` and normalize both public datasets.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000084",
+      "name": "Section 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Deduplicate and analyze\n\nSkip delivered states and prepare one bounded batch.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000085",
+      "name": "Section 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        832,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Save selected results\n\nWrite readable rows to Google Sheets before alerting.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000086",
+      "name": "Section 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Deliver results\n\nSave the destination rows and send one Slack digest after the write succeeds.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000087",
+      "name": "Section 7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 480,
+        "content": "## Commit delivery state\n\nRecord delivered keys only after every required destination succeeds.",
+        "color": 7
+      },
+      "id": "39000000-0000-0000-4000-8000-000000000088",
+      "name": "Section 8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        -160
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "1. Configure This Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Configure This Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validate Settings and Build Actor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Settings and Build Actor Input": {
+      "main": [
+        [
+          {
+            "node": "2. Run fetch_cat/apple-app-store-reviews-scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Run fetch_cat/apple-app-store-reviews-scraper": {
+      "main": [
+        [
+          {
+            "node": "Download Actor Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Public Results": {
+      "main": [
+        [
+          {
+            "node": "Keep Undelivered Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Undelivered Items": {
+      "main": [
+        [
+          {
+            "node": "Build One Bounded Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Actor Results": {
+      "main": [
+        [
+          {
+            "node": "Build Secondary Actor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Secondary Actor Input": {
+      "main": [
+        [
+          {
+            "node": "Run fetch_cat/google-play-reviews-scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run fetch_cat/google-play-reviews-scraper": {
+      "main": [
+        [
+          {
+            "node": "Download Secondary Actor Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Secondary Actor Results": {
+      "main": [
+        [
+          {
+            "node": "Normalize Public Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build One Bounded Batch": {
+      "main": [
+        [
+          {
+            "node": "3. Analyze Results in One Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Analyze Results in One Batch": {
+      "main": [
+        [
+          {
+            "node": "Validate Structured Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Structured Analysis": {
+      "main": [
+        [
+          {
+            "node": "Prepare Human-Readable Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Human-Readable Delivery": {
+      "main": [
+        [
+          {
+            "node": "Expand Rows for Destination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Rows for Destination": {
+      "main": [
+        [
+          {
+            "node": "4. Save Results to App reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Save Results to App reviews": {
+      "main": [
+        [
+          {
+            "node": "Restore Delivery Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Delivery Batch": {
+      "main": [
+        [
+          {
+            "node": "5. Send One Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Send One Slack Digest": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivered Item Keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delivered Item Keys": {
+      "main": [
+        [
+          {
+            "node": "Commit Delivered Item Keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

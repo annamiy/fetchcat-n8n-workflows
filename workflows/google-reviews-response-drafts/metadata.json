@@ -1,0 +1,23 @@
+{
+  "slug": "google-reviews-response-drafts",
+  "title": "Monitor Google Reviews and Draft Responses with Apify, OpenAI, Google Sheets and Slack",
+  "workflowKind": "actor-template",
+  "actorId": "Oy3VMd7sXQLhyNCNU",
+  "actorSlug": "fetch_cat/google-maps-reviews-scraper",
+  "additionalActors": [],
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets",
+    "Slack",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "qa-passed"
+}

@@ -1,6 +1,7 @@
 import { workflowPath, writeJson } from './lib.mjs';
 import { buildTikTokDefinitions } from './build-tiktok-workflows.mjs';
 import { buildTelegramDefinitions } from './build-telegram-workflows.mjs';
+import { buildDemandWorkflowDefinitions } from './build-demand-workflows.mjs';
 
 const OPENAI_MODEL = 'gpt-5.4-mini';
 
@@ -1673,7 +1674,8 @@ const definitions = [
     }
   },
   ...buildTikTokDefinitions(),
-  ...buildTelegramDefinitions()
+  ...buildTelegramDefinitions(),
+  ...buildDemandWorkflowDefinitions()
 ];
 
 for (const definition of definitions) {

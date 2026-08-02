@@ -1,0 +1,23 @@
+{
+  "slug": "meta-ads-competitor-monitor",
+  "title": "Monitor Competitor Meta Ads with Apify, OpenAI, Google Sheets and Slack",
+  "workflowKind": "actor-template",
+  "actorId": "0xeVLpUizP1FnAjJh",
+  "actorSlug": "fetch_cat/facebook-ads-library-scraper",
+  "additionalActors": [],
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets",
+    "Slack",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "development"
+}

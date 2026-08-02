@@ -1,0 +1,28 @@
+{
+  "slug": "mobile-app-review-monitor",
+  "title": "Monitor App Store and Google Play Reviews with Apify, OpenAI, Google Sheets and Slack",
+  "workflowKind": "actor-template",
+  "actorId": "2B1XcWTM5BwOC6pjr",
+  "actorSlug": "fetch_cat/apple-app-store-reviews-scraper",
+  "additionalActors": [
+    {
+      "id": "xNpv1zJdooz9PbmvH",
+      "slug": "fetch_cat/google-play-reviews-scraper"
+    }
+  ],
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.26.8",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets",
+    "Slack",
+    "n8n Data Tables"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "qa-passed"
+}

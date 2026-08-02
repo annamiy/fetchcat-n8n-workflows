@@ -1,0 +1,861 @@
+{
+  "name": "Track Amazon Prices and Stock with Apify, Google Sheets and Telegram",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "35000000-0000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1520,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000002",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1520,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "FetchCat Delivery Ledger",
+        "columns": {
+          "column": [
+            {
+              "name": "workflowSlug",
+              "type": "string"
+            },
+            {
+              "name": "itemKey",
+              "type": "string"
+            },
+            {
+              "name": "destination",
+              "type": "string"
+            },
+            {
+              "name": "deliveredAt",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000003",
+      "name": "Ensure Delivery Ledger",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1280,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config-1",
+              "name": "queries",
+              "value": "wireless headphones",
+              "type": "string"
+            },
+            {
+              "id": "config-2",
+              "name": "asins",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "config-3",
+              "name": "marketplace",
+              "value": "US",
+              "type": "string"
+            },
+            {
+              "id": "config-4",
+              "name": "maxItems",
+              "value": 10,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000004",
+      "name": "1. Configure This Workflow",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$input.first().json; const queries=String(c.queries||'').split(',').map(v=>v.trim()).filter(Boolean); const asins=String(c.asins||'').split(',').map(v=>v.trim()).filter(Boolean); if(!queries.length&&!asins.length) throw new Error('Add at least one product query or ASIN.'); const maxItems=Math.max(1,Math.min(Number(c.maxItems)||10,10)); return [{json:{maxItems,actorInput:{queries,asins,marketplace:String(c.marketplace||'US'),maxItems,enrichDetails:true}}}];"
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000005",
+      "name": "Validate Settings and Build Actor Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/Thc7tZ9fJwTGvhgzE/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept-Encoding",
+              "value": "identity"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "waitForFinish",
+              "value": "300"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.actorInput }}",
+        "options": {
+          "timeout": 310000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000006",
+      "name": "2. Run fetch_cat/amazon-products-search-scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -560,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.apify.com/v2/datasets/{{ $json.data.defaultDatasetId }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "clean",
+              "value": "true"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $(\"Validate Settings and Build Actor Input\").first().json.maxItems }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000007",
+      "name": "Download Actor Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -320,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().flatMap(i=>Array.isArray(i.json)?i.json:[i.json]).slice(0,10); const serial=d=>new Date(d||Date.now()).getTime()/86400000+25569; return rows.filter(p=>p.asin).map(p=>{const availability=String(p.availability||'').replace(/\\s+\\{.*$/s,'').trim()||'Availability unknown'; const seller=String(p.seller||p.buyBoxSoldBy||p.brand||''); const metric=String(p.priceDisplay||[p.currency,p.price].filter(v=>v!==undefined&&v!=='').join(' ')); const listPrice=p.listPrice?('List price '+(typeof p.listPrice==='number'&&p.currency?p.currency+' ':'')+p.listPrice):''; return {json:{itemKey:[p.asin,p.price,availability,seller].join('|'),title:String(p.productTitle||p.title||p.asin),source:String(p.brand||seller),metric,status:availability,summary:[listPrice,p.prime?'Prime':'',p.rating?('Rating '+p.rating+'/5'):'' ,p.reviewCount?(Number(p.reviewCount).toLocaleString()+' reviews'):''].filter(Boolean).join(' | '),url:String(p.url||''),observedAt:serial(p.scrapedAt)}};});"
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000008",
+      "name": "Normalize Public Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workflowSlug",
+              "condition": "eq",
+              "keyValue": "amazon-price-stock-monitor"
+            },
+            {
+              "keyName": "itemKey",
+              "condition": "eq",
+              "keyValue": "={{ $json.itemKey }}"
+            }
+          ]
+        }
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000009",
+      "name": "Keep Undelivered Items",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.all().map(i=>i.json).slice(0,10); if(!items.length) return []; return [{json:{items,itemKeys:items.map(i=>i.itemKey),minimumScore:Number($('Validate Settings and Build Actor Input').first().json.minimumScore)||0,context:String($('Validate Settings and Build Actor Input').first().json.context||'')}}];"
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000010",
+      "name": "Build One Bounded Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items=$input.first().json.items; if(!items.length) return []; const serial=v=>v||Date.now()/86400000+25569; const safe=v=>{const s=String(v??''); return /^[=+\\-@]/.test(s)?\"'\"+s:s}; const rows=items.map(i=>({ 'Observed at':serial(i.observedAt),'Item':safe(i.title),'Source':safe(i.source),'Metric':safe(i.metric),'Status':safe(i.status),'Insight':safe(i.summary),'Recommended action':'Review this new or changed result','Link':i.url?'=HYPERLINK(\"'+String(i.url).replace(/\"/g,'\"\"')+'\",\"Open source\")':'','Item key':safe(i.itemKey) })); const lines=items.slice(0,5).map((i,x)=>(x+1)+'. '+i.title+'\\n'+i.metric+' | '+i.status+'\\n'+i.summary+'\\n'+i.url); return [{json:{allKeys:$input.first().json.itemKeys,rows,notification:\"Track Amazon Prices and Stock with Apify, Google Sheets and Telegram\"+'\\n\\n'+lines.join('\\n\\n')}}];"
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000011",
+      "name": "Prepare Human-Readable Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $json.rows.map(row=>({json:row}));"
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000012",
+      "name": "Expand Rows for Destination",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0000000000000000000000000000000000000000000"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0",
+          "cachedResultName": "Amazon tracker"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Item key"
+          ],
+          "value": {
+            "Observed at": "={{ $json[\"Observed at\"] }}",
+            "Item": "={{ $json[\"Item\"] }}",
+            "Source": "={{ $json[\"Source\"] }}",
+            "Metric": "={{ $json[\"Metric\"] }}",
+            "Status": "={{ $json[\"Status\"] }}",
+            "Insight": "={{ $json[\"Insight\"] }}",
+            "Recommended action": "={{ $json[\"Recommended action\"] }}",
+            "Link": "={{ $json[\"Link\"] }}",
+            "Item key": "={{ $json[\"Item key\"] }}"
+          },
+          "schema": [
+            {
+              "id": "Observed at",
+              "displayName": "Observed at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Item",
+              "displayName": "Item",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Metric",
+              "displayName": "Metric",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Insight",
+              "displayName": "Insight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommended action",
+              "displayName": "Recommended action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Link",
+              "displayName": "Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Item key",
+              "displayName": "Item key",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000013",
+      "name": "4. Save Results to Amazon tracker",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:$('Prepare Human-Readable Delivery').first().json}];"
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000014",
+      "name": "Restore Delivery Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "-1000000000000",
+        "text": "={{ $json.notification }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000015",
+      "name": "5. Send One Telegram Digest",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2080,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Prepare Human-Readable Delivery').first().json.allKeys.map(itemKey=>({json:{workflowSlug:\"amazon-price-stock-monitor\",itemKey}}));"
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000016",
+      "name": "Prepare Delivered Item Keys",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        80
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "FetchCat Delivery Ledger"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "value": {
+            "workflowSlug": "={{ $json.workflowSlug }}",
+            "itemKey": "={{ $json.itemKey }}",
+            "destination": "Google Sheets and Telegram",
+            "deliveredAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "workflowSlug",
+              "displayName": "workflowSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "itemKey",
+              "displayName": "itemKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination",
+              "displayName": "destination",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000017",
+      "name": "Commit Delivered Item Keys",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2560,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "width": 496,
+        "height": 1040,
+        "content": "## Track Amazon Prices and Stock with Apify, Google Sheets and Telegram\n\n### How it works\n\n1. Starts manually or on the editable schedule and creates the delivery ledger if it is missing.\n2. Reads all user settings from the numbered configuration node and validates limits before any paid request.\n3. Runs `fetch_cat/amazon-products-search-scraper` through Cloud-compatible HTTP Request nodes and downloads at most 10 public results.\n4. Normalizes stable IDs and human-readable fields, skips states already delivered, uses deterministic rules without AI, and prepares one concise destination batch.\n5. Writes the selected results to Google Sheets, sends one Telegram digest, then records item keys only after both destinations succeed. Failed deliveries remain retryable.\n\n### Setup\n\n- [ ] Add the Actor to Apify if required and create HTTP Header Auth with `Authorization: Bearer YOUR_APIFY_TOKEN`.\n- [ ] Select that credential in both Apify request nodes.\n- [ ] Connect Google Sheets and select the `Amazon tracker` tab.\n- [ ] Connect Telegram and choose the private QA destination.\n- [ ] Edit the numbered configuration node, run manually twice, and confirm the duplicate run sends nothing.\n- [ ] Publish the workflow only when you are ready to enable its schedule.\n\n### Customization\n\nChange the schedule, search inputs, threshold, result limit, destination, and digest wording without editing Code nodes. Keep live tests at 10 Actor items or fewer.",
+        "color": 1
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000080",
+      "name": "Workflow Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2112,
+        -416
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 480,
+        "content": "## Start safely\n\nRun manually or on schedule and create durable delivery state.",
+        "color": 7
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000081",
+      "name": "Section 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 480,
+        "content": "## Configure and validate\n\nEdit visible inputs and validate limits before paid requests.",
+        "color": 7
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000082",
+      "name": "Section 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Collect and normalize\n\nRun `fetch_cat/amazon-products-search-scraper`, download its dataset, and normalize public fields.",
+        "color": 7
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000083",
+      "name": "Section 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Deduplicate and batch\n\nSkip delivered states and prepare one bounded batch.",
+        "color": 7
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000084",
+      "name": "Section 4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        112,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 432,
+        "height": 480,
+        "content": "## Prepare delivery\n\nBuild readable rows using deterministic source states.",
+        "color": 7
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000085",
+      "name": "Section 5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        832,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Save selected results\n\nWrite readable rows to Google Sheets before alerting.",
+        "color": 7
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000086",
+      "name": "Section 6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "width": 672,
+        "height": 480,
+        "content": "## Notify and commit\n\nSend one Telegram digest, then record delivered keys after success.",
+        "color": 7
+      },
+      "id": "35000000-0000-0000-4000-8000-000000000087",
+      "name": "Section 7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        -160
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ensure Delivery Ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Delivery Ledger": {
+      "main": [
+        [
+          {
+            "node": "1. Configure This Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Configure This Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validate Settings and Build Actor Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Settings and Build Actor Input": {
+      "main": [
+        [
+          {
+            "node": "2. Run fetch_cat/amazon-products-search-scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Run fetch_cat/amazon-products-search-scraper": {
+      "main": [
+        [
+          {
+            "node": "Download Actor Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Public Results": {
+      "main": [
+        [
+          {
+            "node": "Keep Undelivered Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Undelivered Items": {
+      "main": [
+        [
+          {
+            "node": "Build One Bounded Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Actor Results": {
+      "main": [
+        [
+          {
+            "node": "Normalize Public Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build One Bounded Batch": {
+      "main": [
+        [
+          {
+            "node": "Prepare Human-Readable Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Human-Readable Delivery": {
+      "main": [
+        [
+          {
+            "node": "Expand Rows for Destination",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Rows for Destination": {
+      "main": [
+        [
+          {
+            "node": "4. Save Results to Amazon tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Save Results to Amazon tracker": {
+      "main": [
+        [
+          {
+            "node": "Restore Delivery Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Delivery Batch": {
+      "main": [
+        [
+          {
+            "node": "5. Send One Telegram Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Send One Telegram Digest": {
+      "main": [
+        [
+          {
+            "node": "Prepare Delivered Item Keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Delivered Item Keys": {
+      "main": [
+        [
+          {
+            "node": "Commit Delivered Item Keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

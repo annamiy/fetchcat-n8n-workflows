@@ -1,0 +1,7 @@
+{
+  "assertions": [
+    "The first unseen item is prepared for the configured destination.",
+    "An identical delivered item key produces no second row or digest.",
+    "Credentials, private destination IDs, and pinned execution data are absent from the public export."
+  ]
+}

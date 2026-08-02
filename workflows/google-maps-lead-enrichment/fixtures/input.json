@@ -1,0 +1,15 @@
+{
+  "description": "Synthetic public-data fixture for google-maps-lead-enrichment",
+  "items": [
+    {
+      "itemKey": "fixture-1",
+      "title": "Example public result",
+      "source": "Example source",
+      "metric": "123",
+      "status": "New",
+      "summary": "Synthetic fixture only",
+      "url": "https://example.com/public-item",
+      "observedAt": 46000
+    }
+  ]
+}

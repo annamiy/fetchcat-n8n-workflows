@@ -143,6 +143,10 @@ for (const slug of workflowSlugs()) {
     }
     if (!metadata.actorId || !serialized.includes(metadata.actorId)) fail(slug, `does not reference Actor ${metadata.actorId}`);
     if (!metadata.actorSlug || !readmeText.includes(metadata.actorSlug)) fail(slug, `README does not reference Actor ${metadata.actorSlug}`);
+    for (const actor of metadata.additionalActors ?? []) {
+      if (!actor.id || !serialized.includes(actor.id)) fail(slug, `does not reference additional Actor ${actor.id}`);
+      if (!actor.slug || !readmeText.includes(actor.slug)) fail(slug, `README does not reference additional Actor ${actor.slug}`);
+    }
     const usesDataTableLedger = serialized.includes('n8n-nodes-base.dataTable');
     const sheetUpsertCount = workflow.nodes.filter((entry) =>
       entry.type === 'n8n-nodes-base.googleSheets' && entry.parameters?.operation === 'appendOrUpdate'
@@ -168,7 +172,7 @@ for (const slug of workflowSlugs()) {
   if (metadata.integrations.includes('OpenAI') && !serialized.includes('gpt-5.4-mini')) {
     fail(slug, 'does not pin gpt-5.4-mini');
   }
-  if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts', 'tiktok-profiles-to-google-sheets', 'tiktok-creator-growth-monitor', 'telegram-channel-posts-to-google-sheets', 'telegram-channel-intelligence-monitor'].includes(slug)) {
+  if (['pinterest-content-opportunity-research', 'vinted-new-listing-alerts', 'tiktok-profiles-to-google-sheets', 'tiktok-creator-growth-monitor', 'telegram-channel-posts-to-google-sheets', 'telegram-channel-intelligence-monitor', 'google-maps-lead-enrichment', 'tiktok-viral-content-opportunities', 'youtube-trending-content-ideas', 'meta-ads-competitor-monitor', 'amazon-price-stock-monitor', 'google-reviews-response-drafts', 'zillow-listing-price-monitor', 'google-trends-opportunity-monitor', 'mobile-app-review-monitor', 'product-hunt-launch-monitor'].includes(slug)) {
     validateAutoAnnotatedStickies(slug, workflow);
   }
   if (['linkedin-job-match-digest', 'reddit-buying-intent-alerts'].includes(slug)) {

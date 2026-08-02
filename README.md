@@ -16,6 +16,16 @@ and is designed to fail closed before writing to an external service.
 | [TikTok Profiles to Google Sheets](workflows/tiktok-profiles-to-google-sheets/) | `fetch_cat/tiktok-profile-scraper` | Google Sheets | QA passed |
 | [TikTok Creator Growth Monitor](workflows/tiktok-creator-growth-monitor/) | `fetch_cat/tiktok-profile-scraper` | Google Sheets, Telegram | QA passed |
 | [Private Workflow Error Alerts](workflows/shared-error-notifications/) | Companion workflow | Telegram | QA passed |
+| [Google Maps Lead Enrichment](workflows/google-maps-lead-enrichment/) | `fetch_cat/google-maps-places-scraper`, `fetch_cat/website-contact-finder` | Google Sheets, Slack | QA passed |
+| [TikTok Viral Content Opportunities](workflows/tiktok-viral-content-opportunities/) | `fetch_cat/tiktok-trends-scraper` | OpenAI, Google Sheets, Telegram | QA passed |
+| [YouTube Trending Content Ideas](workflows/youtube-trending-content-ideas/) | `fetch_cat/youtube-search-results-scraper` | OpenAI, Google Sheets, Telegram | QA passed |
+| [Meta Ads Competitor Monitor](workflows/meta-ads-competitor-monitor/) | `fetch_cat/facebook-ads-library-scraper` | OpenAI, Google Sheets, Slack | Development: live empty path verified |
+| [Amazon Price and Stock Monitor](workflows/amazon-price-stock-monitor/) | `fetch_cat/amazon-products-search-scraper` | Google Sheets, Telegram | QA passed |
+| [Google Reviews Response Drafts](workflows/google-reviews-response-drafts/) | `fetch_cat/google-maps-reviews-scraper` | OpenAI, Google Sheets, Slack | QA passed |
+| [Zillow Listing and Price Monitor](workflows/zillow-listing-price-monitor/) | `fetch_cat/zillow-property-listings-scraper` | Google Sheets, Telegram | QA passed |
+| [Google Trends Opportunity Monitor](workflows/google-trends-opportunity-monitor/) | `fetch_cat/google-trends-scraper` | OpenAI, Google Sheets, Slack | QA passed |
+| [Mobile App Review Monitor](workflows/mobile-app-review-monitor/) | `fetch_cat/apple-app-store-reviews-scraper`, `fetch_cat/google-play-reviews-scraper` | OpenAI, Google Sheets, Slack | QA passed |
+| [Product Hunt Launch Monitor](workflows/product-hunt-launch-monitor/) | `fetch_cat/product-hunt-scraper` | OpenAI, Notion, Slack | QA passed |
 
 All schedules are inactive in Git. Importing through the n8n CLI also forces them
 inactive. Creator Portal packages remain drafts until a separate approval is given.
