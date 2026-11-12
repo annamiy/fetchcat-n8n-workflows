@@ -5,19 +5,23 @@ import { execFileSync } from 'node:child_process';
 import { readJson, root, sanitizeWorkflow, workflowPath, writeJson } from './lib.mjs';
 
 const [command, slug] = process.argv.slice(2);
-const container = process.env.N8N_CONTAINER ?? 'fetchcat-n8n';
 
 if (!['import', 'execute', 'export'].includes(command) || !slug) {
   console.error('Usage: node scripts/n8n-cli.mjs <import|execute|export> <slug>');
   process.exit(2);
 }
 
-function docker(...args) {
-  return execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+// The agent user has no Docker access to fetchcat-n8n; a root-owned wrapper runs fixed n8n CLI
+// commands inside the container (apify-production ops/least-privilege/fetchcat-n8n-cli).
+export const N8N_CLI = '/usr/local/sbin/fetchcat-n8n-cli';
+function n8nCli(args, input) {
+  return execFileSync('/usr/bin/sudo', ['-n', N8N_CLI, ...args], {
+    encoding: 'utf8', input, stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'inherit'], maxBuffer: 64 * 1024 * 1024,
+  });
 }
 
 function listWorkflows() {
-  return docker('exec', container, 'n8n', 'list:workflow')
+  return n8nCli(['list'])
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
@@ -36,9 +40,7 @@ if (command === 'import') {
   const importCopy = sanitizeWorkflow(readJson(workflowPath(slug)));
   importCopy.id = process.env.N8N_IMPORT_ID ?? randomUUID();
   writeJson(prepared, importCopy);
-  const containerPath = `/tmp/${slug}.json`;
-  docker('cp', prepared, `${container}:${containerPath}`);
-  process.stdout.write(docker('exec', container, 'n8n', 'import:workflow', `--input=${containerPath}`));
+  process.stdout.write(n8nCli(['import'], fs.readFileSync(prepared, 'utf8')));
   process.exit(0);
 }
 
@@ -57,22 +59,11 @@ const workflowId = matches[0].id;
 
 if (command === 'execute') {
   const runnerPort = process.env.N8N_CLI_RUNNER_PORT ?? '5680';
-  process.stdout.write(docker(
-    'exec',
-    '-e',
-    `N8N_RUNNERS_BROKER_PORT=${runnerPort}`,
-    container,
-    'n8n',
-    'execute',
-    `--id=${workflowId}`,
-    '--rawOutput'
-  ));
+  process.stdout.write(n8nCli(['execute', `--id=${workflowId}`, `--runner-port=${runnerPort}`]));
 } else {
-  const containerPath = `/tmp/${slug}-export.json`;
-  docker('exec', container, 'n8n', 'export:workflow', `--id=${workflowId}`, `--output=${containerPath}`, '--pretty');
   const exported = path.join(root, 'dist', 'exports', `${slug}.json`);
   fs.mkdirSync(path.dirname(exported), { recursive: true });
-  docker('cp', `${container}:${containerPath}`, exported);
+  fs.writeFileSync(exported, n8nCli(['export', `--id=${workflowId}`]));
   const parsed = readJson(exported);
   writeJson(exported, sanitizeWorkflow(Array.isArray(parsed) ? parsed[0] : parsed));
   console.log(exported);

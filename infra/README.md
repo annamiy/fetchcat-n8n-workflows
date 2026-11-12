@@ -22,12 +22,19 @@ counts, then start n8n.
 
 ## Operations
 
+Since 12 Nov 2026 the agent user `hanna` has no Docker access to these containers.
+Compose changes, `verify-restore.sh` and upgrades run as root (`sudo -i` over
+Tailscale); the backup timer runs as `hanna` and dumps PostgreSQL through
+`sudo -n /usr/local/sbin/fetchcat-n8n-cli pg-dump`.
+
 ```bash
+# as root
 cd /data/n8n
 docker compose --env-file .env up -d
 docker compose --env-file .env ps
-./scripts/backup.sh
 ./scripts/verify-restore.sh
+# as hanna (or the backup timer)
+./scripts/backup.sh
 ```
 
 The backup timer retains seven daily and four weekly PostgreSQL/state backup

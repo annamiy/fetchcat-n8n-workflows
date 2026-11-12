@@ -7,16 +7,11 @@ timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 daily_dir="$root/backups/daily"
 weekly_dir="$root/backups/weekly"
 
-set -a
-source "$root/.env"
-set +a
-
 mkdir -p "$daily_dir" "$weekly_dir"
 chmod 700 "$root/backups" "$daily_dir" "$weekly_dir"
 
-docker compose --env-file "$root/.env" -f "$root/compose.yaml" exec -T postgres \
-  pg_dump --format=custom --no-owner --no-acl --username "$POSTGRES_USER" "$POSTGRES_DB" \
-  > "$daily_dir/postgres-$timestamp.dump"
+# hanna has no Docker access; the root-owned wrapper streams pg_dump --format=custom.
+/usr/bin/sudo -n /usr/local/sbin/fetchcat-n8n-cli pg-dump > "$daily_dir/postgres-$timestamp.dump"
 
 tar \
   --exclude='state/.n8n-event-log*' \

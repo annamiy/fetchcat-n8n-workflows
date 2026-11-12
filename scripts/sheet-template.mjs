@@ -111,8 +111,11 @@ export function parseResult(output) {
   return JSON.parse(matches.at(-1)[0]);
 }
 
-function docker(...args) {
-  return execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
+// Fixed n8n CLI commands through the root-owned wrapper; the agent user has no Docker access to fetchcat-n8n.
+function n8nCli(args, input) {
+  return execFileSync('/usr/bin/sudo', ['-n', '/usr/local/sbin/fetchcat-n8n-cli', ...args], {
+    encoding: 'utf8', input, stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024,
+  });
 }
 
 export function main(argv = process.argv.slice(2)) {
@@ -133,11 +136,8 @@ export function main(argv = process.argv.slice(2)) {
     console.log(JSON.stringify({ dryRun: true, toolWorkflow: path.relative(root, local), title: spec.title, tabs: spec.tabs.map((t) => t.name) }));
     return null;
   }
-  const container = process.env.N8N_CONTAINER ?? 'fetchcat-n8n';
-  const inContainer = `/tmp/sheet-template-${slug}.json`;
-  docker('cp', local, `${container}:${inContainer}`);
-  docker('exec', container, 'n8n', 'import:workflow', `--input=${inContainer}`);
-  const output = docker('exec', '-e', `N8N_RUNNERS_BROKER_PORT=${process.env.N8N_CLI_RUNNER_PORT ?? '5680'}`, container, 'n8n', 'execute', `--id=${tool.id}`, '--rawOutput');
+  n8nCli(['import'], fs.readFileSync(local, 'utf8'));
+  const output = n8nCli(['execute', `--id=${tool.id}`, `--runner-port=${process.env.N8N_CLI_RUNNER_PORT ?? '5680'}`]);
   const result = parseResult(output);
   if (!result || !result.shared || !result.inFolder) {
     throw new Error(`Sheet template run did not finish with a shared spreadsheet in the folder${result ? ` (spreadsheet ${result.spreadsheetId})` : ''}. Check the execution of "${tool.name}" in n8n.`);
