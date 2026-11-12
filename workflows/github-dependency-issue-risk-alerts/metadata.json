@@ -19,6 +19,8 @@
     "apifyBackedExecutions": 3,
     "budgetUsd": 1
   },
-  "releaseState": "qa-passed",
-  "pipelineIssue": "APIA-14650"
+  "releaseState": "creator-submitted",
+  "pipelineIssue": "APIA-14650",
+  "submittedAt": "2026-11-12",
+  "creatorTemplateId": 22767
 }
