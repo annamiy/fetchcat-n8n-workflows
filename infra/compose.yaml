@@ -22,7 +22,7 @@ services:
       - no-new-privileges:true
 
   community-nodes:
-    image: docker.n8n.io/n8nio/n8n:2.26.8
+    image: docker.n8n.io/n8nio/n8n:2.47.4
     container_name: fetchcat-n8n-community-nodes
     user: node
     entrypoint: ["/bin/sh", "-c"]
@@ -30,14 +30,14 @@ services:
       - >-
         mkdir -p /home/node/.n8n/nodes &&
         cd /home/node/.n8n/nodes &&
-        npm install --omit=dev --no-audit --no-fund --save-exact @apify/n8n-nodes-apify@0.6.10
+        npm install --omit=dev --no-audit --no-fund --save-exact @apify/n8n-nodes-apify@0.9.0
     volumes:
       - /data/n8n/state:/home/node/.n8n
     security_opt:
       - no-new-privileges:true
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n:2.26.8
+    image: docker.n8n.io/n8nio/n8n:2.47.4
     container_name: fetchcat-n8n
     restart: unless-stopped
     depends_on:
@@ -59,11 +59,10 @@ services:
       N8N_PORT: 5678
       N8N_PROTOCOL: https
       N8N_EDITOR_BASE_URL: https://n8n.nosova.me
-      WEBHOOK_URL: https://n8n.nosova.me/
+      N8N_WEBHOOK_URL: https://n8n.nosova.me/
       N8N_PROXY_HOPS: 1
       N8N_SECURE_COOKIE: "true"
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      N8N_RUNNERS_ENABLED: "true"
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_PERSONALIZATION_ENABLED: "false"
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
