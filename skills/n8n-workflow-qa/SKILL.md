@@ -1,80 +1,76 @@
 ---
 name: n8n-workflow-qa
-description: QA a FetchCat n8n workflow end to end in the private instance and isolated destinations. Use for inactive import, server or CLI execution as supported, happy/duplicate/negative/credential tests, destination verification with agent-browser, spend tracking, export-sanitize-reimport checks, and same-issue pass or failure handoff.
+description: QA a FetchCat n8n template end to end in the private instance with the QA destinations. Use for exact-commit checks, guarded Apify-backed executions, happy/duplicate/empty/credential paths, sticky-note and near-duplicate review, sheet template check, export-sanitize-reimport and same-issue pass or failure handoff.
 ---
 
 # n8n Workflow QA
 
-Accept only a same-issue Developer handoff with a full commit SHA, exact title,
-assertions, and green static validation.
+Read `PIPELINE.md` first. Accept only a same-issue `Builder handoff: READY FOR
+QA` with a full commit SHA.
 
 ## Boundaries
 
-- Test the exact commit in `N8N_REPOSITORY_PATH`; do not test a dirty worktree.
-- Use the private instance at `N8N_API_URL`. For workflows containing n8n Data
-  Tables, execute through the authenticated server editor or a temporary QA
-  trigger because n8n 2.26.8 disables that module in standalone CLI runs.
-- Keep workflows unpublished and schedules inactive.
-- Use only the named Google Sheets, Slack, Notion, and Telegram QA resources.
-- Never expose `N8N_API_KEY`, third-party credentials, destination IDs, cookies,
-  raw credential-bearing logs, or private output evidence in Git or issue text.
-- Do not exceed metadata limits, three Apify-backed runs, or the remaining
-  `N8N_TEST_BUDGET_USD` allocation.
-- Never modify an Actor checkout or `actors.db`.
+- Test the exact commit in your own worktree
+  (`/data/projects/fetchcat-n8n-workflows-wt/qa-<slug>`, detached at the SHA).
+- Keep workflows and schedules inactive. Use only the `FetchCat QA - *`
+  credentials and the QA destinations in `n8n-destinations.env`.
+- At most 3 Apify-backed executions per template, each through the spend
+  guard from the company workspace:
+  `node _scripts/apify-guarded-command.mjs --action run --scope task-qa --actor ACTOR --planned-runs 1 --justification "APIA-N n8n template QA <path>" -- docker exec -e N8N_RUNNERS_BROKER_PORT=5680 fetchcat-n8n n8n execute --id=ID --rawOutput`
+  (load `anna-apify-workspace-runtime.env` and `anna-apify-company.env` first).
+  A 4th or later run on the same template (after a fix) adds
+  `--additional-verification --issue APIA-N --prior-run-id <previous Apify run>`
+  with a justification naming what changed. Never start a paid run from the
+  editor. A template with Data Table nodes fails QA (builder rule). The editor
+  (`https://n8n.nosova.me`, which opens from the VPS without the basic-auth login) is
+  only for reading executions and taking screenshots.
+- Never expose keys, destination IDs, cookies or private output in Git or
+  comments. Never modify Actor checkouts or `actors.db`.
 
-## QA Procedure
+## Checks
 
-1. Verify the branch SHA, clean worktree, metadata limits, no active workflow,
-   and no credential references in public JSON.
-2. Run `npm run check` and a secret scan.
-3. Import the workflow inactive. Confirm API read and update access without
-   publishing it.
-4. In a disposable clean-project test, confirm the workflow creates every
-   required Data Table, saves setup-form defaults, and can repeat setup without
-   duplicate configuration rows. Remove the disposable resources afterward.
-5. Attach existing encrypted n8n credentials to the private instance copy.
-6. Run one happy path in the server execution context. Use
-   `npm run execute -- <slug>` only when the graph has no Data Table node. Record execution ID,
-   Actor run ID, item count, AI schema result, destination write count, and
-   estimated spend in a private Paperclip artifact.
-7. Run the exact duplicate path immediately. Confirm zero duplicate rows,
-   pages, Slack messages, or Telegram messages as required by the workflow
-   contract.
-8. Run one empty or error path. Confirm malformed/missing input fails closed and
-   creates no external writes.
-9. Run or inspect the missing-credential path and confirm the error is explicit
-   and secret-free.
-10. Use `agent-browser` to inspect the n8n execution, exact QA destination, and
-    output count. Capture credential-free workflow, setup/form, and synthetic
-    output screenshots in the repository; keep real identifiers and output in
-    Paperclip artifacts only.
-11. Confirm public JSON has no fixture/manual-QA branch, then export, sanitize,
-    validate, reimport, and execute the sanitized copy in the
-    appropriate server context. Confirm
-    node parameters survive the round trip and the reimport stays unpublished.
-12. Run the n8n security audit and confirm total spend remains within the issue
-    and repository limits.
+1. Exact SHA, clean worktree, `npm run validate`, secret scan
+   (`gitleaks detect --no-git -s workflows/<slug>` if installed, else the
+   validator's scan).
+2. **Review as an n8n reviewer would:**
+   - the yellow note has 100–300 words with How it works and Setup;
+   - every node sits inside a white section note, and node names are descriptive;
+   - all settings are in one Set node and no Code edits are needed;
+   - the title is in verb–outcome–apps form;
+   - the logic and output differ from every other template in `workflows/`, with no swapped-app copy.
+   Fail it otherwise.
+3. **Sheet template:** the copy link opens without login
+   (`curl -sL https://docs.google.com/spreadsheets/d/ID/export?format=csv`
+   returns the headers), and the headers match what the workflow writes.
+4. Import inactive, attach the QA credentials, then run:
+   - **happy path**: the default input. Check items, AI schema and destination rows;
+   - **duplicate path**: an immediate rerun produces no new rows or messages;
+   - **empty or invalid input**: a clean end with no writes;
+   - **missing credential**: a readable error.
+
+   Record the execution IDs, Apify run IDs and spend in a private comment
+   artifact, not Git.
+5. Export, sanitize, reimport, and confirm the parameters survived and the copy
+   stays inactive.
+6. Confirm that `assets/workflow-overview.png` and `assets/output-preview.png`
+   show no real identifiers.
 
 ## Handoff
 
-On failure, comment with the failing assertion, execution evidence location,
-reproduction steps, spend so far, and assign the same issue back to Developer.
-
-On pass, comment:
+On failure, comment the failing check, reproduction and spend, then
+`handoffIssue` back to Developer. On pass, comment and hand to Publisher:
 
 ```text
 QA verdict: PASS
 Slug: <slug>
-Commit: <full-sha>
+Commit: <full sha>
+Reviewer checks: PASS
+Sheet template: PASS | n/a
 Happy path: PASS
 Duplicate path: PASS
 Empty/error path: PASS
 Credential path: PASS
 Export/sanitize/reimport: PASS
-Schedules unpublished: PASS
-Spend: <amount and evidence artifact>
-Screenshots: <repository paths>
-Residual risks: <specific list or none>
+Spend: <amount, runs>
+Residual risks: <list or none>
 ```
-
-Assign the same issue to the existing Publisher. Never merge or publish it.

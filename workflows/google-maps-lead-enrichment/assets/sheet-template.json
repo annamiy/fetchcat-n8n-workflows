@@ -1,0 +1,13 @@
+{
+  "title": "FetchCat n8n template - Google Maps leads",
+  "tabs": [
+    {
+      "name": "Enriched leads",
+      "headers": ["Business name", "Category", "City", "Phone", "Website", "Public email", "Rating", "Reviews", "Google Maps link", "Place ID", "Found at"],
+      "exampleRows": [
+        ["Example Coffee Roasters", "Coffee shop", "Lisbon", "+351 210 000 000", "https://example.com", "", 4.7, 312, "https://maps.google.com/?cid=1", "example-place-1", "2026-11-12"],
+        ["Sample Bike Repair", "Bicycle repair shop", "Lisbon", "+351 210 000 001", "https://example.org", "", 4.5, 88, "https://maps.google.com/?cid=2", "example-place-2", "2026-11-12"]
+      ]
+    }
+  ]
+}

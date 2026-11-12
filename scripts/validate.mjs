@@ -72,6 +72,38 @@ function validateAutoAnnotatedStickies(slug, workflow) {
   }
 }
 
+
+// Templates built for the pipeline (metadata.apifyNodeVersion set) use the
+// official Apify node, one numbered settings node and n8n's sticky-note rules.
+function validateApifyNodeTemplate(slug, dir, workflow, metadata, readmeText) {
+  const apifyNodes = workflow.nodes.filter((entry) => entry.type === '@apify/n8n-nodes-apify.apify');
+  if (apifyNodes.length < 1) fail(slug, 'must run the Actor with the Apify node (@apify/n8n-nodes-apify.apify)');
+  for (const entry of apifyNodes) {
+    if (entry.typeVersion !== 2) fail(slug, `${entry.name} must use Apify node typeVersion 2`);
+    const operation = entry.parameters?.operation ?? '';
+    if (/^Run actor/i.test(operation) && entry.parameters?.maxTotalChargeUsd === undefined) {
+      fail(slug, `${entry.name} must set maxTotalChargeUsd`);
+    }
+  }
+  const apifyHttp = workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.httpRequest' && /api\.apify\.com/.test(JSON.stringify(entry.parameters ?? {})));
+  if (apifyHttp.length) fail(slug, 'must not call the Apify API through HTTP Request nodes');
+  const settings = workflow.nodes.filter((entry) => entry.type === 'n8n-nodes-base.set' && /^1\. /.test(entry.name));
+  if (settings.length !== 1) fail(slug, 'must have exactly one settings Set node named "1. ..."');
+  validateAutoAnnotatedStickies(slug, workflow);
+  if (workflow.nodes.some((entry) => /^(HTTP Request|Code|Set|If|Edit Fields)\d*$/.test(entry.name))) fail(slug, 'node names must be descriptive');
+  const usesSheets = workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.googleSheets');
+  if (usesSheets) {
+    if (!fs.existsSync(path.join(dir, 'assets/sheet-template.json'))) fail(slug, 'Google Sheets template needs assets/sheet-template.json');
+    const copyLink = /https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/copy/;
+    if (!copyLink.test(readmeText)) fail(slug, 'README must link the sheet template copy URL');
+    const overview = workflow.nodes.find((entry) => entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 1);
+    if (!copyLink.test(overview?.parameters?.content ?? '')) fail(slug, 'overview sticky must link the sheet template copy URL');
+  }
+  if (!/^[A-Z][^\n]{49,109}$/.test(metadata.title ?? '') || !/ with /.test(metadata.title ?? '')) {
+    fail(slug, 'title must be 50-110 characters in the form "<Verb> <outcome> with Apify, ..."');
+  }
+}
+
 for (const slug of workflowSlugs()) {
   const dir = workflowPath(slug, '');
   const required = [
@@ -307,7 +339,18 @@ for (const slug of workflowSlugs()) {
   if (metadata.slug !== slug) fail(slug, 'metadata slug does not match directory');
   if (metadata.title !== workflow.name) fail(slug, 'metadata title does not match workflow name');
   if (!/^\d+\.\d+\.\d+$/.test(metadata.version ?? '')) fail(slug, 'metadata version is not semantic');
-  if (metadata.minimumN8nVersion !== '2.26.8') fail(slug, 'minimum n8n version must be 2.26.8');
+  const versionParts = String(metadata.minimumN8nVersion ?? '').split('.').map(Number);
+  if (versionParts.length !== 3 || versionParts.some((part) => !Number.isInteger(part)) || versionParts[0] !== 2 || versionParts[1] < 26) {
+    fail(slug, 'minimum n8n version must be a 2.x version of 2.26.8 or newer');
+  }
+  if (metadata.releaseState === 'creator-public' && !Number.isInteger(metadata.creatorTemplateId)) fail(slug, 'creator-public needs creatorTemplateId');
+  if (metadata.releaseState === 'creator-submitted' && !/^\d{4}-\d{2}-\d{2}$/.test(metadata.submittedAt ?? '')) fail(slug, 'creator-submitted needs submittedAt (YYYY-MM-DD)');
+  for (const key of Object.keys(metadata)) {
+    if (!['slug', 'title', 'workflowKind', 'actorId', 'actorSlug', 'additionalActors', 'version', 'minimumN8nVersion', 'apifyNodeVersion', 'integrations', 'testLimits', 'releaseState', 'creatorTemplateId', 'submittedAt', 'pipelineIssue'].includes(key)) {
+      fail(slug, `unknown metadata field ${key}`);
+    }
+  }
+  if (metadata.apifyNodeVersion) validateApifyNodeTemplate(slug, dir, workflow, metadata, readmeText);
   if (!releaseStates.has(metadata.releaseState)) fail(slug, 'invalid release state');
   const actorItemLimit = slug === 'pinterest-content-opportunity-research' ? 50 : 10;
   if (metadata.testLimits?.actorItems > actorItemLimit) fail(slug, `Actor test item limit exceeds ${actorItemLimit}`);

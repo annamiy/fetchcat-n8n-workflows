@@ -3,7 +3,11 @@ n8n.nosova.me {
 
 	# Editor, UI and internal REST need the same basic-auth login as the dashboard.
 	# Webhooks, forms, health and the API-key-protected public API stay reachable.
-	@editor not path /webhook/* /webhook-test/* /webhook-waiting/* /form/* /form-test/* /form-waiting/* /healthz /healthz/* /api/v1/*
+	# Processes on the VPS itself (agents QA-ing in agent-browser) skip the login.
+	@editor {
+		not path /webhook/* /webhook-test/* /webhook-waiting/* /form/* /form-test/* /form-waiting/* /healthz /healthz/* /api/v1/*
+		not remote_ip 46.224.160.65/32 127.0.0.1/32 ::1/128
+	}
 	basicauth @editor {
 		anna $2a$14$REPLACE_WITH_caddy_hash-password_OUTPUT
 	}
