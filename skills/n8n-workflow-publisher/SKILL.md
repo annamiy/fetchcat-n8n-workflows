@@ -20,7 +20,9 @@ for the exact full commit SHA.
 ## Publish
 
 1. Confirm the PR head equals the QA SHA and CI is green, then merge it. Record
-   the merge SHA.
+   the merge SHA. Then update the shared checkout, which is also the agents'
+   skill source: `git -C /data/projects/fetchcat-n8n-workflows pull --ff-only`.
+   Do the same after every metadata commit to `main`.
 2. Run `npm run package -- <slug>` and check the package holds only the
    sanitized workflow (no credentials, no `settings.errorWorkflow`).
 3. **Submission package** on the issue, as one comment:
