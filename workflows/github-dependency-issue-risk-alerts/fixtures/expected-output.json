@@ -1,0 +1,28 @@
+{
+  "description": "Expected behavior on fixtures/input.json, checked by scripts/test-github-dependency-issue-risk-alerts.mjs and by QA in the private instance.",
+  "repositories": ["example-org/alpha-http", "example-org/beta-router", "example-org/gamma-cli"],
+  "aiScores": {
+    "1000": { "category": "regression", "riskScore": 5, "affectsUpgrade": "yes", "summary": "Version 2.4.0 crashes on empty JSON request bodies that worked in 2.3.2." },
+    "1001": { "category": "security", "riskScore": 5, "affectsUpgrade": "no", "summary": "Crafted query strings can pollute Object.prototype in 2.x." },
+    "1002": { "category": "question", "riskScore": 1, "affectsUpgrade": "no", "summary": "Typo in the retries guide; no code impact." },
+    "1003": { "category": "regression", "riskScore": 4, "affectsUpgrade": "yes", "summary": "Trailing-slash matching stopped working after upgrading from 5.0.3 to 5.1.0." },
+    "1004": { "category": "feature", "riskScore": 1, "affectsUpgrade": "no", "summary": "Request for async middleware hooks." },
+    "1005": { "category": "question", "riskScore": 1, "affectsUpgrade": "no", "summary": "User asks how to return JSON errors." },
+    "1006": { "category": "bug", "riskScore": 3, "affectsUpgrade": "no", "summary": "CLI exits 0 without a config file, so CI can pass silently." },
+    "1007": { "category": "breaking-change", "riskScore": 4, "affectsUpgrade": "yes", "summary": "3.0 switched the default output to JSON and breaks scripts that parse text." },
+    "1008": { "category": "bug", "riskScore": 2, "affectsUpgrade": "no", "summary": "Path test is flaky on Windows runners." }
+  },
+  "alertNumbers": [1000, 1001, 1003, 1007],
+  "assertions": [
+    "Node 1 settings become one Actor input per repository (owner/name, URL and .git forms normalized), with since = today minus lookbackDays, maxItems per repository, issues only and no labels or token by default.",
+    "Missing or malformed repositories stop the run before any paid request with a readable error.",
+    "Happy path: all 9 synthetic issues are new, numbered for the AI and sorted by updatedAt.",
+    "Duplicate run: every issue is already in the sheet with the same updatedAt, so Issues to Score? is false and nothing is written to Sheets or Slack.",
+    "An issue updated since it was logged is rescored; its earlier Slack alert is remembered and not repeated.",
+    "Empty Actor datasets: readable 'No issues were updated' message and no destination writes.",
+    "One failed repository is listed and the others continue; when every run fails (for example a missing Apify credential) the run stops with a readable error and writes nothing.",
+    "Sheet rows carry exactly the 16 headers of the Dependency Issues tab and are upserted on url.",
+    "Malformed, empty, out-of-range or unrelated OpenAI output: AI Scores Valid? is false, readable message, no destination writes.",
+    "Slack digest lists only issues at riskScore 4 or higher that were not alerted before (1000, 1001, 1003, 1007); a quiet day ends at Quiet Day - No Slack Post."
+  ]
+}
