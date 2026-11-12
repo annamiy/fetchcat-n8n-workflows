@@ -41,13 +41,20 @@ for the exact full commit SHA.
      `https://n8n.io/creators` signed in, submit the package there (upload
      the JSON, paste title and description, select categories, submit).
      Record the portal's confirmation.
-   - Otherwise create one Board card with
-     `node _scripts/board-card.mjs --issue APIA-N --class operator-action`.
-     Pass `--action "Submit the n8n template <slug> on n8n.io (Creator portal, upload workflow.json and paste the description); only Anna's n8n.io account can submit"`.
-     Ask the plain question "Submit this n8n template on n8n.io?", with
-     options `Submitted` / `Not now`. Give two sentences of context (what the
-     template does and that QA passed) and the package comment link. Use no
-     stall words; the card checker rejects them.
+   - Otherwise create one Board card (it messages Anna in her Grok bot):
+
+     ```bash
+     node _scripts/board-card.mjs --issue APIA-N --class operator-action \
+       --question "Submit this n8n template on n8n.io?" \
+       --option submitted:Submitted --option later:"Not now" \
+       --context "The n8n template \"<title>\" passed QA and is merged. The submission package (workflow file, title, description, categories) is in the linked comment." \
+       --action "Submit the n8n template <slug> on n8n.io (Creator portal: upload workflow.json, paste title and description); only Anna's n8n.io account can submit" \
+       --return-owner Publisher --share
+     ```
+
+     Run it from the company workspace. Keep the context to what the template
+     does and that QA passed; the checker refuses stall words such as
+     "blocked", "proceed" or "tried". One card per template, never a reminder card.
 6. **After submission** (portal confirmation or Anna's `Submitted`): on
    `main`, set `releaseState: creator-submitted` and `submittedAt:
    YYYY-MM-DD` in `metadata.json`, commit, push, and close the issue as done.
