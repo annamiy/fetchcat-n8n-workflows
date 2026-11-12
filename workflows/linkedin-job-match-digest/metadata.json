@@ -18,5 +18,6 @@
     "apifyBackedExecutions": 3,
     "budgetUsd": 3.34
   },
-  "releaseState": "qa-passed"
+  "releaseState": "creator-public",
+  "creatorTemplateId": 17019
 }
