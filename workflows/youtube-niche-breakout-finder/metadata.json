@@ -1,0 +1,24 @@
+{
+  "slug": "youtube-niche-breakout-finder",
+  "title": "Find breakout YouTube videos in your niche weekly with Apify, OpenAI, Google Sheets and Slack",
+  "workflowKind": "actor-template",
+  "actorId": "onwGBK577QyLVoyjw",
+  "actorSlug": "fetch_cat/youtube-search-results-scraper",
+  "additionalActors": [],
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.47.4",
+  "apifyNodeVersion": "0.9.0",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets",
+    "Slack"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "development",
+  "pipelineIssue": "APIA-14644"
+}

@@ -1,0 +1,13 @@
+{
+  "title": "FetchCat n8n template - YouTube niche breakouts",
+  "tabs": [
+    {
+      "name": "Breakouts",
+      "headers": ["Observed at", "Query", "Rank", "Video title", "Channel", "Published", "Days since upload", "Views", "Views per day", "Breakout ratio", "Duration (s)", "Angle", "Video URL", "Video ID"],
+      "exampleRows": [
+        ["2026-11-12 09:00 UTC", "example niche search", 3, "Example video: build a no-code app in 10 minutes", "Example Channel", "2d ago", 2, 24000, 12000, 6.5, 640, "Fast build demos", "https://www.youtube.com/watch?v=EXAMPLE0001", "EXAMPLE0001"],
+        ["2026-11-12 09:00 UTC", "example niche search", 7, "Sample walkthrough: automate your weekly report", "Sample Studio", "15h ago", 0.6, 5200, 5200, 2.8, 910, "Workflow walkthroughs", "https://www.youtube.com/watch?v=EXAMPLE0002", "EXAMPLE0002"]
+      ]
+    }
+  ]
+}

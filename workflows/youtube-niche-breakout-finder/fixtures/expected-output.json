@@ -1,0 +1,17 @@
+{
+  "description": "Expected behavior on fixtures/input.json, checked by scripts/test-youtube-niche-breakout-finder.mjs and by QA in the private instance.",
+  "breakoutVideoIds": ["FIXTURE0021", "FIXTURE0023", "FIXTURE0022", "FIXTURE0024", "FIXTURE0012", "FIXTURE0014", "FIXTURE0003"],
+  "scoredVideos": 30,
+  "notScored": 1,
+  "assertions": [
+    "Happy path: 7 breakout videos (ratio >= 2 against the search median, >= 1,000 views), sorted by ratio, with canonical watch URLs; the Short is not scored.",
+    "Sheet rows carry exactly the 14 headers of the Breakouts tab and are upserted on Video ID.",
+    "Duplicate run: every breakout already in the sheet, so New Breakouts Found? is false and nothing is written to Sheets or Slack.",
+    "Empty Actor dataset: readable 'returned no videos' message and no destination writes.",
+    "A search with fewer than minVideosPerQuery dated videos is skipped and listed in the Slack digest.",
+    "Malformed, empty or unrelated OpenAI output: AI Angles Valid? is false, readable message, no destination writes.",
+    "Missing search phrases stop the run before any paid request with a readable error.",
+    "Credential-negative: without an Apify credential the run stops at node 2 with a readable error and writes nothing.",
+    "Slack digest lists every new video under its angle and the run counts."
+  ]
+}

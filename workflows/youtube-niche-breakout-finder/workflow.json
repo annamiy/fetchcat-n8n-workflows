@@ -1,0 +1,841 @@
+{
+  "name": "Find breakout YouTube videos in your niche weekly with Apify, OpenAI, Google Sheets and Slack",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "12b9baca-703b-4747-afec-ff439ecec105",
+      "name": "Run Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "ed813bc6-b73e-481d-a1f8-33a8e9282deb",
+      "name": "Every Monday at 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "setting-1",
+              "name": "searchQueries",
+              "value": "ai automation tools, n8n tutorial, no code saas",
+              "type": "string"
+            },
+            {
+              "id": "setting-2",
+              "name": "country",
+              "value": "US",
+              "type": "string"
+            },
+            {
+              "id": "setting-3",
+              "name": "uploadDate",
+              "value": "week",
+              "type": "string"
+            },
+            {
+              "id": "setting-4",
+              "name": "maxResultsPerQuery",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "setting-5",
+              "name": "minBreakoutRatio",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "setting-6",
+              "name": "minViews",
+              "value": 1000,
+              "type": "number"
+            },
+            {
+              "id": "setting-7",
+              "name": "minVideosPerQuery",
+              "value": 4,
+              "type": "number"
+            },
+            {
+              "id": "setting-8",
+              "name": "maxBreakoutsPerRun",
+              "value": 15,
+              "type": "number"
+            },
+            {
+              "id": "setting-9",
+              "name": "maxCostUsd",
+              "value": 0.1,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3370dc6f-4c91-4057-a414-90120921d08b",
+      "name": "1. Set your niche searches",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads node 1 and builds the Actor input. Edit node 1, not this code.\nconst s = $input.first().json;\nconst number = (value, fallback) => { const n = Number(value); return Number.isFinite(n) ? n : fallback; };\nconst clamp = (value, min, max, fallback) => Math.min(max, Math.max(min, number(value, fallback)));\nconst queries = [...new Set(String(s.searchQueries ?? '').split(',').map((q) => q.trim()).filter(Boolean))];\nif (!queries.length) throw new Error('Add at least one search phrase to \"searchQueries\" in node 1 (comma-separated).');\nif (queries.length > 10) throw new Error(`Use at most 10 search phrases per run; node 1 has ${queries.length}.`);\nconst uploadDate = ['today', 'week', 'month', 'year'].includes(String(s.uploadDate).trim()) ? String(s.uploadDate).trim() : 'week';\nconst country = String(s.country ?? 'US').trim().toUpperCase();\nreturn [{\n  json: {\n    maxCostUsd: clamp(s.maxCostUsd, 0.01, 0.5, 0.1),\n    actorInput: {\n      queries,\n      resultType: 'videos',\n      sortBy: 'viewCount',\n      uploadDate,\n      maxResultsPerQuery: Math.round(clamp(s.maxResultsPerQuery, 4, 50, 10)),\n      language: 'en',\n      country: /^[A-Z]{2}$/.test(country) ? country : 'US'\n    }\n  }\n}];"
+      },
+      "id": "811e7635-4c7e-4bb0-a113-7c10ed9910c5",
+      "name": "Build Actor Input from Settings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Actors",
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "onwGBK577QyLVoyjw"
+        },
+        "actorInputMode": "json",
+        "customBody": "={{ JSON.stringify($json.actorInput) }}",
+        "maxTotalChargeUsd": "={{ $json.maxCostUsd }}",
+        "authentication": "apifyApi"
+      },
+      "id": "c909a3cb-1a51-42d7-a46a-1ca6f70173c5",
+      "name": "2. Search YouTube with Apify",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 2,
+      "position": [
+        840,
+        320
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0"
+        },
+        "options": {}
+      },
+      "id": "79880153-b4dd-4bba-a536-a9ba098a6fb0",
+      "name": "Read Logged Video IDs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        320
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Scores every video against the other videos from the same search.\n// velocity = views / days since upload (at least 1 day); breakout ratio = velocity / median velocity of that search.\nconst settings = $('1. Set your niche searches').first().json;\nconst queries = $('Build Actor Input from Settings').first().json.actorInput.queries;\nconst number = (value, fallback) => { const n = Number(value); return Number.isFinite(n) ? n : fallback; };\nconst minRatio = Math.max(1, number(settings.minBreakoutRatio, 2));\nconst minViews = Math.max(0, number(settings.minViews, 1000));\nconst minVideos = Math.max(3, Math.round(number(settings.minVideosPerQuery, 4)));\nconst maxBreakouts = Math.min(25, Math.max(1, Math.round(number(settings.maxBreakoutsPerRun, 15))));\n\n// Video IDs already in the sheet are never sent again.\nconst logged = new Set($input.all().map((item) => String(item.json['Video ID'] ?? '').trim()).filter(Boolean));\nconst rows = $('2. Search YouTube with Apify').all().map((item) => item.json)\n  .filter((row) => row && row.resultType === 'video' && row.videoId);\n\n// YouTube shows ages as \"3 days ago\" or, more often, \"3d ago\", \"15h ago\", \"11mo ago\", \"2y ago\".\nfunction ageInDays(text) {\n  const match = /(\\d+)\\s*(seconds?|secs?|s|minutes?|mins?|months?|mos?|m|hours?|hrs?|h|days?|d|weeks?|wks?|w|years?|yrs?|y)\\s+ago\\b/i.exec(String(text ?? ''));\n  if (!match) return null;\n  const unit = match[2].toLowerCase();\n  const days = unit.startsWith('mo') ? 30 : unit.startsWith('m') ? 1 / 1440 : unit.startsWith('s') ? 1 / 86400\n    : unit.startsWith('h') ? 1 / 24 : unit.startsWith('d') ? 1 : unit.startsWith('w') ? 7 : 365;\n  return Number(match[1]) * days;\n}\nfunction median(values) {\n  const sorted = [...values].sort((a, b) => a - b);\n  const middle = Math.floor(sorted.length / 2);\n  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;\n}\nconst round = (value, digits) => Math.round(value * 10 ** digits) / 10 ** digits;\n\n// Group by the search each row came from; phrases are matched ignoring case and spacing.\nconst keyOf = (query) => String(query ?? '').trim().toLowerCase().replace(/\\s+/g, ' ');\nconst byQuery = new Map(queries.map((query) => [keyOf(query), { query, videos: [] }]));\nlet notScored = 0;\nfor (const row of rows) {\n  const age = ageInDays(row.publishedTimeText);\n  const views = Number.isFinite(row.viewCount) && row.viewCount >= 0 ? row.viewCount : null;\n  if (row.isShort || row.isLive || row.isUpcoming || age === null || views === null) { notScored += 1; continue; }\n  const key = keyOf(row.query);\n  if (!byQuery.has(key)) byQuery.set(key, { query: String(row.query ?? ''), videos: [] });\n  byQuery.get(key).videos.push({ ...row, ageDays: age, viewsPerDay: views / Math.max(age, 1) });\n}\n\nconst skippedSearches = [];\nconst candidates = [];\nlet scoredVideos = 0;\nfor (const { query, videos } of byQuery.values()) {\n  if (videos.length < minVideos) { skippedSearches.push(`${query} (${videos.length} scorable videos, need ${minVideos})`); continue; }\n  const typical = median(videos.map((video) => video.viewsPerDay));\n  if (!(typical > 0)) { skippedSearches.push(`${query} (typical views per day is 0)`); continue; }\n  scoredVideos += videos.length;\n  for (const video of videos) {\n    const ratio = video.viewsPerDay / typical;\n    if (ratio >= minRatio && video.viewCount >= minViews) candidates.push({ ...video, breakoutRatio: ratio });\n  }\n}\n\n// One row per video: if it broke out in two searches, keep the stronger one.\nconst strongest = new Map();\nfor (const video of candidates) {\n  const previous = strongest.get(video.videoId);\n  if (!previous || video.breakoutRatio > previous.breakoutRatio) strongest.set(video.videoId, video);\n}\nconst ranked = [...strongest.values()].sort((a, b) => b.breakoutRatio - a.breakoutRatio);\nconst alreadyLogged = ranked.filter((video) => logged.has(video.videoId)).length;\nconst fresh = ranked.filter((video) => !logged.has(video.videoId));\nconst breakouts = fresh.slice(0, maxBreakouts).map((video) => ({\n  videoId: video.videoId,\n  query: video.query,\n  rank: video.rank,\n  title: video.title ?? '',\n  channel: video.channelName ?? '',\n  published: video.publishedTimeText,\n  daysSinceUpload: round(video.ageDays, 1),\n  views: video.viewCount,\n  viewsPerDay: Math.round(video.viewsPerDay),\n  breakoutRatio: round(video.breakoutRatio, 2),\n  durationSeconds: Number.isFinite(video.durationSeconds) ? video.durationSeconds : '',\n  url: `https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}`\n}));\n\nconst summary = {\n  searches: queries.length,\n  videosReturned: rows.length,\n  scoredVideos,\n  notScored,\n  skippedSearches,\n  alreadyLogged,\n  heldForNextRun: Math.max(0, fresh.length - breakouts.length),\n  newBreakouts: breakouts.length\n};\nlet message;\nif (breakouts.length) message = `${breakouts.length} new breakout videos found.`;\nelse if (!rows.length) message = 'The Actor returned no videos for these searches. Nothing was written to Google Sheets or Slack.';\nelse message = `No new breakout videos this run: ${scoredVideos} videos scored, ${notScored} not scored, ${alreadyLogged} breakouts already in the sheet, ${skippedSearches.length} searches skipped. Nothing was written to Google Sheets or Slack.`;\nreturn [{ json: { hasBreakouts: breakouts.length > 0, message, summary, breakouts } }];"
+      },
+      "id": "59748922-c7e2-4f0b-a294-5ead6343fd06",
+      "name": "Score New Breakouts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-breakouts",
+              "leftValue": "={{ $json.hasBreakouts === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f83926dd-0e60-43b2-adcb-6b56208abe40",
+      "name": "New Breakouts Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "51d16db9-7f33-427f-aa30-31d7fefa2371",
+      "name": "No New Breakouts - Nothing Written",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "user",
+              "content": "=Breakout videos (JSON):\n{{ JSON.stringify($json.breakouts.map(v => ({ videoId: v.videoId, title: v.title, channel: v.channel, search: v.query, views: v.views, viewsPerDay: v.viewsPerDay, breakoutRatio: v.breakoutRatio, published: v.published }))) }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "builtInTools": {},
+        "options": {
+          "instructions": "You group recently uploaded YouTube videos that get unusually many views for their search into topic angles a creator could act on. Use only the supplied titles, channels, searches and numbers. Return 3 to 5 angles when there are at least 3 videos, otherwise 1 or 2. Put every videoId in exactly one angle and copy videoIds exactly. angle: a short name of at most 8 words. whyItWorks: one sentence on the hook, format or promise that likely explains the views; do not invent facts that are not visible in the input.",
+          "maxTokens": 3000,
+          "reasoning": {
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "verbosity": "low",
+              "name": "youtube_breakout_angles",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"angles\"],\"properties\":{\"angles\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":5,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"angle\",\"whyItWorks\",\"videoIds\"],\"properties\":{\"angle\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":80},\"whyItWorks\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":300},\"videoIds\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"type\":\"string\"}}}}}}}",
+              "description": "Topic angles for breakout YouTube videos",
+              "strict": true
+            }
+          }
+        }
+      },
+      "id": "0fcc6754-b11a-4548-a869-b12231cc3b05",
+      "name": "3. Group Breakouts into Angles with OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1980,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Checks the OpenAI answer before anything is written. A bad answer stops the run with no writes.\nfunction parseStructured(root) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (Array.isArray(value.angles)) return value;\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\nconst scored = $('Score New Breakouts').first().json;\nconst byId = new Map(scored.breakouts.map((video) => [video.videoId, video]));\nconst parsed = parseStructured($input.first().json);\nconst reject = (reason) => [{ json: { valid: false, message: `OpenAI angles were rejected (${reason}). Nothing was written to Google Sheets or Slack; run the workflow again.` } }];\nif (!parsed) return reject('no JSON with an \"angles\" list');\nif (parsed.angles.length < 1 || parsed.angles.length > 5) return reject(`${parsed.angles.length} angles, expected 1 to 5`);\n\nconst angleOf = new Map();\nconst angles = [];\nfor (const entry of parsed.angles) {\n  const angle = String(entry?.angle ?? '').trim();\n  const whyItWorks = String(entry?.whyItWorks ?? '').trim();\n  if (!angle || !whyItWorks || !Array.isArray(entry.videoIds)) return reject('an angle is missing its name, reason or videos');\n  const videoIds = [...new Set(entry.videoIds.map(String))].filter((id) => byId.has(id) && !angleOf.has(id));\n  for (const id of videoIds) angleOf.set(id, angle.slice(0, 120));\n  if (videoIds.length) angles.push({ angle: angle.slice(0, 120), whyItWorks: whyItWorks.slice(0, 400), videoIds });\n}\nif (!angles.length) return reject('no angle refers to a video from this run');\n\nconst observedAt = $now.toUTC().toFormat(\"yyyy-MM-dd HH:mm 'UTC'\");\nreturn scored.breakouts.map((video) => ({\n  json: {\n    valid: true,\n    angles,\n    'Observed at': observedAt,\n    'Query': video.query,\n    'Rank': video.rank,\n    'Video title': video.title,\n    'Channel': video.channel,\n    'Published': video.published,\n    'Days since upload': video.daysSinceUpload,\n    'Views': video.views,\n    'Views per day': video.viewsPerDay,\n    'Breakout ratio': video.breakoutRatio,\n    'Duration (s)': video.durationSeconds,\n    'Angle': angleOf.get(video.videoId) ?? 'Other',\n    'Video URL': video.url,\n    'Video ID': video.videoId\n  }\n}));"
+      },
+      "id": "8f4bd846-2736-4aa4-a79d-610ccf1288e7",
+      "name": "Check Angles and Build Sheet Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "angles-valid",
+              "leftValue": "={{ $json.valid === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "067b5b5f-7c34-494f-afbd-181f1d1a5bfb",
+      "name": "AI Angles Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2420,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "56223672-a891-4139-a087-72a167d9b076",
+      "name": "AI Answer Rejected - Nothing Written",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2620,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Observed at": "={{ $json[\"Observed at\"] }}",
+            "Query": "={{ $json[\"Query\"] }}",
+            "Rank": "={{ $json[\"Rank\"] }}",
+            "Video title": "={{ $json[\"Video title\"] }}",
+            "Channel": "={{ $json[\"Channel\"] }}",
+            "Published": "={{ $json[\"Published\"] }}",
+            "Days since upload": "={{ $json[\"Days since upload\"] }}",
+            "Views": "={{ $json[\"Views\"] }}",
+            "Views per day": "={{ $json[\"Views per day\"] }}",
+            "Breakout ratio": "={{ $json[\"Breakout ratio\"] }}",
+            "Duration (s)": "={{ $json[\"Duration (s)\"] }}",
+            "Angle": "={{ $json[\"Angle\"] }}",
+            "Video URL": "={{ $json[\"Video URL\"] }}",
+            "Video ID": "={{ $json[\"Video ID\"] }}"
+          },
+          "matchingColumns": [
+            "Video ID"
+          ],
+          "schema": [
+            {
+              "id": "Observed at",
+              "displayName": "Observed at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Query",
+              "displayName": "Query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rank",
+              "displayName": "Rank",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Video title",
+              "displayName": "Video title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Channel",
+              "displayName": "Channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Published",
+              "displayName": "Published",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Days since upload",
+              "displayName": "Days since upload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Views",
+              "displayName": "Views",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Views per day",
+              "displayName": "Views per day",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Breakout ratio",
+              "displayName": "Breakout ratio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Duration (s)",
+              "displayName": "Duration (s)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Angle",
+              "displayName": "Angle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Video URL",
+              "displayName": "Video URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Video ID",
+              "displayName": "Video ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "1a68d296-42e5-4f00-aaf4-0d7db14dab0a",
+      "name": "4. Log Breakouts to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2920,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds one Slack message after the sheet write succeeded.\nconst rows = $('Check Angles and Build Sheet Rows').all().map((item) => item.json);\nconst summary = $('Score New Breakouts').first().json.summary;\nconst byId = new Map(rows.map((row) => [row['Video ID'], row]));\nconst clean = (text) => String(text ?? '').replace(/[<>|*_~`]/g, ' ').replace(/\\s+/g, ' ').trim();\nconst lines = [\n  `*YouTube breakouts: ${rows.length} new videos* (${rows[0]['Observed at']})`,\n  'Breakout ratio = views per day divided by the typical (median) views per day of the same search.'\n];\nconst placed = new Set();\nconst sections = rows[0].angles.map((angle) => ({ ...angle, rows: angle.videoIds.map((id) => byId.get(id)).filter(Boolean) }));\nconst others = rows.filter((row) => !sections.some((section) => section.videoIds.includes(row['Video ID'])));\nif (others.length) sections.push({ angle: 'Other', whyItWorks: 'Not grouped by the AI.', rows: others });\nfor (const section of sections) {\n  lines.push('', `*${clean(section.angle)}*: ${clean(section.whyItWorks)}`);\n  for (const row of section.rows) {\n    if (placed.has(row['Video ID'])) continue;\n    placed.add(row['Video ID']);\n    lines.push(`• <${row['Video URL']}|${clean(row['Video title']).slice(0, 90)}> by ${clean(row['Channel'])}: ${Number(row['Views']).toLocaleString('en-US')} views, ${row['Breakout ratio']}x, ${row['Published']}`);\n  }\n}\nconst notes = [`${summary.scoredVideos} videos scored across ${summary.searches} searches`];\nif (summary.notScored) notes.push(`${summary.notScored} Shorts, live or undated results not scored`);\nif (summary.alreadyLogged) notes.push(`${summary.alreadyLogged} breakouts already in your sheet`);\nif (summary.heldForNextRun) notes.push(`${summary.heldForNextRun} more held back by maxBreakoutsPerRun`);\nlines.push('', `_${notes.join('; ')}._`);\nif (summary.skippedSearches.length) lines.push(`_Skipped searches (too few videos for a fair median): ${clean(summary.skippedSearches.join('; '))}._`);\nreturn [{ json: { text: lines.join('\\n') } }];"
+      },
+      "id": "410b0c88-47c7-4430-a1fd-13c6d9df67b9",
+      "name": "Build Slack Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3140,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "messageType": "text",
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "cd880349-c6fe-41a9-af94-238f3f9f0978",
+      "name": "5. Send Weekly Slack Digest",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        3360,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Find breakout YouTube videos in your niche\n\n### How it works\n1. Runs by hand, or every Monday at 9:00 once you publish the workflow.\n2. Searches YouTube for each phrase in node 1 with the [FetchCat YouTube Search Results Scraper](https://apify.com/fetch_cat/youtube-search-results-scraper): recent uploads, sorted by views. No YouTube API key needed.\n3. Scores every video by views per day since upload, divided by the median of the same search. Videos at 2x or more with at least 1,000 views are breakouts. Shorts, live streams and searches with fewer than 4 dated videos are left out.\n4. Skips videos already in your sheet. One OpenAI call groups the rest into topic angles.\n5. Adds one row per video to Google Sheets (matched on Video ID) and posts one Slack digest.\n\n### Setup (about 10 minutes)\n- [ ] Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/12LEiHbvHoBa-dD7T63LOFe3aBadYyw7fdUGT1OFvG-0/copy).\n- [ ] Install the Apify node (verified node on n8n Cloud, `@apify/n8n-nodes-apify` on self-hosted) and connect your Apify account in node 2.\n- [ ] Connect OpenAI in node 3.\n- [ ] Connect Google Sheets in **Read Logged Video IDs** and node 4 and pick your copy. The `Breakouts` tab is preset.\n- [ ] Connect Slack in node 5 and pick a channel.\n- [ ] Edit node 1, then run once by hand.\n\n### Cost\nA default run (3 searches, 10 videos each) costs about $0.01 on Apify plus one small gpt-5.4-mini call. `maxCostUsd` caps the Apify spend.\n\n### Customization\nChange the phrases, country, upload window (`today`, `week`, `month`, `year`) and thresholds in node 1, or the day and time in the schedule trigger.",
+        "height": 1000,
+        "width": 560,
+        "color": 1
+      },
+      "id": "06b91f05-a413-4fc4-a6de-424ac44c8e03",
+      "name": "Workflow Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Start\nRun by hand to test. The Monday 9:00 schedule only runs after you publish the workflow.",
+        "height": 540,
+        "width": 280,
+        "color": 7
+      },
+      "id": "d98ef429-fb6d-480e-ad6b-d842f8ce89e5",
+      "name": "Section: Start",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Your settings\nEdit only node 1: search phrases, country, upload window, thresholds and the Apify cost cap. The next node checks them before any paid request.",
+        "height": 540,
+        "width": 520,
+        "color": 7
+      },
+      "id": "8e69c750-4610-4929-abe4-9d826a33d1a1",
+      "name": "Section: Settings",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Search YouTube\nRuns the FetchCat YouTube search Actor, sorted by views, for each phrase. `maxCostUsd` caps the run cost.",
+        "height": 540,
+        "width": 260,
+        "color": 7
+      },
+      "id": "d99efa92-aa10-42be-a06d-df2d72067447",
+      "name": "Section: Search",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        760,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Score breakouts\nViews per day are compared with the median of the same search. Videos already in your sheet are skipped. Nothing new: the run stops here with no writes.",
+        "height": 540,
+        "width": 820,
+        "color": 7
+      },
+      "id": "70b8f3ae-ba38-4b97-a15e-e8c1a1179c73",
+      "name": "Section: Score",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## AI angles\nOne gpt-5.4-mini call groups the new breakouts into up to 5 topic angles. The answer is checked first; a bad answer stops the run with no writes.",
+        "height": 540,
+        "width": 900,
+        "color": 7
+      },
+      "id": "f860332d-ef42-4a54-a0d6-6cd1b3ec1251",
+      "name": "Section: Angles",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Deliver\nRows are added to or updated in the Breakouts tab by Video ID, then one Slack digest is posted.",
+        "height": 540,
+        "width": 720,
+        "color": 7
+      },
+      "id": "aa421685-4a78-429b-ae28-d473a50729e7",
+      "name": "Section: Deliver",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        60
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Run Manually": {
+      "main": [
+        [
+          {
+            "node": "1. Set your niche searches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Monday at 9:00": {
+      "main": [
+        [
+          {
+            "node": "1. Set your niche searches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Set your niche searches": {
+      "main": [
+        [
+          {
+            "node": "Build Actor Input from Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Actor Input from Settings": {
+      "main": [
+        [
+          {
+            "node": "2. Search YouTube with Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Search YouTube with Apify": {
+      "main": [
+        [
+          {
+            "node": "Read Logged Video IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Logged Video IDs": {
+      "main": [
+        [
+          {
+            "node": "Score New Breakouts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score New Breakouts": {
+      "main": [
+        [
+          {
+            "node": "New Breakouts Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Breakouts Found?": {
+      "main": [
+        [
+          {
+            "node": "3. Group Breakouts into Angles with OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New Breakouts - Nothing Written",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Group Breakouts into Angles with OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Check Angles and Build Sheet Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Angles and Build Sheet Rows": {
+      "main": [
+        [
+          {
+            "node": "AI Angles Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Angles Valid?": {
+      "main": [
+        [
+          {
+            "node": "4. Log Breakouts to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Answer Rejected - Nothing Written",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Log Breakouts to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Build Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Slack Digest": {
+      "main": [
+        [
+          {
+            "node": "5. Send Weekly Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
