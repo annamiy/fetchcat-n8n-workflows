@@ -1,4 +1,5 @@
-import { workflowPath, writeJson } from './lib.mjs';
+import fs from 'node:fs';
+import { readJson, workflowPath, writeJson } from './lib.mjs';
 import { buildTikTokDefinitions } from './build-tiktok-workflows.mjs';
 import { buildTelegramDefinitions } from './build-telegram-workflows.mjs';
 import { buildDemandWorkflowDefinitions } from './build-demand-workflows.mjs';
@@ -1680,7 +1681,15 @@ const definitions = [
 
 for (const definition of definitions) {
   writeJson(workflowPath(definition.slug), definition.workflow);
-  writeJson(workflowPath(definition.slug, 'metadata.json'), definition.metadata);
+  // Release facts (live template id, submission date) are recorded by the
+  // Publisher after build; a rebuild keeps them instead of resetting the state.
+  const metadataFile = workflowPath(definition.slug, 'metadata.json');
+  const previous = fs.existsSync(metadataFile) ? readJson(metadataFile) : {};
+  const released = {};
+  for (const key of ['releaseState', 'creatorTemplateId', 'submittedAt', 'pipelineIssue']) {
+    if (previous[key] !== undefined && ['creator-submitted', 'creator-public'].includes(previous.releaseState)) released[key] = previous[key];
+  }
+  writeJson(metadataFile, { ...definition.metadata, ...released });
 }
 
 console.log(`Built ${definitions.length} workflows.`);
