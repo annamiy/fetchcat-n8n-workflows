@@ -16,7 +16,7 @@ QA` with a full commit SHA.
   credentials and the QA destinations in `n8n-destinations.env`.
 - At most 3 Apify-backed executions per template, each through the spend
   guard from the company workspace:
-  `node _scripts/apify-guarded-command.mjs --action run --scope task-qa --actor ACTOR --planned-runs 1 --justification "APIA-N n8n template QA <path>" -- docker exec -e N8N_RUNNERS_BROKER_PORT=5680 fetchcat-n8n n8n execute --id=ID --rawOutput`
+  `node _scripts/apify-guarded-command.mjs --action run --scope task-qa --actor ACTOR --planned-runs 1 --justification "APIA-N n8n template QA <path>" -- sudo -n /usr/local/sbin/fetchcat-n8n-cli execute --id=ID`
   (load `anna-apify-workspace-runtime.env` and `anna-apify-company.env` first).
   A 4th or later run on the same template (after a fix) adds
   `--additional-verification --issue APIA-N --prior-run-id <previous Apify run>`

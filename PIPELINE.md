@@ -43,8 +43,11 @@ submits to n8n.io until an agent has a signed-in n8n.io creator session.
 - The QA credentials in the instance are named `FetchCat QA - <service>`.
   `N8N_APIFY_CREDENTIAL_ID` and `N8N_SHEETS_CREDENTIAL_ID` are in
   `n8n-destinations.env`.
-- CLI executions need a separate runner port while n8n runs:
-  `docker exec -e N8N_RUNNERS_BROKER_PORT=5680 fetchcat-n8n n8n execute --id=ID --rawOutput`
+- Agents have no Docker access to fetchcat-n8n. The n8n CLI runs only through the
+  root-owned wrapper `sudo -n /usr/local/sbin/fetchcat-n8n-cli list|list-credentials|import|export|execute`
+  (`import` reads JSON on stdin, `export` writes it to stdout). CLI executions
+  need a separate runner port while n8n runs (the wrapper defaults to 5680):
+  `sudo -n /usr/local/sbin/fetchcat-n8n-cli execute --id=ID`
   (`npm run execute -- <slug>` does this).
 - Pinned versions: n8n `2.47.4`, `@apify/n8n-nodes-apify` `0.9.0`.
 
