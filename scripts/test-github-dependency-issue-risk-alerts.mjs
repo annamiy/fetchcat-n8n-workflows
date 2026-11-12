@@ -1,6 +1,7 @@
 // Runs the Code nodes of github-dependency-issue-risk-alerts against its synthetic fixture.
 // No network, no credentials: n8n's $input, $() and $now are stubbed.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { readJson, workflowPath } from './lib.mjs';
 
 const slug = 'github-dependency-issue-risk-alerts';
@@ -168,5 +169,11 @@ ok(() => {
   assert.match(digest.text, /\*Dependency risk: 4 high-risk items\*/);
   assert.match(digest.text, /9 issues scored and logged/);
 });
+
+// The overview note and README state the excerpt length the Pick node actually sends to OpenAI.
+const excerptLimit = Number(codeOf(PICK).match(/\.slice\(0, (\d+)\),\n  previouslyAlerted/)[1]);
+const overview = workflow.nodes.find((node) => node.type === 'n8n-nodes-base.stickyNote' && node.parameters.color === 1).parameters.content;
+ok(() => assert.ok(overview.includes(`first ${excerptLimit.toLocaleString('en-US')} characters`), `overview note must say ${excerptLimit} characters`));
+ok(() => assert.ok(readFileSync(workflowPath(slug, 'README.md'), 'utf8').includes(`sends ${excerptLimit} to the AI`)));
 
 console.log(`${slug}: ${checks} checks passed (${expected.alertNumbers.length} alerts in fixture).`);
