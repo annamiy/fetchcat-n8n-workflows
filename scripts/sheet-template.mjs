@@ -1,23 +1,26 @@
 // Create (or reuse) the public Google Sheets template for one workflow.
 //
 // Reads workflows/<slug>/assets/sheet-template.json, generates a private helper
-// workflow, runs it once in the private n8n instance with the existing Google
-// Sheets OAuth credential, and prints the sheet and "make a copy" links.
+// workflow, runs it once in the private n8n instance with the FetchCat Google
+// Drive credential (fetchcat@nosova.me), and prints the sheet and "make a copy"
+// links.
 //
-// The spreadsheet lives in the Drive folder named by the spec (default
-// "FetchCat n8n templates"), is shared "anyone with the link can view", and is
-// reused on later runs (same title), so retries never create duplicates. Only header rows and synthetic example rows go into a template.
+// The spreadsheet lives in the public templates folder of the FetchCat Drive
+// (My Drive > N8N > PUBLIC), is shared "anyone with the link can view", and is
+// reused on later runs (same title, owned by the FetchCat account), so retries
+// never create duplicates. Only header rows and synthetic example rows go into
+// a template.
 //
 // Usage: node scripts/sheet-template.mjs <slug> [--dry-run]
-// Env:   N8N_SHEETS_CREDENTIAL_ID (n8n credential of type googleSheetsOAuth2Api)
-//        N8N_CONTAINER (default fetchcat-n8n), N8N_CLI_RUNNER_PORT (default 5680)
+// Env:   N8N_TEMPLATE_DRIVE_CREDENTIAL_ID (n8n credential of type googleDriveOAuth2Api,
+//        signed in as fetchcat@nosova.me), N8N_TEMPLATE_FOLDER_ID (the PUBLIC folder),
+//        N8N_CLI_RUNNER_PORT (default 5680)
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { readJson, root, workflowPath } from './lib.mjs';
 
-export const DEFAULT_FOLDER = 'FetchCat n8n templates';
 // One private helper workflow per slug, so two builders never run each other's spec.
 export function toolWorkflowId(slug) {
   let h = 0;
@@ -38,7 +41,7 @@ export function validateSpec(spec) {
     if (!Array.isArray(rows) || rows.length > MAX_ROWS) errors.push(`tabs[${i}].exampleRows must have at most ${MAX_ROWS} rows`);
     for (const row of rows) if (!Array.isArray(row) || row.length > (tab.headers?.length ?? 0)) errors.push(`tabs[${i}] example row is longer than the header`);
   }
-  if (spec.folderName !== undefined && (typeof spec.folderName !== 'string' || !spec.folderName.trim())) errors.push('folderName must be a non-empty string');
+  if (spec.folderName !== undefined) errors.push('folderName is no longer supported: every template sheet goes to the FetchCat PUBLIC folder');
   const text = JSON.stringify(spec);
   if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text)) errors.push('spec must not contain email addresses');
   return errors;
@@ -61,26 +64,24 @@ export function spreadsheetBody(spec) {
 
 const q = (s) => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-export function buildToolWorkflow(spec, credentialId, slug) {
-  const folderName = spec.folderName ?? DEFAULT_FOLDER;
-  const cred = { googleSheetsOAuth2Api: { id: credentialId, name: 'Google Sheets' } };
+export function buildToolWorkflow(spec, credentialId, slug, folderId) {
+  if (!/^[A-Za-z0-9_-]{10,}$/.test(folderId ?? '')) throw new Error('A Drive folder id is required');
+  const cred = { googleDriveOAuth2Api: { id: credentialId, name: 'FetchCat Templates - Google Drive' } };
   const http = (id, name, x, y, parameters) => ({
     id, name, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [x, y],
-    parameters: { authentication: 'predefinedCredentialType', nodeCredentialType: 'googleSheetsOAuth2Api', options: {}, ...parameters },
+    parameters: { authentication: 'predefinedCredentialType', nodeCredentialType: 'googleDriveOAuth2Api', options: {}, ...parameters },
     credentials: cred,
   });
   const json = (expr) => ({ sendBody: true, specifyBody: 'json', jsonBody: expr });
-  const folderQuery = `name='${q(folderName)}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const nodes = [
     { id: 't1', name: 'Start', type: 'n8n-nodes-base.manualTrigger', typeVersion: 1, position: [0, 0], parameters: {} },
-    { id: 't2', name: 'Spec', type: 'n8n-nodes-base.code', typeVersion: 2, position: [200, 0], parameters: { jsCode: `return [{ json: ${JSON.stringify({ title: spec.title, folderName, body: spreadsheetBody(spec) })} }];` } },
-    http('t3', 'Find Folder', 400, 0, { url: `=https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(folderQuery)}&fields=files(id,name)&spaces=drive` }),
-    { id: 't4', name: 'Folder Exists?', type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [600, 0], parameters: { conditions: { options: { caseSensitive: true, typeValidation: 'loose', version: 2 }, combinator: 'and', conditions: [{ id: 'c1', leftValue: '={{ ($json.files || []).length }}', rightValue: 0, operator: { type: 'number', operation: 'gt' } }] }, options: {} } },
-    http('t5', 'Create Folder', 800, 120, { method: 'POST', url: 'https://www.googleapis.com/drive/v3/files?fields=id', ...json(`={{ JSON.stringify({ name: $('Spec').first().json.folderName, mimeType: 'application/vnd.google-apps.folder' }) }}`) }),
-    { id: 't6', name: 'Folder Id', type: 'n8n-nodes-base.set', typeVersion: 3.4, position: [1000, 0], parameters: { assignments: { assignments: [{ id: 'f1', name: 'folderId', value: '={{ $json.id || ($json.files && $json.files[0] && $json.files[0].id) }}', type: 'string' }] }, options: {} } },
-    // Search by title anywhere the helper can see (only files it created), so a
-    // sheet left outside the folder by a failed move is reused, not duplicated.
-    http('t7', 'Find Sheet', 1200, 0, { url: `={{ 'https://www.googleapis.com/drive/v3/files?fields=files(id,name)&q=' + encodeURIComponent("name='" + $('Spec').first().json.title.replace(/'/g, "\\\\'") + "' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false") }}` }),
+    { id: 't2', name: 'Spec', type: 'n8n-nodes-base.code', typeVersion: 2, position: [200, 0], parameters: { jsCode: `return [{ json: ${JSON.stringify({ title: spec.title, body: spreadsheetBody(spec) })} }];` } },
+    // The folder must exist and be visible to the FetchCat account; a wrong id fails here.
+    http('t3', 'Check Folder', 400, 0, { url: `https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,mimeType,trashed` }),
+    { id: 't6', name: 'Folder Id', type: 'n8n-nodes-base.set', typeVersion: 3.4, position: [1000, 0], parameters: { assignments: { assignments: [{ id: 'f1', name: 'folderId', value: "={{ $json.mimeType === 'application/vnd.google-apps.folder' && !$json.trashed ? $json.id : '' }}", type: 'string' }] }, options: {} } },
+    // Search by title among the FetchCat account's own sheets anywhere in its
+    // Drive, so a sheet left outside the folder by a failed move is reused.
+    http('t7', 'Find Sheet', 1200, 0, { url: `={{ 'https://www.googleapis.com/drive/v3/files?fields=files(id,name)&q=' + encodeURIComponent("name='" + $('Spec').first().json.title.replace(/'/g, "\\\\'") + "' and 'me' in owners and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false") }}` }),
     { id: 't8', name: 'Sheet Exists?', type: 'n8n-nodes-base.if', typeVersion: 2.2, position: [1400, 0], parameters: { conditions: { options: { caseSensitive: true, typeValidation: 'loose', version: 2 }, combinator: 'and', conditions: [{ id: 'c2', leftValue: '={{ ($json.files || []).length }}', rightValue: 0, operator: { type: 'number', operation: 'gt' } }] }, options: {} } },
     http('t9', 'Create Spreadsheet', 1600, 120, { method: 'POST', url: 'https://sheets.googleapis.com/v4/spreadsheets?fields=spreadsheetId', ...json(`={{ JSON.stringify($('Spec').first().json.body) }}`) }),
     { id: 't11', name: 'Sheet Id', type: 'n8n-nodes-base.set', typeVersion: 3.4, position: [2000, 0], parameters: { assignments: { assignments: [{ id: 'g1', name: 'spreadsheetId', value: '={{ $json.spreadsheetId || ($json.files && $json.files[0] && $json.files[0].id) }}', type: 'string' }, { id: 'g2', name: 'created', value: "={{ !$json.files }}", type: 'boolean' }] }, options: {} } },
@@ -92,7 +93,7 @@ export function buildToolWorkflow(spec, credentialId, slug) {
     { id: 't14', name: 'Result', type: 'n8n-nodes-base.code', typeVersion: 2, position: [2800, 0], parameters: { jsCode: "const s = $('Sheet Id').first().json;\nconst p = $input.first().json;\nconst placed = $('Ensure In Folder').first().json;\nconst folderId = $('Folder Id').first().json.folderId;\nconst id = s.spreadsheetId;\nreturn [{ json: { fetchcatSheetTemplate: true, spreadsheetId: id, created: s.created, inFolder: (placed.parents || []).includes(folderId), shared: p.type === 'anyone' && p.role === 'reader', folderId, url: `https://docs.google.com/spreadsheets/d/${id}/edit?usp=sharing`, copyUrl: `https://docs.google.com/spreadsheets/d/${id}/copy` } }];" } },
   ];
   const c = (from, to, out = 0) => ({ from, to, out });
-  const links = [c('Start', 'Spec'), c('Spec', 'Find Folder'), c('Find Folder', 'Folder Exists?'), c('Folder Exists?', 'Folder Id', 0), c('Folder Exists?', 'Create Folder', 1), c('Create Folder', 'Folder Id'),
+  const links = [c('Start', 'Spec'), c('Spec', 'Check Folder'), c('Check Folder', 'Folder Id'),
     c('Folder Id', 'Find Sheet'), c('Find Sheet', 'Sheet Exists?'), c('Sheet Exists?', 'Sheet Id', 0), c('Sheet Exists?', 'Create Spreadsheet', 1), c('Create Spreadsheet', 'Sheet Id'),
     c('Sheet Id', 'Get Parents'), c('Get Parents', 'Ensure In Folder'), c('Ensure In Folder', 'Share Anyone Viewer'), c('Share Anyone Viewer', 'Result')];
   const connections = {};
@@ -126,9 +127,11 @@ export function main(argv = process.argv.slice(2)) {
   const spec = readJson(specFile);
   const errors = validateSpec(spec);
   if (errors.length) throw new Error(`${specFile}: ${errors.join('; ')}`);
-  const credentialId = process.env.N8N_SHEETS_CREDENTIAL_ID;
-  if (!credentialId && !dryRun) throw new Error('N8N_SHEETS_CREDENTIAL_ID is required (n8n googleSheetsOAuth2Api credential id)');
-  const tool = buildToolWorkflow(spec, credentialId ?? 'DRY_RUN', slug);
+  const credentialId = process.env.N8N_TEMPLATE_DRIVE_CREDENTIAL_ID;
+  const folderId = process.env.N8N_TEMPLATE_FOLDER_ID;
+  if (!credentialId && !dryRun) throw new Error('N8N_TEMPLATE_DRIVE_CREDENTIAL_ID is required (googleDriveOAuth2Api credential signed in as fetchcat@nosova.me); load n8n-destinations.env');
+  if (!folderId && !dryRun) throw new Error('N8N_TEMPLATE_FOLDER_ID is required (FetchCat Drive N8N > PUBLIC folder); load n8n-destinations.env');
+  const tool = buildToolWorkflow(spec, credentialId ?? 'DRY_RUN', slug, folderId ?? 'DRY_RUN_FOLDER_ID');
   const local = path.join(root, 'dist', 'tools', `sheet-template-${slug}.json`);
   fs.mkdirSync(path.dirname(local), { recursive: true });
   fs.writeFileSync(local, `${JSON.stringify(tool, null, 2)}\n`);

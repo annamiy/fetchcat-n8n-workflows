@@ -2,8 +2,9 @@
 
 How FetchCat n8n templates go from "which Actor?" to a published n8n.io
 template. Each template has one Paperclip issue in the `Internal workflows`
-project. The existing agents move that issue from step to step. Only Anna
-submits to n8n.io until an agent has a signed-in n8n.io creator session.
+project. The existing agents move that issue from step to step. The Publisher
+submits to the n8n Creator portal with Anna's creator session token
+(`scripts/creator-portal.mjs`); without a valid token it asks Anna by card.
 
 | Step | Owner | Skill | Output on the same issue |
 | --- | --- | --- | --- |
@@ -11,12 +12,13 @@ submits to n8n.io until an agent has a signed-in n8n.io creator session.
 | 2. Research | Idea Researcher | `n8n-workflow-idea-research` | `Decision: GO` (slug, use case, title, destinations) or `DROP` |
 | 3. Build | Developer | `n8n-workflow-builder` | Branch `workflow/<slug>`, sheet template, `Builder handoff: READY FOR QA` |
 | 4. QA | QA | `n8n-workflow-qa` | `QA verdict: PASS` for the exact commit, or failures back to Developer |
-| 5. Merge and submit | Publisher | `n8n-workflow-publisher` | Merged PR, submission package, n8n.io submission (or an `operator-action` card for Anna), release state `creator-submitted` |
+| 5. Merge and submit | Publisher | `n8n-workflow-publisher` | Merged PR, submission package, portal submission with `creator-portal.mjs` (or an `operator-action` card when the token is missing or expired), release state `creator-submitted` with `creatorTemplateId` |
 
 ## Limits
 
 - **n8n.io:** at most 4 of our templates in review at once (verified-creator
-  limit). Review takes about a week. No weekly quota.
+  limit; the portal answers `IN_REVIEW_LIMIT_EXCEEDED`). An AI review runs
+  first (minutes), then human review takes 3–5 business days. No weekly quota.
 - **Feeder:** opens at most one issue per run, only while fewer than
   `maxOpenTickets` (default 2) pipeline issues are open and fewer than 4
   submissions from the last 14 days are waiting for review. An Actor that got a
@@ -42,7 +44,14 @@ submits to n8n.io until an agent has a signed-in n8n.io creator session.
   (`set -a; . FILE; set +a`). Never print the values.
 - The QA credentials in the instance are named `FetchCat QA - <service>`.
   `N8N_APIFY_CREDENTIAL_ID` and `N8N_SHEETS_CREDENTIAL_ID` are in
-  `n8n-destinations.env`.
+  `n8n-destinations.env`. Public sheet templates use a separate credential,
+  `FetchCat Templates - Google Drive (fetchcat@)`
+  (`N8N_TEMPLATE_DRIVE_CREDENTIAL_ID`, the fetchcat@nosova.me account), and
+  the folder `N8N_TEMPLATE_FOLDER_ID`.
+- Creator portal: `/data/paperclip/bootstrap-secrets/n8n-creator.env` holds
+  `N8N_CREATOR_TOKEN`, Anna's creators.n8n.io session (expires about 30 days
+  after she saves it; `creator-portal.mjs status` prints the date). Only the
+  Publisher uses it.
 - Agents have no Docker access to fetchcat-n8n. The n8n CLI runs only through the
   root-owned wrapper `sudo -n /usr/local/sbin/fetchcat-n8n-cli list|list-credentials|import|export|execute`
   (`import` reads JSON on stdin, `export` writes it to stdout). CLI executions
@@ -79,11 +88,13 @@ self-hosted n8n.
 ## Spreadsheet templates
 
 A template that writes to Google Sheets ships `assets/sheet-template.json`
-(title, tabs, headers, at most 5 synthetic example rows, no emails or real
-data). `node scripts/sheet-template.mjs <slug>` creates the sheet in the Drive
-folder "FetchCat n8n templates", shares it as "anyone with the link can view",
-and prints `url` and `copyUrl`. A rerun reuses the same sheet. The overview
-sticky note and README link `copyUrl` ("Make a copy of the sheet template").
+(title `<Name> - n8n Template`, tabs, headers, at most 5 synthetic example
+rows, no emails or real data). `node scripts/sheet-template.mjs <slug>`
+creates the sheet in the FetchCat Drive (fetchcat@nosova.me, My Drive > N8N >
+PUBLIC), shares it as "anyone with the link can view", and prints `url` and
+`copyUrl`. A rerun reuses the same sheet. The overview sticky note, README and
+`creator-draft.md` link `copyUrl` ("Make a copy of the sheet template"). Never
+publish a sheet from another Google account.
 
 ## Release states
 
