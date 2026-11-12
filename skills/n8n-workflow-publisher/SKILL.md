@@ -58,13 +58,16 @@ for the exact full commit SHA.
 6. **After submission** (portal confirmation or Anna's `Submitted`): on
    `main`, set `releaseState: creator-submitted` and `submittedAt:
    YYYY-MM-DD` in `metadata.json`, commit, push, and close the issue as done.
-   `Not now` keeps the issue open with you; ask again only when Anna says so.
+   `Not now`: comment it and close the issue as done with release state
+   `qa-passed`. An open issue would hold a pipeline slot with no run, wait or
+   card behind it. The 60-day cooldown keeps the Actor out of the feeder.
 
 ## Reconcile
 
-When a creator session exists, or when you see a new FetchCat template on
-`https://api.n8n.io/api/templates/search?search=fetch-cat&rows=50`, update
-the matching `metadata.json` on `main`:
+At each publish, compare our live list
+(`node _scripts/n8n-template-demand.mjs --ours --cache "$APIFY_REPORTS_ROOT/n8n-templates/cache"`)
+and, when a creator session exists, the portal's statuses with
+`workflows/*/metadata.json` on `main`. Then update the matching file:
 - `releaseState: creator-public` and `creatorTemplateId: <id>` for a published template;
 - `development` with the reviewer's notes in a new pipeline comment for a rejected one.
 

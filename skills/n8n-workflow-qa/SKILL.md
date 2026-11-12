@@ -18,8 +18,12 @@ QA` with a full commit SHA.
   guard from the company workspace:
   `node _scripts/apify-guarded-command.mjs --action run --scope task-qa --actor ACTOR --planned-runs 1 --justification "APIA-N n8n template QA <path>" -- docker exec -e N8N_RUNNERS_BROKER_PORT=5680 fetchcat-n8n n8n execute --id=ID --rawOutput`
   (load `anna-apify-workspace-runtime.env` and `anna-apify-company.env` first).
-  A workflow with Data Table nodes runs from the editor instead
-  (`https://n8n.nosova.me` opens from the VPS without the basic-auth login).
+  A 4th or later run on the same template (after a fix) adds
+  `--additional-verification --issue APIA-N --prior-run-id <previous Apify run>`
+  with a justification naming what changed. Never start a paid run from the
+  editor. A template with Data Table nodes fails QA (builder rule). The editor
+  (`https://n8n.nosova.me`, which opens from the VPS without the basic-auth login) is
+  only for reading executions and taking screenshots.
 - Never expose keys, destination IDs, cookies or private output in Git or
   comments. Never modify Actor checkouts or `actors.db`.
 

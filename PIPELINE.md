@@ -22,14 +22,17 @@ submits to n8n.io until an agent has a signed-in n8n.io creator session.
   submissions from the last 14 days are waiting for review. An Actor that got a
   pipeline issue in the last 60 days, open or closed, is skipped.
 - **Spend:** at most 3 Apify-backed executions per template. Each run goes through
-  `apify-guarded-command.mjs --scope task-qa`, and the Apify node caps cost with
-  `maxTotalChargeUsd`.
+  `apify-guarded-command.mjs --scope task-qa` from the CLI, and a re-QA after a
+  fix adds `--additional-verification`. The Apify node caps cost with
+  `maxTotalChargeUsd`. New templates use no Data Table nodes.
 - **No near-duplicates:** n8n rejects batches of near-identical workflows. Each
   template needs its own use case, logic and output. Swapping the Actor or app
   in an existing shape is not a new template.
 
 ## Shared facts
 
+- Never edit a pipeline issue's description: its `Actor:` line and marker are
+  how the feeder counts and dedupes issues. Comments carry the work.
 - Repository checkout on the VPS: `/data/projects/fetchcat-n8n-workflows`
   (`N8N_REPOSITORY_PATH`). Work in a Git worktree per slug under
   `/data/projects/fetchcat-n8n-workflows-wt/<slug>`, never on the shared checkout.

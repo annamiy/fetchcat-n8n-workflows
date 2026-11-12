@@ -6,7 +6,9 @@ description: Decide GO or DROP for one FetchCat n8n template candidate opened by
 # n8n Workflow Idea Research
 
 Pipeline overview: `PIPELINE.md` in the repository
-(`/data/projects/fetchcat-n8n-workflows`). Work only on the issue you were
+(`/data/projects/fetchcat-n8n-workflows`). Never edit the issue description:
+its `Actor:` line and marker are how the feeder counts and dedupes pipeline
+issues. Work only on the issue you were
 given; it carries `[marker:n8n-template-pipeline/v1]`, the candidate Actor and
 the feeder's demand evidence. Read-only except comments and the handoff.
 
@@ -23,8 +25,9 @@ the feeder's demand evidence. Read-only except comments and the handoff.
    `.../builds/default/openapi.json`). DROP if it is deprecated, under
    maintenance or below about 90% successful public runs over 30 days. Record
    the numbers and the date.
-2. **Our coverage.** Read `workflows/*/metadata.json` and the live list
-   (`https://api.n8n.io/api/templates/search?search=fetch-cat&rows=50`). An
+2. **Our coverage.** Read `workflows/*/metadata.json` and our live list
+   (`node _scripts/n8n-template-demand.mjs --ours --cache "$APIFY_REPORTS_ROOT/n8n-templates/cache"`
+   in the company workspace; the library search has no creator filter). An
    unpublished repository draft for this Actor is a seed, not a template. Most
    drafts share one generic shape, so reuse ideas, never that shape.
 3. **Competition.** Search the n8n library

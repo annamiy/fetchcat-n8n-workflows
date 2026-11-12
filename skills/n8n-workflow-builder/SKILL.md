@@ -15,7 +15,9 @@ Researcher `Decision: GO` with slug, title and use case.
 - Never touch Actor checkouts, `actors.db` or Store surfaces. Never activate a
   workflow or schedule in the private instance.
 - Never put credentials, credential IDs, tokens, chat/sheet/page IDs, emails,
-  personal data or pinned data in Git.
+  personal data or pinned data in Git. The one exception is the public sheet
+  template's `copyUrl`, which the validator requires in the README and the
+  yellow note.
 - Never create an agent, routine, project or another issue.
 
 ## Build
@@ -31,7 +33,11 @@ Researcher `Decision: GO` with slug, title and use case.
    normalize → (optional AI) → dedupe or upsert → destination. Make reruns
    safe: an upsert key for Sheets, or a Data Table ledger written only after
    delivery succeeds. Empty results and malformed AI output must end cleanly
-   with no destination writes and a readable message.
+   with no destination writes and a readable message. Do not use Data Table
+   nodes in new templates: n8n blocks them in CLI runs, and QA's paid runs must
+   go through the spend guard from the CLI. Dedupe through the destination
+   instead, for example a Sheets `appendOrUpdate` key, a Notion lookup before
+   create, or a sent-items tab.
 4. **AI.** One batched call where possible, model `gpt-5.4-mini`, structured
    JSON output validated before any write.
 5. **Sticky notes** (n8n rejects most templates for these):
