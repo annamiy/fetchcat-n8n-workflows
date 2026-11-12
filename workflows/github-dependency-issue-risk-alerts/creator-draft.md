@@ -10,7 +10,7 @@ Catch regressions, security reports and breaking changes in the open-source libr
 
 ## Setup
 
-1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/11lRVyqoPUyILjMfo0_Ni3iZh7hMt2211nj9TgB4_JPk/copy).
+1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/1ov__nbR6qFvboEp5nFwigh65Lt_aTFMtrT_TQJQmYzM/copy).
 2. Add the Apify node (verified node on n8n Cloud, `@apify/n8n-nodes-apify` on self-hosted) and connect your Apify account.
 3. Connect OpenAI, Google Sheets (pick your copy in both Sheets nodes) and Slack (pick a channel).
 4. List your dependencies in `1. Set your watched repositories` and run once by hand. Publish the workflow to turn on the weekday schedule.
