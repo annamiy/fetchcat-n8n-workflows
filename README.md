@@ -30,10 +30,13 @@ and is designed to fail closed before writing to an external service.
 All schedules are inactive in Git. Importing through the n8n CLI also forces them
 inactive. Creator Portal packages remain drafts until a separate approval is given.
 
+How templates are chosen, built, tested and submitted: [PIPELINE.md](PIPELINE.md).
+
 ## Requirements
 
-- n8n `2.26.8` or newer
-- `@apify/n8n-nodes-apify` `0.6.10`
+- n8n `2.47.4` or newer for new templates (older templates state `2.26.8`)
+- The verified Apify node `@apify/n8n-nodes-apify` `0.9.0` for new templates
+  (older templates call Apify through HTTP Request nodes)
 - Node.js 20 or newer for repository tooling
 - Credentials for the integrations named by each workflow
 - Permission to create n8n Data Tables. The templates create required ledgers

@@ -1,69 +1,81 @@
 ---
 name: n8n-workflow-builder
-description: Build a GO-approved FetchCat n8n workflow in the public workflow repository and private unpublished n8n instance. Use for workflow branches, deterministic JSON, fixtures, documentation, sticky notes, validation, sanitized imports, and same-issue handoff to QA.
+description: Build a GO-approved FetchCat n8n template on the official Apify node in the public workflow repository and the private n8n instance. Use for the workflow branch, workflow.json, sticky notes, sheet template, fixtures, documentation, validation, inactive import and same-issue handoff to QA.
 ---
 
 # n8n Workflow Builder
 
-Build only after the current Paperclip issue contains an Idea Researcher `GO`
-decision with a unique slug and cost envelope.
+Read `PIPELINE.md` first. Build only after the same issue has an Idea
+Researcher `Decision: GO` with slug, title and use case.
 
 ## Boundaries
 
-- Work only in `N8N_REPOSITORY_PATH` and the unpublished instance at
-  `N8N_API_URL`.
-- Never modify an Actor checkout, `actors.db`, Actor metadata, or any public
-  Actor surface.
-- Never create an agent, routine, project, or replacement issue.
-- Never publish or activate an Actor workflow or schedule. A companion Error
-  Trigger workflow may be activated only after QA because n8n requires it to be
-  active to receive production-mode failures.
-- Never place credentials, credential IDs, tokens, destination IDs, personal
-  data, pinned real data, or private evidence in Git.
-- Use only the named QA destinations during private testing.
+- Work in a worktree:
+  `git -C /data/projects/fetchcat-n8n-workflows fetch origin && git -C /data/projects/fetchcat-n8n-workflows worktree add /data/projects/fetchcat-n8n-workflows-wt/<slug> -b workflow/<slug> origin/main`.
+- Never touch Actor checkouts, `actors.db` or Store surfaces. Never activate a
+  workflow or schedule in the private instance.
+- Never put credentials, credential IDs, tokens, chat/sheet/page IDs, emails,
+  personal data or pinned data in Git.
+- Never create an agent, routine, project or another issue.
 
-## Build Procedure
+## Build
 
-1. Read the complete same issue, including the GO evidence and constraints.
-2. Confirm the slug remains unique in workflow metadata and open Paperclip
-   issues.
-3. Create `workflow/<slug>` from the current default branch.
-4. Build the graph for the installed minimum n8n version and pinned integration
-   nodes. Use established repository helpers before adding new abstractions.
-5. Enforce item, video, transcript, AI, delivery, and test-spend caps in the
-   executable graph, not only in documentation.
-6. Check a durable Data Table ledger before AI and external writes. Commit IDs
-   only after destination success so failed delivery remains retryable.
-7. Create required Data Tables idempotently inside the graph. Put editable
-   settings in a setup form or another documented nontechnical surface; do not
-   require users to edit Code nodes.
-8. Validate structured AI output and stop external writes when it is malformed.
-9. Ensure empty and duplicate paths create no destination writes. Remove any
-   internal fixture, manual QA-input, or test-only branch before public export.
-10. Add `workflow.json`, `metadata.json`, setup README, `creator-draft.md`,
-    synthetic fixtures, expected assertions, useful n8n sticky notes, and the
-    required credential-free workflow, form/setup, and output screenshots.
-11. Run `npm run check`, import through `npm run import -- <slug>`, confirm it is
-    unpublished, and run credential-negative testing in the server context when
-    the graph uses Data Tables.
-12. Export and sanitize once to confirm the graph round-trips without node
-    parameter mutation.
+1. **Graph.** Use the Apify node (`@apify/n8n-nodes-apify.apify`, typeVersion
+   2, "Run actor and get dataset", `actorInputMode: json`) from `PIPELINE.md`.
+   Do not use HTTP Request to call Apify. Set `maxTotalChargeUsd` from the
+   settings node (default at most USD 0.50) and keep default result limits small.
+2. **Settings.** Put every value a user edits in one Set node named
+   `1. Set your <thing>`: search terms, limits, max cost, schedule notes.
+   Users must never edit Code nodes.
+3. **Flow.** Trigger (manual plus an inactive schedule) → settings → Apify →
+   normalize → (optional AI) → dedupe or upsert → destination. Make reruns
+   safe: an upsert key for Sheets, or a Data Table ledger written only after
+   delivery succeeds. Empty results and malformed AI output must end cleanly
+   with no destination writes and a readable message.
+4. **AI.** One batched call where possible, model `gpt-5.4-mini`, structured
+   JSON output validated before any write.
+5. **Sticky notes** (n8n rejects most templates for these):
+   - one yellow note (`color: 1`) at the top left, 100–300 words, with
+     `### How it works` and `### Setup`, including setup time and cost;
+   - white notes (`color: 7`) starting with `## `, each under 50 words,
+     around each logical group, so every node sits inside exactly one;
+   - descriptive node names, no "HTTP Request1".
+6. **Sheet template** (Sheets destinations): write
+   `assets/sheet-template.json`, then run
+   `set -a; . /data/paperclip/bootstrap-secrets/n8n-destinations.env; set +a; node scripts/sheet-template.mjs <slug>`.
+   Put the printed `copyUrl` in the yellow note's Setup and in the README, as
+   "Make a copy of the [sheet template](copyUrl)". A rerun reuses the sheet.
+7. **Files:** `workflow.json` (inactive, `minimumN8nVersion` `2.47.4` and
+   `apifyNodeVersion` `0.9.0` in metadata), `metadata.json` (`releaseState:
+   development`), `README.md` (setup, behavior, cost, limits), `creator-draft.md`
+   (the n8n.io description: a short intro, `## How it works`,
+   `## Setup`, `## Requirements`, `## Customization`; no images, since the
+   portal strips them), `fixtures/input.json`, `fixtures/expected-output.json`,
+   and `assets/workflow-overview.png` and `assets/output-preview.png` (from
+   the editor and the QA sheet, with no real identifiers).
+8. **Checks:** `npm run validate`, then `npm run import -- <slug>` (it stays
+   inactive). Attach the `FetchCat QA - *` credentials only in the instance
+   copy. Run one credential-free execution to confirm the error is readable.
+   Then export and sanitize once (`npm run export -- <slug>`) and confirm
+   nothing drifted.
+9. Commit explicit paths, push `workflow/<slug>`, and open a PR to `main`. Do
+   not merge it.
 
 ## Handoff
 
-Commit the branch and comment on the same issue with:
+Comment, then hand the same issue to QA with `handoffIssue`:
 
 ```text
 Builder handoff: READY FOR QA
 Slug: <slug>
 Branch: workflow/<slug>
-Commit: <full-sha>
+Commit: <full sha>
+PR: <url>
 Workflow title: <exact title>
+Sheet template: <copyUrl or none>
 Static validation: PASS
 Import inactive: PASS
 Credential-negative test: PASS
 Assertions: <happy, duplicate, empty/error, credential>
-Known limitations: <specific list or none>
+Known limitations: <list or none>
 ```
-
-Assign the same issue to the existing QA agent. Do not merge the branch.

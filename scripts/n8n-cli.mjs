@@ -44,7 +44,7 @@ if (command === 'import') {
 
 if (command === 'execute' && workflowDefinition.nodes.some((node) => node.type === 'n8n-nodes-base.dataTable')) {
   throw new Error(
-    'n8n 2.26.8 disables Data Table nodes in standalone CLI executions. ' +
+    'n8n disables Data Table nodes in standalone CLI executions. ' +
     'Run this workflow through the private server editor or an inactive QA trigger instead.'
   );
 }
