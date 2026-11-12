@@ -20,7 +20,7 @@ Every weekday, this n8n template checks the public GitHub repositories of the op
 
 ## Setup (about 10 minutes)
 
-1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/11lRVyqoPUyILjMfo0_Ni3iZh7hMt2211nj9TgB4_JPk/copy). Delete the two example rows.
+1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/1ov__nbR6qFvboEp5nFwigh65Lt_aTFMtrT_TQJQmYzM/copy). Delete the two example rows.
 2. Install the Apify node: on n8n Cloud, add the verified **Apify** node from the nodes panel; on self-hosted n8n, install `@apify/n8n-nodes-apify`. Connect your Apify account in node 2.
 3. Connect OpenAI in node 3.
 4. Connect Google Sheets in `Read Logged Issues` and in node 4, and pick your copy of the sheet in both. The `Dependency Issues` tab is preset (it is the first tab of the template). If you use your own spreadsheet, pick its tab in both nodes; it needs the same 16 headers in row 1.

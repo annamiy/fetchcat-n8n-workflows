@@ -11,7 +11,7 @@ Find the recently uploaded YouTube videos in your niche that are getting unusual
 
 ## Setup
 
-1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/12LEiHbvHoBa-dD7T63LOFe3aBadYyw7fdUGT1OFvG-0/copy).
+1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/123c00awCl-gT_8a2Y954O1woQCZAG28HG9tUOC04Prw/copy).
 2. Add the Apify node (verified node on n8n Cloud, `@apify/n8n-nodes-apify` on self-hosted) and connect your Apify account.
 3. Connect OpenAI, Google Sheets (in both Sheets nodes, pick your copy) and Slack (pick a channel).
 4. Edit `1. Set your niche searches` and run once by hand. Publish the workflow to turn on the weekly schedule.

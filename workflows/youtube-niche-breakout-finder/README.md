@@ -21,7 +21,7 @@ Every week, this n8n template finds recently uploaded YouTube videos in your nic
 
 ## Setup (about 10 minutes)
 
-1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/12LEiHbvHoBa-dD7T63LOFe3aBadYyw7fdUGT1OFvG-0/copy). Delete the two example rows if you like.
+1. Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/123c00awCl-gT_8a2Y954O1woQCZAG28HG9tUOC04Prw/copy). Delete the two example rows if you like.
 2. Install the Apify node: on n8n Cloud, add the verified **Apify** node from the nodes panel; on self-hosted n8n, install `@apify/n8n-nodes-apify`. Connect your Apify account in node 2.
 3. Connect OpenAI in node 3.
 4. Connect Google Sheets in `Read Logged Video IDs` and in node 4, and pick your copy of the sheet in both. The `Breakouts` tab is preset (it is the first tab of the template). If you use your own spreadsheet instead, pick its tab in both nodes; it needs the same 14 headers in row 1.
