@@ -2,9 +2,9 @@
 
 How FetchCat n8n templates go from "which Actor?" to a published n8n.io
 template. Each template has one Paperclip issue in the `Internal workflows`
-project. The existing agents move that issue from step to step. The Publisher
-submits to the n8n Creator portal with Anna's creator session token
-(`scripts/creator-portal.mjs`); without a valid token it asks Anna by card.
+project. The existing agents move that issue from step to step. Nothing is submitted to n8n.io without Anna's own "Submit it" answer on a
+Board card for that template; after it, the Publisher submits with her creator
+session token (`scripts/creator-portal.mjs`, which checks the answer).
 
 | Step | Owner | Skill | Output on the same issue |
 | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ submits to the n8n Creator portal with Anna's creator session token
 | 2. Research | Idea Researcher | `n8n-workflow-idea-research` | `Decision: GO` (slug, use case, title, destinations) or `DROP` |
 | 3. Build | Developer | `n8n-workflow-builder` | Branch `workflow/<slug>`, sheet template, `Builder handoff: READY FOR QA` |
 | 4. QA | QA | `n8n-workflow-qa` | `QA verdict: PASS` for the exact commit, or failures back to Developer |
-| 5. Merge and submit | Publisher | `n8n-workflow-publisher` | Merged PR, submission package, portal submission with `creator-portal.mjs` (or an `operator-action` card when the token is missing or expired), release state `creator-submitted` with `creatorTemplateId` |
+| 5. Merge and submit | Publisher | `n8n-workflow-publisher` | Merged PR, submission package, a "Submit it?" card for Anna, then (only on her yes) portal submission with `creator-portal.mjs`, release state `creator-submitted` with `creatorTemplateId` |
 
 ## Limits
 
