@@ -1,6 +1,6 @@
 ---
 name: n8n-workflow-publisher
-description: Merge a QA-passed FetchCat n8n template and submit it to the n8n Creator portal with scripts/creator-portal.mjs (Anna's creator session token), or through an operator-action card when the token is missing or expired. Use for exact-commit verification, PR merge, release state updates, portal submission, the 4-in-review limit, AI and human review feedback, and status reconciliation.
+description: Merge a QA-passed FetchCat n8n template, ask Anna by Board card, and only after her "Submit it" answer submit it to the n8n Creator portal with scripts/creator-portal.mjs (Anna's creator session token). Use for exact-commit verification, PR merge, release state updates, portal submission, the 4-in-review limit, AI and human review feedback, and status reconciliation.
 ---
 
 # n8n Workflow Publisher
@@ -33,58 +33,58 @@ for the exact full commit SHA.
 4. **Release state:** on `main`, set `releaseState: qa-passed` in
    `metadata.json` if QA did not, commit, push and pull the shared checkout.
    The submit script refuses any other state.
-5. **Submit** with the creator portal script, from the shared checkout, after
-   loading the token (never print it):
+5. **Ask Anna first, every time.** Nothing goes to n8n.io without Anna's own
+   answer on a Board card for that template (her instruction, 12 Nov 2026:
+   ask the Board before submitting anything). Her earlier "start posting" is
+   not a standing approval. Create one card (it messages her in Grok):
 
    ```bash
-   cd /data/projects/fetchcat-n8n-workflows
-   set -a; . /data/paperclip/bootstrap-secrets/n8n-creator.env; set +a
-   node scripts/creator-portal.mjs submit <slug> --dry-run
-   node scripts/creator-portal.mjs submit <slug>
+   node _scripts/board-card.mjs --issue APIA-N --class operator-action \
+     --question "Submit the n8n template <slug> on n8n.io?" \
+     --option submit:"Submit it" --option changes:"Needs changes" --option later:"Not now" \
+     --context "\"<title>\" passed QA. Workflow: <GitHub link to workflow.json on main>. Sheet template: <copyUrl or none>. Description: the submission package comment." \
+     --action "Review the n8n template <slug> and its sheet template, then approve or reject its submission on n8n.io" \
+     --return-owner Publisher --share
    ```
 
-   Anna gave standing approval on 12 Nov 2026 ("start posting") to submit
-   QA-passed templates while fewer than 4 are in review, and set up the token
-   for agents on 12 Nov. Submitting accepts the portal's terms on her behalf,
-   as the portal's checkbox does. Never sign in, create an account or handle
-   her password.
-   - The script counts the portal's own review slots and refuses a duplicate
-     title. It posts the template (n8n runs an AI review first, up to about
-     5 minutes), then sends it to human review. It prints `templateId`,
-     `reviewStatus` and the AI feedback scores.
-   - **Exit 4** (4 in review): comment it and set a dated wait 3 days out,
-     then run it again. Review takes 3–5 business days.
-   - **`reviewStatus: changes_needed`** or an AI feedback score of 0: comment
-     the feedback summary (`node scripts/creator-portal.mjs feedback <id>`) and
-     hand the same issue to Developer with `handoffIssue`. After the fix and QA,
-     resubmit with `node scripts/creator-portal.mjs resubmit <slug> <id>`.
-     Templates with AI scores of 0 have still passed human review before, so a
-     0 alone with status `in_review` needs no fix.
-   - **Exit 3** (no token, expired or refused): fall back to one Board card (it
-     messages Anna in her Grok bot):
+   Run it from the company workspace. The checker refuses stall words such as
+   "blocked", "proceed" or "tried". One card per template, never a reminder
+   card. Record the card id it prints.
+6. **On Anna's answer:**
+   - **Submit it:** submit with the creator portal script from the shared
+     checkout. The script checks in Paperclip that Anna answered this card with
+     "Submit it" and refuses otherwise (exit 5):
 
      ```bash
-     node _scripts/board-card.mjs --issue APIA-N --class operator-action \
-       --question "Submit this n8n template on n8n.io?" \
-       --option submitted:Submitted --option later:"Not now" \
-       --context "The n8n template \"<title>\" passed QA and is merged. The agents' n8n.io creator token is missing or expired, so the submission package (workflow file, title, description) is in the linked comment." \
-       --action "Submit the n8n template <slug> on n8n.io (Creator portal: upload workflow.json, paste title and description), or save a fresh creator token in n8n-creator.env" \
-       --return-owner Publisher --share
+     cd /data/projects/fetchcat-n8n-workflows
+     set -a; . /data/paperclip/bootstrap-secrets/n8n-creator.env; set +a
+     node scripts/creator-portal.mjs submit <slug> --dry-run
+     node scripts/creator-portal.mjs submit <slug> --issue APIA-N --approval <card id>
      ```
 
-     Run it from the company workspace. Keep the context to what the template
-     does and that QA passed; the checker refuses stall words such as
-     "blocked", "proceed" or "tried". One card per template, never a reminder
-     card.
-6. **After submission** (`submittedForHumanReview: true`, or Anna's
-   `Submitted`): on `main`, set `releaseState: creator-submitted`,
-   `submittedAt: YYYY-MM-DD` and, when the script returned one,
-   `creatorTemplateId: <templateId>` in `metadata.json`. Commit, push, pull
-   the shared checkout, comment the template id and review status, and close
-   the issue as done. `Not now`: comment it and close the issue as done with
-   release state `qa-passed`. An open issue would hold a pipeline slot with no
-   run, wait or card behind it. The 60-day cooldown keeps the Actor out of the
-   feeder.
+     It posts the template (n8n's AI review takes up to about 5 minutes), then
+     sends it to human review, and prints `templateId`, `reviewStatus` and the
+     AI scores. Submitting accepts the portal's terms on Anna's behalf, as the
+     portal's checkbox does. Never sign in, create an account or handle her
+     password.
+     - Exit 4 (4 in review): comment it and set a dated wait 3 days out, then
+       run it again under the same approval.
+     - Exit 3 (no token, expired or refused): comment it and create one card,
+       `--question "Save a fresh n8n.io creator token for <slug>, or submit it yourself?"`
+       with `--option token:"Token saved" --option submitted:"I submitted it"`.
+     - `reviewStatus: changes_needed`: comment the feedback
+       (`node scripts/creator-portal.mjs feedback <id>`) and hand the issue to
+       Developer. A resubmission after the fix needs a new "Submit it" card
+       (`resubmit <slug> <id> --issue APIA-N --approval <new card id>`).
+   - **Needs changes:** comment Anna's note and hand the same issue to
+     Developer with `handoffIssue`; after the fix and QA, return to step 5.
+   - **Not now:** comment it and close the issue as done with release state
+     `qa-passed`. The 60-day cooldown keeps the Actor out of the feeder.
+7. **After submission** (`submittedForHumanReview: true`, or Anna's "I
+   submitted it"): on `main`, set `releaseState: creator-submitted`,
+   `submittedAt: YYYY-MM-DD` and, when known, `creatorTemplateId` in
+   `metadata.json`. Commit, push, pull the shared checkout, comment the
+   template id and review status, and close the issue as done.
 
 ## Reconcile
 

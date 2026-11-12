@@ -9,14 +9,19 @@
 //
 // Usage:
 //   node scripts/creator-portal.mjs status [--json]
-//   node scripts/creator-portal.mjs submit <slug> [--dry-run]
+//   node scripts/creator-portal.mjs submit <slug> --issue APIA-N --approval <cardId> [--dry-run]
 //   node scripts/creator-portal.mjs feedback <templateId>
-//   node scripts/creator-portal.mjs resubmit <slug> <templateId> [--dry-run]
+//   node scripts/creator-portal.mjs resubmit <slug> <templateId> --issue APIA-N --approval <cardId> [--dry-run]
 //     (a fixed version of a template n8n sent back: changes_needed or rejected)
 // Env:  N8N_CREATOR_TOKEN (from /data/paperclip/bootstrap-secrets/n8n-creator.env).
 //       Never print it.
 //
-// Exit codes: 0 ok, 1 error, 3 no usable creator session (missing, expired or
+// Every real submit or resubmit needs Anna's own answer "Submit it" (option id
+// `submit`) on a Board card for this template on the same issue. The script
+// checks it in Paperclip (PAPERCLIP_API_URL, PAPERCLIP_API_KEY) and refuses
+// otherwise (exit 5). A dry run needs no approval.
+//
+// Exit codes: 0 ok, 1 error, 5 no recorded approval from Anna, 3 no usable creator session (missing, expired or
 // refused token: the Publisher falls back to Anna's card), 4 review limit
 // reached (4 templates in review).
 
@@ -32,6 +37,40 @@ const AI_POLL_MS = 5000;
 const AI_POLL_TRIES = 60;
 
 export class SessionError extends Error {}
+export class ApprovalError extends Error {}
+
+// Anna's recorded approval for this exact template: an answered card on the
+// issue, resolved by a person (not an agent), naming the slug, answered "submit".
+export function checkApproval(interaction, slug) {
+  if (!interaction) return 'approval card not found on this issue';
+  if (interaction.status !== 'answered') return `approval card is ${interaction.status}, not answered`;
+  if (!interaction.resolvedByUserId || interaction.resolvedByAgentId) return 'approval card was not answered by Anna';
+  const text = JSON.stringify(interaction.payload ?? {});
+  if (!text.includes(slug)) return `approval card does not name the template ${slug}`;
+  const picked = (interaction.result?.answers ?? []).flatMap((a) => a.optionIds ?? []);
+  if (!picked.includes('submit')) return `approval card answer is ${picked.join(', ') || 'empty'}, not "submit"`;
+  return null;
+}
+
+async function requireApproval(argv, slug) {
+  const value = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : undefined; };
+  const issue = value('--issue');
+  const approval = value('--approval');
+  if (!issue || !approval) throw new ApprovalError('a real submission needs --issue APIA-N --approval <card id> with Anna\'s "Submit it" answer');
+  const base = String(process.env.PAPERCLIP_API_URL || '').replace(/\/$/, '');
+  if (!base || !process.env.PAPERCLIP_API_KEY) throw new ApprovalError('PAPERCLIP_API_URL and PAPERCLIP_API_KEY are needed to check the approval card');
+  const headers = { Authorization: `Bearer ${process.env.PAPERCLIP_API_KEY}` };
+  const found = await fetch(`${base}/api/issues/${encodeURIComponent(issue)}`, { headers });
+  if (!found.ok) throw new ApprovalError(`cannot read ${issue} (HTTP ${found.status})`);
+  const issueId = (await found.json()).id;
+  const list = await fetch(`${base}/api/issues/${issueId}/interactions`, { headers });
+  if (!list.ok) throw new ApprovalError(`cannot read the cards of ${issue} (HTTP ${list.status})`);
+  const body = await list.json();
+  const rows = Array.isArray(body) ? body : body.interactions ?? body.items ?? [];
+  const problem = checkApproval(rows.find((row) => row.id === approval), slug);
+  if (problem) throw new ApprovalError(`${issue}: ${problem}`);
+  return { issue, approval };
+}
 export class LimitError extends Error {}
 
 export function tokenInfo(token) {
@@ -170,12 +209,14 @@ export async function resubmit(token, slug, templateId, { dryRun = false } = {})
 }
 
 export async function main(argv = process.argv.slice(2)) {
-  const [command, arg] = argv.filter((a) => !a.startsWith('--'));
+  const valueFlags = new Set(['--issue', '--approval']);
+  const positional = argv.filter((a, i) => !a.startsWith('--') && !valueFlags.has(argv[i - 1]));
+  const [command, arg] = positional;
   const token = process.env.N8N_CREATOR_TOKEN;
   const info = tokenInfo(token);
-  const [, , third] = argv.filter((a) => !a.startsWith('--'));
+  const [, , third] = positional;
   if (!['status', 'submit', 'feedback', 'resubmit'].includes(command) || (command !== 'status' && !arg) || (command === 'resubmit' && !/^\d+$/.test(third ?? ''))) {
-    console.error('Usage: node scripts/creator-portal.mjs status [--json] | submit <slug> [--dry-run] | feedback <templateId> | resubmit <slug> <templateId> [--dry-run]');
+    console.error('Usage: node scripts/creator-portal.mjs status [--json] | submit <slug> --issue APIA-N --approval <cardId> [--dry-run] | feedback <templateId> | resubmit <slug> <templateId> --issue APIA-N --approval <cardId> [--dry-run]');
     return 2;
   }
   if (!info.ok) throw new SessionError(info.reason);
@@ -198,6 +239,7 @@ export async function main(argv = process.argv.slice(2)) {
     return 0;
   }
   const dryRun = argv.includes('--dry-run');
+  if (!dryRun) await requireApproval(argv, arg);
   const result = command === 'resubmit' ? await resubmit(token, arg, Number(third), { dryRun }) : await submit(token, arg, { dryRun });
   console.log(JSON.stringify(result, null, 2));
   return 0;
@@ -206,6 +248,6 @@ export async function main(argv = process.argv.slice(2)) {
 if (process.argv[1] && path.resolve(process.argv[1]) === new URL(import.meta.url).pathname) {
   main().then((code) => process.exit(code), (e) => {
     console.error(`creator-portal: ${e.message}`);
-    process.exit(e instanceof SessionError ? 3 : e instanceof LimitError ? 4 : 1);
+    process.exit(e instanceof SessionError ? 3 : e instanceof LimitError ? 4 : e instanceof ApprovalError ? 5 : 1);
   });
 }
