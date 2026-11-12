@@ -19,6 +19,6 @@
     "apifyBackedExecutions": 3,
     "budgetUsd": 1
   },
-  "releaseState": "development",
+  "releaseState": "qa-passed",
   "pipelineIssue": "APIA-14644"
 }
