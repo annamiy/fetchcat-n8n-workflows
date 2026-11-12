@@ -1,12 +1,199 @@
 {
   "title": "YouTube Niche Breakouts - n8n Template",
+  "startHere": {
+    "heading": "YouTube Niche Breakout Finder",
+    "subtitle": "Google Sheets companion for the n8n YouTube niche breakout workflow",
+    "whatItDoes": "Every week the workflow searches YouTube for your niche phrases, scores each recent video by views per day against the other new videos in the same search, and saves the breakouts here, one row per video. Reruns skip videos that are already in the sheet, so each breakout appears once, and Slack gets one digest grouped into topic angles.",
+    "checklist": [
+      "Make your own copy of this spreadsheet before connecting it to n8n.",
+      "Connect Google Sheets OAuth in n8n and select your copy in both Google Sheets nodes (Read Logged Video IDs and 4. Log Breakouts to Google Sheets).",
+      "Keep the Breakouts tab and every header in row 1 unchanged. Video ID is the match key.",
+      "Connect Apify, OpenAI and Slack, edit your niche searches in node 1, then run the workflow once by hand.",
+      "Publish the workflow to turn on the Monday 9:00 schedule."
+    ],
+    "links": [
+      {
+        "label": "Open the FetchCat YouTube Search Results Scraper on Apify",
+        "url": "https://apify.com/fetch_cat/youtube-search-results-scraper"
+      }
+    ],
+    "dataNote": "The rows in Breakouts are public demonstration data from a QA run on 12 Nov 2026. Delete the data rows before production if you want a blank sheet; keep row 1."
+  },
   "tabs": [
     {
       "name": "Breakouts",
-      "headers": ["Observed at", "Query", "Rank", "Video title", "Channel", "Published", "Days since upload", "Views", "Views per day", "Breakout ratio", "Duration (s)", "Angle", "Video URL", "Video ID"],
+      "headers": [
+        "Observed at",
+        "Query",
+        "Rank",
+        "Video title",
+        "Channel",
+        "Published",
+        "Days since upload",
+        "Views",
+        "Views per day",
+        "Breakout ratio",
+        "Duration (s)",
+        "Angle",
+        "Video URL",
+        "Video ID"
+      ],
+      "freezeColumns": 0,
+      "columns": {
+        "Observed at": {
+          "width": 140
+        },
+        "Query": {
+          "width": 130
+        },
+        "Rank": {
+          "width": 60,
+          "align": "center"
+        },
+        "Video title": {
+          "width": 330,
+          "wrap": true,
+          "strong": true
+        },
+        "Channel": {
+          "width": 170,
+          "wrap": true
+        },
+        "Published": {
+          "width": 90
+        },
+        "Days since upload": {
+          "width": 95,
+          "format": "integer"
+        },
+        "Views": {
+          "width": 95,
+          "format": "integer"
+        },
+        "Views per day": {
+          "width": 105,
+          "format": "integer"
+        },
+        "Breakout ratio": {
+          "width": 105,
+          "format": "ratio",
+          "highlight": {
+            "type": "scale"
+          }
+        },
+        "Duration (s)": {
+          "width": 95,
+          "format": "integer"
+        },
+        "Angle": {
+          "width": 180,
+          "wrap": true
+        },
+        "Video URL": {
+          "width": 120,
+          "link": "Watch video"
+        },
+        "Video ID": {
+          "width": 120
+        }
+      },
       "exampleRows": [
-        ["2026-11-12 09:00 UTC", "example niche search", 3, "Example video: build a no-code app in 10 minutes", "Example Channel", "2d ago", 2, 24000, 12000, 6.5, 640, "Fast build demos", "https://www.youtube.com/watch?v=EXAMPLE0001", "EXAMPLE0001"],
-        ["2026-11-12 09:00 UTC", "example niche search", 7, "Sample walkthrough: automate your weekly report", "Sample Studio", "15h ago", 0.6, 5200, 5200, 2.8, 910, "Workflow walkthroughs", "https://www.youtube.com/watch?v=EXAMPLE0002", "EXAMPLE0002"]
+        [
+          "2026-11-12 11:07 UTC",
+          "no code saas",
+          2,
+          "Build a Profitable SaaS App With Hermes Agent (No Code, Free Deploy)",
+          "You B Tech and You B Builder",
+          "4d ago",
+          4,
+          7098,
+          1775,
+          36.97,
+          1032,
+          "No-Code SaaS Builds",
+          "https://www.youtube.com/watch?v=Y6YSbD_FRQk",
+          "Y6YSbD_FRQk"
+        ],
+        [
+          "2026-11-12 11:07 UTC",
+          "no code saas",
+          1,
+          "J'ai recréé ComeUp avec l'IA en moins de 30 minutes (sans coder)",
+          "Moussa SILUE",
+          "5d ago",
+          5,
+          3420,
+          684,
+          14.25,
+          1300,
+          "No-Code SaaS Builds",
+          "https://www.youtube.com/watch?v=k7jAVAgiPWM",
+          "k7jAVAgiPWM"
+        ],
+        [
+          "2026-11-12 11:07 UTC",
+          "no code saas",
+          3,
+          "Como Liberar o CLAUDE CODE sem Limites de Sessão! Tokens infinitos no Claude e Codex Astra 6",
+          "O MARKETEIRO",
+          "6d ago",
+          6,
+          3559,
+          593,
+          12.36,
+          397,
+          "Claude Limits Unlock",
+          "https://www.youtube.com/watch?v=VDwtQJYw8Wo",
+          "VDwtQJYw8Wo"
+        ],
+        [
+          "2026-11-12 11:07 UTC",
+          "n8n tutorial",
+          2,
+          "Introducing Nod: An Open-Source Personal AI Agent from n8n",
+          "n8n",
+          "21h ago",
+          0.9,
+          12655,
+          12655,
+          4.8,
+          87,
+          "n8n AI Agent Wave",
+          "https://www.youtube.com/watch?v=cjEK7V9GucQ",
+          "cjEK7V9GucQ"
+        ],
+        [
+          "2026-11-12 11:07 UTC",
+          "n8n tutorial",
+          1,
+          "n8n’s New Agent BEATS Dots, Muse & Grok Bot",
+          "Simon Scrapes",
+          "17h ago",
+          0.7,
+          12566,
+          12566,
+          4.77,
+          825,
+          "n8n AI Agent Wave",
+          "https://www.youtube.com/watch?v=VSrarL8Ki_A",
+          "VSrarL8Ki_A"
+        ],
+        [
+          "2026-11-12 11:07 UTC",
+          "n8n tutorial",
+          4,
+          "n8n Full Course 2026 | AI Agents, MCP, RAG & Automations",
+          "Sangam Mukherjee",
+          "1d ago",
+          1,
+          9776,
+          9776,
+          3.71,
+          13623,
+          "n8n AI Agent Wave",
+          "https://www.youtube.com/watch?v=5SP8PnKqQ98",
+          "5SP8PnKqQ98"
+        ]
       ]
     }
   ]

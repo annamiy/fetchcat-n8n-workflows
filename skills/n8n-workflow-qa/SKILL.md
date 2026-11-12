@@ -42,6 +42,13 @@ QA` with a full commit SHA.
 3. **Sheet template:** the copy link opens without login
    (`curl -sL https://docs.google.com/spreadsheets/d/ID/export?format=csv`
    returns the headers), and the headers match what the workflow writes.
+   After the happy path, copy 3–25 public rows it wrote into `exampleRows`
+   (no emails or private data), commit them with the QA evidence, and rerun
+   `node scripts/sheet-template.mjs <slug> --require-example-rows`. Open the
+   sheet and compare it with "TikTok Profiles to Google Sheets - n8n
+   Template": the Start here tab opens first, with the checklist and the
+   Actor link; the data tab has the lime header, filter, widths, formats,
+   link labels and the example rows. Fail it otherwise.
 4. Import inactive, attach the QA credentials, then run:
    - **happy path**: the default input. Check items, AI schema and destination rows;
    - **duplicate path**: an immediate rerun produces no new rows or messages;

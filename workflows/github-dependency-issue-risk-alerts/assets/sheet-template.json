@@ -1,12 +1,312 @@
 {
   "title": "Dependency Issue Risk Log - n8n Template",
+  "startHere": {
+    "heading": "Dependency Issue Risk Alerts",
+    "subtitle": "Google Sheets companion for the n8n GitHub dependency risk workflow",
+    "whatItDoes": "Each weekday the workflow reads recently updated open issues from the GitHub repositories you depend on, scores each one for upgrade and production risk with OpenAI, and logs it here. Issues at risk 4 or 5 also go to one Slack digest, once each. Reruns update the same row, matched on url, so the log stays one row per issue.",
+    "checklist": [
+      "Make your own copy of this spreadsheet before connecting it to n8n.",
+      "Connect Google Sheets OAuth in n8n and select your copy in both Google Sheets nodes (Read Logged Issues and 4. Log Issues to Google Sheets).",
+      "Keep the Dependency Issues tab and every header in row 1 unchanged. The url column is the match key, so keep it as plain text.",
+      "Connect Apify, OpenAI and Slack, list your repositories in node 1, then run the workflow once by hand.",
+      "Publish the workflow to turn on the weekday 9:00 schedule."
+    ],
+    "links": [
+      {
+        "label": "Open the FetchCat GitHub Issues & Pull Requests Scraper on Apify",
+        "url": "https://apify.com/fetch_cat/github-issues-pull-requests-scraper"
+      }
+    ],
+    "columnGuide": [
+      [
+        "category",
+        "Issue type from the AI review: bug, regression, security, breaking-change, feature, docs or question."
+      ],
+      [
+        "riskScore",
+        "Upgrade or production risk from 1 (low) to 5 (critical). 4 and 5 go to Slack."
+      ],
+      [
+        "affectsUpgrade",
+        "yes when the issue is likely to hit you on the next version upgrade."
+      ],
+      [
+        "summary",
+        "One-line summary written by OpenAI from the title, labels and first 800 characters."
+      ],
+      [
+        "alerted",
+        "yes once the issue was sent to Slack, so it is not sent again."
+      ]
+    ],
+    "dataNote": "The rows in Dependency Issues are public demonstration data from a QA run on 12 Nov 2026 (issues in n8n-io/n8n and other public repositories). Delete the data rows before production if you want a blank sheet; keep row 1."
+  },
   "tabs": [
     {
       "name": "Dependency Issues",
-      "headers": ["scrapedAt", "repository", "number", "title", "url", "authorLogin", "labels", "commentsCount", "reactions", "createdAt", "updatedAt", "category", "riskScore", "affectsUpgrade", "summary", "alerted"],
+      "headers": [
+        "scrapedAt",
+        "repository",
+        "number",
+        "title",
+        "url",
+        "authorLogin",
+        "labels",
+        "commentsCount",
+        "reactions",
+        "createdAt",
+        "updatedAt",
+        "category",
+        "riskScore",
+        "affectsUpgrade",
+        "summary",
+        "alerted"
+      ],
+      "freezeColumns": 0,
+      "columns": {
+        "scrapedAt": {
+          "width": 180
+        },
+        "repository": {
+          "width": 140,
+          "strong": true
+        },
+        "number": {
+          "width": 70,
+          "align": "right"
+        },
+        "title": {
+          "width": 330,
+          "wrap": true,
+          "strong": true
+        },
+        "url": {
+          "width": 270
+        },
+        "authorLogin": {
+          "width": 130
+        },
+        "labels": {
+          "width": 190,
+          "wrap": true
+        },
+        "commentsCount": {
+          "width": 105,
+          "format": "integer"
+        },
+        "reactions": {
+          "width": 85,
+          "format": "integer"
+        },
+        "createdAt": {
+          "width": 165
+        },
+        "updatedAt": {
+          "width": 165
+        },
+        "category": {
+          "width": 115,
+          "highlight": {
+            "type": "equals",
+            "values": {
+              "security": "red",
+              "regression": "red",
+              "breaking-change": "red",
+              "bug": "amber"
+            }
+          }
+        },
+        "riskScore": {
+          "width": 85,
+          "align": "center",
+          "highlight": {
+            "type": "risk",
+            "high": 4,
+            "medium": 3
+          }
+        },
+        "affectsUpgrade": {
+          "width": 115,
+          "align": "center",
+          "highlight": {
+            "type": "yesno"
+          }
+        },
+        "summary": {
+          "width": 380,
+          "wrap": true
+        },
+        "alerted": {
+          "width": 85,
+          "align": "center",
+          "highlight": {
+            "type": "yesno"
+          }
+        }
+      },
       "exampleRows": [
-        ["2026-11-12T09:00:00.000Z", "example-org/example-lib", 101, "Example: TypeError after upgrading to 3.2.0", "https://github.com/example-org/example-lib/issues/101", "example-user", "bug", 12, 9, "2026-11-10T14:02:00Z", "2026-11-11T18:40:00Z", "regression", 5, "yes", "Upgrading to 3.2.0 breaks request parsing for JSON bodies.", "yes"],
-        ["2026-11-12T09:00:00.000Z", "example-org/example-lib", 102, "Example: docs typo in the routing guide", "https://github.com/example-org/example-lib/issues/102", "sample-user", "docs", 1, 0, "2026-11-11T09:15:00Z", "2026-11-11T09:15:00Z", "question", 1, "no", "Typo in the routing guide; no code impact.", "no"]
+        [
+          "2026-11-12T11:08:01.625Z",
+          "n8n-io/n8n",
+          43135,
+          "Queue mode: Redis pub/sub teardown precedes execution drain; MCP session registration fails during shutdown",
+          "https://github.com/n8n-io/n8n/issues/43135",
+          "santastabber",
+          "status:in-linear",
+          2,
+          0,
+          "2026-11-08T19:16:23Z",
+          "2026-11-12T10:25:18Z",
+          "bug",
+          4,
+          "no",
+          "Queue-mode shutdown can close Redis pub/sub before executions drain, causing MCP session registration to fail with \"Connection is closed.\"",
+          "yes"
+        ],
+        [
+          "2026-11-12T11:08:01.625Z",
+          "n8n-io/n8n",
+          43630,
+          "Object .compact() expression extension turns array values into plain objects",
+          "https://github.com/n8n-io/n8n/issues/43630",
+          "indexGin",
+          "status:in-linear",
+          1,
+          0,
+          "2026-11-12T09:38:54Z",
+          "2026-11-12T09:39:04Z",
+          "bug",
+          3,
+          "no",
+          ".compact() turns nested array values inside objects into plain objects, corrupting expression results for workflows using arrays.",
+          "no"
+        ],
+        [
+          "2026-11-12T11:08:01.625Z",
+          "n8n-io/n8n",
+          43338,
+          "SSO project role provisioning leaves stale team project memberships when the claim has no valid mappings",
+          "https://github.com/n8n-io/n8n/issues/43338",
+          "mohsenjavidpanah",
+          "status:in-linear, status:team-assigned, team:identity",
+          3,
+          0,
+          "2026-11-10T11:42:40Z",
+          "2026-11-12T09:27:30Z",
+          "security",
+          5,
+          "no",
+          "OIDC project-role provisioning can leave revoked project memberships in place, preserving access after claims no longer map to any project roles.",
+          "yes"
+        ],
+        [
+          "2026-11-12T11:08:01.625Z",
+          "axios/axios",
+          11446,
+          "fetch adapter: stream responses without a body leave the abort listener and timeout timer behind",
+          "https://github.com/axios/axios/issues/11446",
+          "adityajai119",
+          "",
+          0,
+          0,
+          "2026-11-12T06:58:35Z",
+          "2026-11-12T06:58:35Z",
+          "bug",
+          3,
+          "no",
+          "Fetch adapter stream responses without a body leave abort listeners and timeout timers behind, leaking resources and keeping Node alive longer.",
+          "no"
+        ],
+        [
+          "2026-11-12T11:08:01.625Z",
+          "expressjs/express",
+          7592,
+          "Use cross-platform directory name in QS guide",
+          "https://github.com/expressjs/express/issues/7592",
+          "alturkye",
+          "docs",
+          0,
+          0,
+          "2026-11-10T18:28:59Z",
+          "2026-11-11T15:17:34Z",
+          "question",
+          1,
+          "no",
+          "README quick-start uses /tmp, which is invalid on Windows.",
+          "no"
+        ],
+        [
+          "2026-11-12T11:08:01.625Z",
+          "expressjs/express",
+          7532,
+          "req.subdomains splits an IPv6 host that contains dots",
+          "https://github.com/expressjs/express/issues/7532",
+          "johnnyhuirilef",
+          "bug, 4.x, 5.x",
+          2,
+          0,
+          "2026-10-20T19:05:03Z",
+          "2026-11-11T12:53:26Z",
+          "bug",
+          2,
+          "no",
+          "req.subdomains incorrectly splits IPv6 hosts containing dots, producing wrong subdomain values for some IP-address hosts.",
+          "no"
+        ],
+        [
+          "2026-11-12T11:08:01.625Z",
+          "axios/axios",
+          11440,
+          "http adapter: req.setTimeout(0) via follow-redirects leaves a socket destroy listener that breaks other clients sharing http.globalAgent (socket hang up)",
+          "https://github.com/axios/axios/issues/11440",
+          "koshis",
+          "",
+          1,
+          0,
+          "2026-11-10T15:16:29Z",
+          "2026-11-10T17:58:03Z",
+          "regression",
+          4,
+          "yes",
+          "Since the timeout change, follow-redirects leaves a socket destroy listener on pooled sockets, breaking other clients that reuse them.",
+          "yes"
+        ],
+        [
+          "2026-11-12T11:08:01.625Z",
+          "axios/axios",
+          11145,
+          "`AxiosError.prototype.toJSON()` can OOM when config includes an `httpAgent`/`httpsAgent`",
+          "https://github.com/axios/axios/issues/11145",
+          "skrtheboss",
+          "",
+          4,
+          0,
+          "2026-08-12T12:39:38Z",
+          "2026-11-08T17:24:26Z",
+          "bug",
+          5,
+          "no",
+          "AxiosError.toJSON() can grow memory unbounded and crash the process when request config includes an http or https agent.",
+          "yes"
+        ],
+        [
+          "2026-11-12T11:09:10.604Z",
+          "expressjs/express",
+          6941,
+          "res.redirect(undefined) sends invalid Location: undefined header",
+          "https://github.com/expressjs/express/issues/6941",
+          "BOXER78",
+          "deprecate, 6.x",
+          8,
+          2,
+          "2025-12-03T16:47:18Z",
+          "2026-11-08T10:09:12Z",
+          "bug",
+          3,
+          "no",
+          "res.redirect(undefined) returns a malformed Location: undefined header, which can break redirects for callers passing no URL.",
+          "no"
+        ]
       ]
     }
   ]

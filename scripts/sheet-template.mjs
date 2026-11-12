@@ -8,7 +8,9 @@
 // The spreadsheet lives in the public templates folder of the FetchCat Drive
 // (My Drive > N8N > PUBLIC), is shared "anyone with the link can view", and is
 // reused on later runs (same title, owned by the FetchCat account), so retries
-// never create duplicates. Only header rows and synthetic example rows go into
+// never create duplicates. The helper then applies the FetchCat house style
+// (scripts/sheet-style.mjs: Start here tab, styled data tabs, real public QA
+// example rows). No private data or emails go into
 // a template.
 //
 // Usage: node scripts/sheet-template.mjs <slug> [--dry-run]
@@ -20,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { readJson, root, workflowPath } from './lib.mjs';
+import { validateStyleSpec } from './sheet-style.mjs';
 
 // One private helper workflow per slug, so two builders never run each other's spec.
 export function toolWorkflowId(slug) {
@@ -27,9 +30,9 @@ export function toolWorkflowId(slug) {
   for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return `fcSheetTpl${h.toString(36).padStart(7, '0')}`.slice(0, 16);
 }
-const MAX_ROWS = 5;
+const MAX_ROWS = 40;
 
-export function validateSpec(spec) {
+export function validateSpec(spec, opts = {}) {
   const errors = [];
   if (!spec || typeof spec !== 'object') return ['spec must be an object'];
   if (typeof spec.title !== 'string' || spec.title.length < 5 || spec.title.length > 120) errors.push('title must be 5-120 characters');
@@ -42,6 +45,7 @@ export function validateSpec(spec) {
     for (const row of rows) if (!Array.isArray(row) || row.length > (tab.headers?.length ?? 0)) errors.push(`tabs[${i}] example row is longer than the header`);
   }
   if (spec.folderName !== undefined) errors.push('folderName is no longer supported: every template sheet goes to the FetchCat PUBLIC folder');
+  for (const e of validateStyleSpec(spec)) if (!/example rows/.test(e) || opts.requireExampleRows) errors.push(e);
   const text = JSON.stringify(spec);
   if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text)) errors.push('spec must not contain email addresses');
   return errors;
@@ -90,12 +94,15 @@ export function buildToolWorkflow(spec, credentialId, slug, folderId) {
     // no-op when it is already there, so reruns repair a failed earlier move.
     http('t12', 'Ensure In Folder', 2400, 0, { method: 'PATCH', url: `={{ (() => { const folder = $('Folder Id').first().json.folderId; const others = ($json.parents || []).filter((p) => p !== folder); return 'https://www.googleapis.com/drive/v3/files/' + $json.id + '?fields=id,parents&addParents=' + folder + (others.length ? '&removeParents=' + others.join(',') : ''); })() }}`, ...json('={{ "{}" }}') }),
     http('t13', 'Share Anyone Viewer', 2600, 0, { method: 'POST', url: `={{ 'https://www.googleapis.com/drive/v3/files/' + $json.id + '/permissions?fields=id,role,type' }}`, ...json(`={{ JSON.stringify({ role: 'reader', type: 'anyone', allowFileDiscovery: false }) }}`) }),
-    { id: 't14', name: 'Result', type: 'n8n-nodes-base.code', typeVersion: 2, position: [2800, 0], parameters: { jsCode: "const s = $('Sheet Id').first().json;\nconst p = $input.first().json;\nconst placed = $('Ensure In Folder').first().json;\nconst folderId = $('Folder Id').first().json.folderId;\nconst id = s.spreadsheetId;\nreturn [{ json: { fetchcatSheetTemplate: true, spreadsheetId: id, created: s.created, inFolder: (placed.parents || []).includes(folderId), shared: p.type === 'anyone' && p.role === 'reader', folderId, url: `https://docs.google.com/spreadsheets/d/${id}/edit?usp=sharing`, copyUrl: `https://docs.google.com/spreadsheets/d/${id}/copy` } }];" } },
+    http('t15', 'Read Sheet Layout', 2800, 0, { url: `={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $('Sheet Id').first().json.spreadsheetId + '?fields=sheets(properties(sheetId,title,gridProperties),conditionalFormats,basicFilter)' }}` }),
+    { id: 't16', name: 'Build House Style', type: 'n8n-nodes-base.code', typeVersion: 2, position: [3000, 0], parameters: { jsCode: houseStyleCode(spec) } },
+    http('t17', 'Apply House Style', 3200, 0, { method: 'POST', url: `={{ 'https://sheets.googleapis.com/v4/spreadsheets/' + $('Sheet Id').first().json.spreadsheetId + ':batchUpdate' }}`, ...json('={{ JSON.stringify({ requests: $json.requests }) }}') }),
+    { id: 't14', name: 'Result', type: 'n8n-nodes-base.code', typeVersion: 2, position: [3400, 0], parameters: { jsCode: "const s = $('Sheet Id').first().json;\nconst p = $('Share Anyone Viewer').first().json;\nconst styled = Array.isArray($input.first().json.replies);\nconst placed = $('Ensure In Folder').first().json;\nconst folderId = $('Folder Id').first().json.folderId;\nconst id = s.spreadsheetId;\nreturn [{ json: { fetchcatSheetTemplate: true, spreadsheetId: id, created: s.created, inFolder: (placed.parents || []).includes(folderId), shared: p.type === 'anyone' && p.role === 'reader', styled, folderId, url: `https://docs.google.com/spreadsheets/d/${id}/edit?usp=sharing`, copyUrl: `https://docs.google.com/spreadsheets/d/${id}/copy` } }];" } },
   ];
   const c = (from, to, out = 0) => ({ from, to, out });
   const links = [c('Start', 'Spec'), c('Spec', 'Check Folder'), c('Check Folder', 'Folder Id'),
     c('Folder Id', 'Find Sheet'), c('Find Sheet', 'Sheet Exists?'), c('Sheet Exists?', 'Sheet Id', 0), c('Sheet Exists?', 'Create Spreadsheet', 1), c('Create Spreadsheet', 'Sheet Id'),
-    c('Sheet Id', 'Get Parents'), c('Get Parents', 'Ensure In Folder'), c('Ensure In Folder', 'Share Anyone Viewer'), c('Share Anyone Viewer', 'Result')];
+    c('Sheet Id', 'Get Parents'), c('Get Parents', 'Ensure In Folder'), c('Ensure In Folder', 'Share Anyone Viewer'), c('Share Anyone Viewer', 'Read Sheet Layout'), c('Read Sheet Layout', 'Build House Style'), c('Build House Style', 'Apply House Style'), c('Apply House Style', 'Result')];
   const connections = {};
   for (const { from, to, out } of links) {
     connections[from] ??= { main: [] };
@@ -103,6 +110,13 @@ export function buildToolWorkflow(spec, credentialId, slug, folderId) {
     connections[from].main[out].push({ node: to, type: 'main', index: 0 });
   }
   return { id: toolWorkflowId(slug), name: `FetchCat tool - sheet template ${slug}`, active: false, settings: { executionOrder: 'v1' }, nodes, connections };
+}
+
+// The Code node runs the same generator as scripts/sheet-style.mjs (inlined,
+// since n8n Code nodes cannot import repository files).
+export function houseStyleCode(spec) {
+  const source = fs.readFileSync(new URL('./sheet-style.mjs', import.meta.url), 'utf8').replace(/^export /gm, '');
+  return `${source}\nconst spec = ${JSON.stringify(spec)};\nreturn [{ json: { requests: styleRequests(spec, existingFromSpreadsheet($json)) } }];`;
 }
 
 // Last {"fetchcatSheetTemplate": true, ...} object in the CLI raw output.
@@ -125,7 +139,7 @@ export function main(argv = process.argv.slice(2)) {
   if (!slug) throw new Error('Usage: node scripts/sheet-template.mjs <slug> [--dry-run]');
   const specFile = workflowPath(slug, 'assets/sheet-template.json');
   const spec = readJson(specFile);
-  const errors = validateSpec(spec);
+  const errors = validateSpec(spec, { requireExampleRows: argv.includes('--require-example-rows') });
   if (errors.length) throw new Error(`${specFile}: ${errors.join('; ')}`);
   const credentialId = process.env.N8N_TEMPLATE_DRIVE_CREDENTIAL_ID;
   const folderId = process.env.N8N_TEMPLATE_FOLDER_ID;
@@ -142,7 +156,7 @@ export function main(argv = process.argv.slice(2)) {
   n8nCli(['import'], fs.readFileSync(local, 'utf8'));
   const output = n8nCli(['execute', `--id=${tool.id}`, `--runner-port=${process.env.N8N_CLI_RUNNER_PORT ?? '5680'}`]);
   const result = parseResult(output);
-  if (!result || !result.shared || !result.inFolder) {
+  if (!result || !result.shared || !result.inFolder || !result.styled) {
     throw new Error(`Sheet template run did not finish with a shared spreadsheet in the folder${result ? ` (spreadsheet ${result.spreadsheetId})` : ''}. Check the execution of "${tool.name}" in n8n.`);
   }
   console.log(JSON.stringify({ slug, ...result }));

@@ -87,11 +87,14 @@ self-hosted n8n.
 
 ## Spreadsheet templates
 
-A template that writes to Google Sheets ships `assets/sheet-template.json`
-(title `<Name> - n8n Template`, tabs, headers, at most 5 synthetic example
-rows, no emails or real data). `node scripts/sheet-template.mjs <slug>`
+A template that writes to Google Sheets ships `assets/sheet-template.json` in
+the FetchCat house style (`scripts/sheet-style.mjs`, the same look as the
+first seven: a Start here tab with the setup checklist and the Actor link,
+styled data tabs, and 3–25 real public example rows from QA; no emails or
+private data). `node scripts/sheet-template.mjs <slug>`
 creates the sheet in the FetchCat Drive (fetchcat@nosova.me, My Drive > N8N >
-PUBLIC), shares it as "anyone with the link can view", and prints `url` and
+PUBLIC), shares it as "anyone with the link can view", applies the house
+style, and prints `url` and
 `copyUrl`. A rerun reuses the same sheet. The overview sticky note, README and
 `creator-draft.md` link `copyUrl` ("Make a copy of the sheet template"). Never
 publish a sheet from another Google account.

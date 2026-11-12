@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readJson, root, workflowPath, workflowSlugs } from './lib.mjs';
+import { validateSpec as validateSheetSpec } from './sheet-template.mjs';
 
 const errors = [];
 const releaseStates = new Set([
@@ -93,7 +94,13 @@ function validateApifyNodeTemplate(slug, dir, workflow, metadata, readmeText) {
   if (workflow.nodes.some((entry) => /^(HTTP Request|Code|Set|If|Edit Fields)\d*$/.test(entry.name))) fail(slug, 'node names must be descriptive');
   const usesSheets = workflow.nodes.some((entry) => entry.type === 'n8n-nodes-base.googleSheets');
   if (usesSheets) {
-    if (!fs.existsSync(path.join(dir, 'assets/sheet-template.json'))) fail(slug, 'Google Sheets template needs assets/sheet-template.json');
+    const specFile = path.join(dir, 'assets/sheet-template.json');
+    if (!fs.existsSync(specFile)) fail(slug, 'Google Sheets template needs assets/sheet-template.json');
+    else {
+      // House style (scripts/sheet-style.mjs); real QA example rows are required once QA has passed.
+      const released = readJson(path.join(dir, 'metadata.json')).releaseState !== 'development';
+      for (const e of validateSheetSpec(readJson(specFile), { requireExampleRows: released })) fail(slug, `sheet template: ${e}`);
+    }
     const copyLink = /https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]+\/copy/;
     if (!copyLink.test(readmeText)) fail(slug, 'README must link the sheet template copy URL');
     const overview = workflow.nodes.find((entry) => entry.type === 'n8n-nodes-base.stickyNote' && entry.parameters?.color === 1);
