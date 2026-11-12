@@ -6,7 +6,7 @@ This directory is the reproducible source for the private development instance a
 ## Pinned services
 
 - n8n `2.47.4` (upgraded from 2.26.8 on 12 Nov 2026)
-- PostgreSQL `16`
+- PostgreSQL `17` (moved from 16 by dump and restore on 12 Nov 2026)
 - `@apify/n8n-nodes-apify` `0.9.0`
 
 The n8n port is bound to `127.0.0.1` and is exposed only through Caddy. Caddy
@@ -15,8 +15,10 @@ forms, `/healthz` and the API-key-protected `/api/v1` stay reachable. The
 committed Caddy file carries a placeholder hash (`caddy hash-password`). Runtime
 secrets live in `/data/n8n/.env` on the VPS and are never committed.
 
-PostgreSQL 16 still works but n8n 2.47 reports it as outside the supported
-range; moving to 17 needs a dump and restore and is a separate step.
+A PostgreSQL major upgrade is a dump and restore: stop n8n, `pg_dump
+--format=custom` from the old container, move the data directory aside, start the
+new image on an empty directory, `pg_restore --no-owner --no-acl`, compare row
+counts, then start n8n.
 
 ## Operations
 
