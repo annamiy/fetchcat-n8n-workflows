@@ -47,12 +47,27 @@ Researcher `Decision: GO` with slug, title and use case.
      around each logical group, so every node sits inside exactly one;
    - descriptive node names, no "HTTP Request1".
 6. **Sheet template** (Sheets destinations): write
-   `assets/sheet-template.json` (title `<Name> - n8n Template`), then run
+   `assets/sheet-template.json` in the FetchCat house style. The reference is
+   "TikTok Profiles to Google Sheets - n8n Template"; follow
+   `workflows/youtube-niche-breakout-finder/assets/sheet-template.json`:
+   - title `<Name> - n8n Template`;
+   - `startHere`: heading, subtitle, `whatItDoes`, a numbered `checklist`
+     (copy the sheet, connect Sheets and pick the copy in each Sheets node, keep
+     the tab and row-1 headers, connect the other apps and run once, publish),
+     `links` with the Actor's apify.com/fetch_cat page, optional
+     `columnGuide`, and `dataNote` about the example rows;
+   - readable headers ("Updated at", "Video title"), never code keys;
+   - `columns` with a width per column, `format` (integer, decimal, ratio,
+     percent), `wrap` for long text, `link` labels for URL columns that are not
+     a match key, and `highlight` rules (scale, risk, yesno, equals).
+
+   Then run
    `set -a; . /data/paperclip/bootstrap-secrets/n8n-destinations.env; set +a; node scripts/sheet-template.mjs <slug>`.
    It creates the sheet in the FetchCat Drive (fetchcat@nosova.me, folder
    N8N > PUBLIC) and makes it viewable by link. Put the printed `copyUrl` in
    the yellow note's Setup, the README and `creator-draft.md`, as "Make a copy
-   of the [sheet template](copyUrl)". A rerun reuses the sheet.
+   of the [sheet template](copyUrl)". A rerun reuses the sheet and reapplies
+   the style. QA adds the real example rows later.
 7. **Files:** `workflow.json` (inactive, `minimumN8nVersion` `2.47.4` and
    `apifyNodeVersion` `0.9.0` in metadata), `metadata.json` (`releaseState:
    development`), `README.md` (setup, behavior, cost, limits), `creator-draft.md`

@@ -20,9 +20,10 @@
     "execute": "node scripts/n8n-cli.mjs execute",
     "export": "node scripts/n8n-cli.mjs export",
     "package": "node scripts/package.mjs",
-    "check": "npm run build && git diff --exit-code && npm run validate && npm run test:pinterest && npm run test:tiktok && npm run test:telegram && npm run test:demand && npm run test:vinted && npm run test:youtube-breakouts && npm run test:creator-portal",
+    "check": "npm run build && git diff --exit-code && npm run validate && npm run test:pinterest && npm run test:tiktok && npm run test:telegram && npm run test:demand && npm run test:vinted && npm run test:youtube-breakouts && npm run test:creator-portal && npm run test:sheet-style",
     "test:youtube-breakouts": "node scripts/test-youtube-niche-breakout-finder.mjs",
-    "test:creator-portal": "node scripts/test-creator-portal.mjs"
+    "test:creator-portal": "node scripts/test-creator-portal.mjs",
+    "test:sheet-style": "node scripts/test-sheet-style.mjs"
   },
   "license": "MIT"
 }
