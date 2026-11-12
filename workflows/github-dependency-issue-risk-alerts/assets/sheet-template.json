@@ -1,0 +1,13 @@
+{
+  "title": "FetchCat n8n template - Dependency issue risk log",
+  "tabs": [
+    {
+      "name": "Dependency Issues",
+      "headers": ["scrapedAt", "repository", "number", "title", "url", "authorLogin", "labels", "commentsCount", "reactions", "createdAt", "updatedAt", "category", "riskScore", "affectsUpgrade", "summary", "alerted"],
+      "exampleRows": [
+        ["2026-11-12T09:00:00.000Z", "example-org/example-lib", 101, "Example: TypeError after upgrading to 3.2.0", "https://github.com/example-org/example-lib/issues/101", "example-user", "bug", 12, 9, "2026-11-10T14:02:00Z", "2026-11-11T18:40:00Z", "regression", 5, "yes", "Upgrading to 3.2.0 breaks request parsing for JSON bodies.", "yes"],
+        ["2026-11-12T09:00:00.000Z", "example-org/example-lib", 102, "Example: docs typo in the routing guide", "https://github.com/example-org/example-lib/issues/102", "sample-user", "docs", 1, 0, "2026-11-11T09:15:00Z", "2026-11-11T09:15:00Z", "question", 1, "no", "Typo in the routing guide; no code impact.", "no"]
+      ]
+    }
+  ]
+}

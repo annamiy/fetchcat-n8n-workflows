@@ -1,0 +1,970 @@
+{
+  "name": "Monitor dependency bug reports and alert on critical issues with Apify, OpenAI, Google Sheets and Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Get alerts on risky bugs in the libraries you depend on\n\n### How it works\n1. Runs by hand, or every weekday at 9:00 once you publish the workflow.\n2. Fetches open issues updated in the last 7 days from each repository in node 1 with the [FetchCat GitHub Issues & Pull Requests Scraper](https://apify.com/fetch_cat/github-issues-pull-requests-scraper). No GitHub login needed.\n3. Skips issues already in your sheet with no update since.\n4. One OpenAI call scores each issue: category, upgrade or production risk from 1 to 5, whether it affects upgrades, and a one-line summary.\n5. Logs every scored issue to Google Sheets (matched on url). Issues at risk 4 or higher go to one Slack digest, once each. A quiet day posts nothing.\n\n### Setup (about 10 minutes)\n- [ ] Make a copy of the [sheet template](https://docs.google.com/spreadsheets/d/11lRVyqoPUyILjMfo0_Ni3iZh7hMt2211nj9TgB4_JPk/copy).\n- [ ] Install the Apify node (verified node on n8n Cloud, `@apify/n8n-nodes-apify` on self-hosted) and connect your Apify account in node 2.\n- [ ] Connect OpenAI in node 3.\n- [ ] Connect Google Sheets in **Read Logged Issues** and node 4 and pick your copy.\n- [ ] Connect Slack in node 5 and pick a channel.\n- [ ] List your dependencies in node 1, then run once by hand.\n\n### Cost\nA default run (3 repositories, up to 10 issues each) costs about $0.02 on Apify plus one small gpt-5.4-mini call. `maxCostUsdPerRepository` caps each Apify run.\n\n### Good to know\nScores rest on the title, labels, counts and the first 800 characters of each issue, not the full thread.",
+        "height": 1000,
+        "width": 560,
+        "color": 1
+      },
+      "id": "c69a5041-4539-4e49-84d5-5b7be7d56d63",
+      "name": "Workflow Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Start\nRun by hand to test. The weekday 9:00 schedule only runs after you publish the workflow.",
+        "height": 540,
+        "width": 280,
+        "color": 7
+      },
+      "id": "35b3da72-d436-40fa-8bac-7663a41bb423",
+      "name": "Section: Start",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Your settings\nEdit only node 1: repositories, lookback window, limits, the alert threshold and the Apify cost cap. The next node checks them before any paid request.",
+        "height": 540,
+        "width": 520,
+        "color": 7
+      },
+      "id": "db2020a4-60f8-461a-b7df-ed2a5cc5354e",
+      "name": "Section: Settings",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Fetch issues\nRuns the FetchCat GitHub issues Actor once per repository. A failed repository is reported and the others continue; if all fail, the run stops here.",
+        "height": 540,
+        "width": 480,
+        "color": 7
+      },
+      "id": "79f3bb5e-0bd2-4b71-88d4-27983a1a9116",
+      "name": "Section: Fetch",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        760,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Pick new or updated\nIssues already in your sheet with the same updatedAt are skipped, so unchanged issues are never scored twice.",
+        "height": 540,
+        "width": 820,
+        "color": 7
+      },
+      "id": "ee1ad83a-91ea-459e-9fc8-6491c5efc343",
+      "name": "Section: Pick",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## AI risk score\nOne gpt-5.4-mini call scores all picked issues. The answer is checked first; a bad answer writes nothing.",
+        "height": 540,
+        "width": 900,
+        "color": 7
+      },
+      "id": "1754ea80-9040-45f0-9ea2-4f5be55fb47b",
+      "name": "Section: Score",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2140,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Log to Google Sheets\nEvery scored issue is added or updated in the Dependency Issues tab, matched on url.",
+        "height": 540,
+        "width": 260,
+        "color": 7
+      },
+      "id": "9adb76c8-0b4f-44ad-840e-a855b534ba09",
+      "name": "Section: Log",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3080,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Slack alert\nIssues at or above alertMinRiskScore that were never alerted go into one digest. A quiet day posts nothing.",
+        "height": 540,
+        "width": 960,
+        "color": 7
+      },
+      "id": "42b4701d-48f5-453e-9d42-02690d1cbe8b",
+      "name": "Section: Alert",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3380,
+        60
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "4fb7f53b-d967-4f9e-8a78-7aff58c27e43",
+      "name": "Run Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "058c9c0d-ab92-403a-a968-f16a7d2825c1",
+      "name": "Every Weekday at 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "setting-1",
+              "name": "repositories",
+              "value": "n8n-io/n8n, axios/axios, expressjs/express",
+              "type": "string"
+            },
+            {
+              "id": "setting-2",
+              "name": "lookbackDays",
+              "value": 7,
+              "type": "number"
+            },
+            {
+              "id": "setting-3",
+              "name": "state",
+              "value": "open",
+              "type": "string"
+            },
+            {
+              "id": "setting-4",
+              "name": "includePullRequests",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "setting-5",
+              "name": "labels",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "setting-6",
+              "name": "maxIssuesPerRepository",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "setting-7",
+              "name": "maxIssuesToScorePerRun",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "setting-8",
+              "name": "alertMinRiskScore",
+              "value": 4,
+              "type": "number"
+            },
+            {
+              "id": "setting-9",
+              "name": "maxCostUsdPerRepository",
+              "value": 0.05,
+              "type": "number"
+            },
+            {
+              "id": "setting-10",
+              "name": "githubToken",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "bb855da8-59c7-45a5-93b2-06aac7f1fc9b",
+      "name": "1. Set your watched repositories",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reads node 1 and builds one Actor input per repository. Edit node 1, not this code.\nconst s = $input.first().json;\nconst number = (value, fallback) => { const n = Number(value); return Number.isFinite(n) ? n : fallback; };\nconst clamp = (value, min, max, fallback) => Math.min(max, Math.max(min, number(value, fallback)));\nconst list = (value) => String(value ?? '').split(/[,\\n]/).map((part) => part.trim()).filter(Boolean);\nconst repositories = [];\nfor (const raw of list(s.repositories)) {\n  const match = /^(?:https?:\\/\\/)?(?:www\\.)?(?:github\\.com\\/)?([A-Za-z0-9-]+)\\/([A-Za-z0-9._-]+?)(?:\\.git)?\\/?$/.exec(raw);\n  if (!match) throw new Error('\"' + raw + '\" in \"repositories\" (node 1) is not a public GitHub repository. Use owner/name, for example axios/axios.');\n  const repository = (match[1] + '/' + match[2]).toLowerCase();\n  if (!repositories.includes(repository)) repositories.push(repository);\n}\nif (!repositories.length) throw new Error('Add at least one repository to \"repositories\" in node 1, for example axios/axios.');\nif (repositories.length > 10) throw new Error('Watch at most 10 repositories per run; node 1 has ' + repositories.length + '.');\nconst state = ['open', 'closed', 'all'].includes(String(s.state ?? '').trim()) ? String(s.state).trim() : 'open';\nconst lookbackDays = Math.round(clamp(s.lookbackDays, 1, 90, 7));\nconst since = new Date(Date.now() - lookbackDays * 86400000).toISOString().slice(0, 10);\nconst labels = list(s.labels).slice(0, 20);\nconst token = String(s.githubToken ?? '').trim();\nconst maxCostUsd = clamp(s.maxCostUsdPerRepository, 0.01, 0.5, 0.05);\nreturn repositories.map((repository) => ({\n  json: {\n    repository,\n    maxCostUsd,\n    actorInput: {\n      repositories: [repository],\n      state,\n      includeIssues: true,\n      includePullRequests: s.includePullRequests === true || String(s.includePullRequests).toLowerCase() === 'true',\n      since,\n      maxItems: Math.round(clamp(s.maxIssuesPerRepository, 1, 50, 10)),\n      ...(labels.length ? { labels } : {}),\n      ...(token ? { githubToken: token } : {})\n    }\n  }\n}));"
+      },
+      "id": "091d2f6d-5028-4e92-8489-45e8942eaeb4",
+      "name": "Build One Actor Input per Repository",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Actors",
+        "operation": "Run actor and get dataset",
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Sr5MKDJMKMcsmcXme"
+        },
+        "actorInputMode": "json",
+        "customBody": "={{ JSON.stringify($json.actorInput) }}",
+        "maxTotalChargeUsd": "={{ $json.maxCostUsd }}",
+        "authentication": "apifyApi"
+      },
+      "id": "f86baccf-ec4c-4eb6-86a4-656b6f8e4de0",
+      "name": "2. Fetch Issues with Apify",
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 2,
+      "position": [
+        840,
+        320
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The Apify node continues on error so one bad repository does not stop the others.\n// If no repository run succeeded (for example the Apify credential is missing), stop here before any read or write.\nconst items = $input.all();\nconst errors = items.map((item) => item.json ?? {}).filter((json) => json.error !== undefined && !json.url);\nconst succeeded = items.some((item) => item.json && item.json.url);\nif (errors.length && !succeeded && errors.length >= $('Build One Actor Input per Repository').all().length) {\n  const first = errors[0].error;\n  const message = typeof first === 'string' ? first : (first?.message ?? errors[0].message ?? 'unknown error');\n  throw new Error('Every Apify run failed, so nothing was read or written. First error: ' + String(message).slice(0, 300));\n}\nreturn items;"
+      },
+      "id": "e3ae00cb-a813-41b0-95b8-0780cf9f4fed",
+      "name": "Stop If Every Apify Run Failed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0"
+        },
+        "options": {}
+      },
+      "id": "7a471856-24ec-4b3f-b596-c0a5ff37c858",
+      "name": "Read Logged Issues",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1340,
+        320
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keeps issues that are new to the sheet or were updated since they were logged.\nconst settings = $('1. Set your watched repositories').first().json;\nconst inputs = $('Build One Actor Input per Repository').all().map((item) => item.json.repository);\nconst number = (value, fallback) => { const n = Number(value); return Number.isFinite(n) ? n : fallback; };\nconst maxToScore = Math.min(50, Math.max(1, Math.round(number(settings.maxIssuesToScorePerRun, 30))));\n\n// The Apify node continues on error, so one bad repository does not stop the others.\nconst apifyItems = $('2. Fetch Issues with Apify').all();\nconst failed = [];\nconst rows = [];\napifyItems.forEach((item, index) => {\n  const json = item.json ?? {};\n  if (json.error !== undefined && !json.url) {\n    const paired = Array.isArray(item.pairedItem) ? item.pairedItem[0] : item.pairedItem;\n    const at = Number.isInteger(paired?.item) ? paired.item : index;\n    const message = typeof json.error === 'string' ? json.error : (json.error?.message ?? json.message ?? 'unknown error');\n    failed.push({ repository: inputs[at] ?? 'a repository', message: String(message).slice(0, 300) });\n  } else if (json.url && json.number !== undefined) rows.push(json);\n});\nconst failedRepos = [...new Set(failed.map((entry) => entry.repository))];\n\nconst time = (value) => { const t = Date.parse(String(value ?? '')); return Number.isFinite(t) ? t : null; };\nconst logged = new Map();\nfor (const item of $input.all()) {\n  const url = String(item.json.url ?? '').trim();\n  if (url) logged.set(url, { updatedAt: time(item.json.updatedAt), alerted: String(item.json.alerted ?? '').trim().toLowerCase() === 'yes' });\n}\n\nconst seen = new Set();\nlet unchanged = 0;\nconst fresh = [];\nfor (const row of rows) {\n  if (seen.has(row.url)) continue;\n  seen.add(row.url);\n  const before = logged.get(row.url);\n  if (before && before.updatedAt !== null && before.updatedAt === time(row.updatedAt)) { unchanged += 1; continue; }\n  fresh.push({ row, before });\n}\nfresh.sort((a, b) => (time(b.row.updatedAt) ?? 0) - (time(a.row.updatedAt) ?? 0));\nconst picked = fresh.slice(0, maxToScore);\nconst issues = picked.map(({ row, before }, index) => ({\n  ref: index + 1,\n  repository: row.repository ?? row.sourceRepository ?? '',\n  type: row.type === 'pull_request' ? 'pull request' : 'issue',\n  number: row.number,\n  title: String(row.title ?? ''),\n  url: row.url,\n  authorLogin: row.authorLogin ?? '',\n  labels: Array.isArray(row.labels) ? row.labels.map(String) : [],\n  commentsCount: Number.isFinite(row.commentsCount) ? row.commentsCount : 0,\n  reactions: Number.isFinite(row.reactions?.total) ? row.reactions.total : 0,\n  createdAt: row.createdAt ?? '',\n  updatedAt: row.updatedAt ?? '',\n  bodyExcerpt: String(row.bodyExcerpt ?? '').replace(/\\s+/g, ' ').trim().slice(0, 800),\n  previouslyAlerted: before?.alerted === true,\n  previouslyLogged: Boolean(before)\n}));\n\nconst summary = {\n  repositories: inputs.length,\n  failedRepositories: failed.map((entry) => entry.repository + ': ' + entry.message),\n  returned: rows.length,\n  unchanged,\n  heldForNextRun: Math.max(0, fresh.length - picked.length),\n  toScore: issues.length\n};\nlet message;\nif (issues.length) message = issues.length + ' new or updated issues to score.';\nelse if (!rows.length) message = 'No issues were updated in the lookback window for these repositories' + (failed.length ? ' (' + failedRepos.length + ' repositories failed: ' + failedRepos.join(', ') + ')' : '') + '. Nothing was written to Google Sheets or Slack.';\nelse message = 'No new or updated issues: all ' + unchanged + ' returned issues are already in the sheet unchanged. Nothing was written to Google Sheets or Slack.';\nreturn [{ json: { hasIssues: issues.length > 0, message, summary, issues } }];"
+      },
+      "id": "07383a28-e09b-4a16-9d9d-db840f8f36ef",
+      "name": "Pick New or Updated Issues",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-issues",
+              "leftValue": "={{ $json.hasIssues === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fb04460a-d66b-443f-853f-feafca6bcab4",
+      "name": "Issues to Score?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "15b97acf-cd26-45eb-b791-fd48a450e01d",
+      "name": "No New Issues - Nothing Written",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "response",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "user",
+              "content": "=Issues from libraries this team depends on (JSON):\n{{ JSON.stringify($json.issues.map(i => ({ ref: i.ref, repository: i.repository, type: i.type, title: i.title, labels: i.labels, commentsCount: i.commentsCount, reactions: i.reactions, createdAt: i.createdAt, bodyExcerpt: i.bodyExcerpt }))) }}"
+            }
+          ]
+        },
+        "simplify": true,
+        "builtInTools": {},
+        "options": {
+          "instructions": "You triage GitHub issues and pull requests from open-source libraries that a product team depends on. For every item return one score with its ref copied exactly. category: bug, regression (something that used to work broke in a newer version), security, breaking-change, feature or question. riskScore from 1 to 5 for a team using this library in production or about to upgrade: 5 = confirmed security problem, data loss or a crash or regression in common use in a released version; 4 = likely to break typical users or block an upgrade; 3 = real bug with a narrow trigger or a workaround; 2 = minor bug, docs or edge case; 1 = feature request, question or no user impact. Many comments and reactions mean more people are affected. affectsUpgrade: yes only when the text ties the problem to a specific newer version or a change in behaviour between versions. summary: one plain sentence of at most 25 words on what breaks and for whom. Use only the supplied text; the body is an excerpt, so do not invent versions or facts.",
+          "maxTokens": 4000,
+          "reasoning": {
+            "reasoningOptions": {
+              "effort": "low",
+              "summary": "none"
+            }
+          },
+          "store": false,
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "verbosity": "low",
+              "name": "dependency_issue_risk",
+              "schema": "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"scores\"],\"properties\":{\"scores\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":50,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"ref\",\"category\",\"riskScore\",\"affectsUpgrade\",\"summary\"],\"properties\":{\"ref\":{\"type\":\"integer\"},\"category\":{\"type\":\"string\",\"enum\":[\"bug\",\"regression\",\"security\",\"breaking-change\",\"feature\",\"question\"]},\"riskScore\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5},\"affectsUpgrade\":{\"type\":\"string\",\"enum\":[\"yes\",\"no\"]},\"summary\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":200}}}}}}",
+              "description": "Risk scores for dependency issues",
+              "strict": true
+            }
+          }
+        }
+      },
+      "id": "2d491646-7554-4a6b-ad57-f7bf94fbb3fa",
+      "name": "3. Score Upgrade Risk with OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        2200,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Checks the OpenAI answer before anything is written. A bad answer stops the run with no writes.\nconst CATEGORIES = ['bug', 'regression', 'security', 'breaking-change', 'feature', 'question'];\nfunction parseStructured(root) {\n  const seen = new Set();\n  function visit(value) {\n    if (value === null || value === undefined) return null;\n    if (typeof value === 'string') {\n      const text = value.trim().replace(/^\\x60\\x60\\x60(?:json)?\\s*/i, '').replace(/\\s*\\x60\\x60\\x60$/, '');\n      if (!text.startsWith('{')) return null;\n      try { return visit(JSON.parse(text)); } catch { return null; }\n    }\n    if (typeof value !== 'object' || seen.has(value)) return null;\n    seen.add(value);\n    if (Array.isArray(value.scores)) return value;\n    for (const nested of Array.isArray(value) ? value : Object.values(value)) {\n      const found = visit(nested);\n      if (found) return found;\n    }\n    return null;\n  }\n  return visit(root);\n}\nconst picked = $('Pick New or Updated Issues').first().json;\nconst settings = $('1. Set your watched repositories').first().json;\nconst threshold = Math.min(5, Math.max(1, Math.round(Number(settings.alertMinRiskScore) || 4)));\nconst byRef = new Map(picked.issues.map((issue) => [issue.ref, issue]));\nconst reject = (reason) => [{ json: { valid: false, message: 'OpenAI scores were rejected (' + reason + '). Nothing was written to Google Sheets or Slack; run the workflow again.' } }];\nconst parsed = parseStructured($input.first().json);\nif (!parsed) return reject('no JSON with a \"scores\" list');\n\nconst scored = new Map();\nfor (const entry of parsed.scores) {\n  const ref = Number(entry?.ref);\n  const riskScore = Number(entry?.riskScore);\n  const category = String(entry?.category ?? '').trim().toLowerCase();\n  const affectsUpgrade = String(entry?.affectsUpgrade ?? '').trim().toLowerCase();\n  const summary = String(entry?.summary ?? '').replace(/\\s+/g, ' ').trim();\n  if (!byRef.has(ref) || scored.has(ref)) continue;\n  if (!Number.isInteger(riskScore) || riskScore < 1 || riskScore > 5) continue;\n  if (!CATEGORIES.includes(category) || !['yes', 'no'].includes(affectsUpgrade) || !summary) continue;\n  scored.set(ref, { riskScore, category, affectsUpgrade, summary: summary.slice(0, 300) });\n}\nif (!scored.size) return reject('no valid score for an issue from this run');\n\nconst scrapedAt = $now.toUTC().toISO();\nreturn picked.issues.filter((issue) => scored.has(issue.ref)).map((issue) => {\n  const score = scored.get(issue.ref);\n  const alertNow = score.riskScore >= threshold && !issue.previouslyAlerted;\n  return {\n    json: {\n      valid: true,\n      alertNow,\n      type: issue.type,\n      scrapedAt,\n      repository: issue.repository,\n      number: issue.number,\n      title: issue.title,\n      url: issue.url,\n      authorLogin: issue.authorLogin,\n      labels: issue.labels.join(', '),\n      commentsCount: issue.commentsCount,\n      reactions: issue.reactions,\n      createdAt: issue.createdAt,\n      updatedAt: issue.updatedAt,\n      category: score.category,\n      riskScore: score.riskScore,\n      affectsUpgrade: score.affectsUpgrade,\n      summary: score.summary,\n      alerted: alertNow || issue.previouslyAlerted ? 'yes' : 'no'\n    }\n  };\n});"
+      },
+      "id": "1d899b86-ebe5-4f36-a78f-58235bab3185",
+      "name": "Check Scores and Build Sheet Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "scores-valid",
+              "leftValue": "={{ $json.valid === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9770e9e3-010f-4f05-a18c-1ba4dbbffbe2",
+      "name": "AI Scores Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f7da5e61-ac49-4dc8-ba47-d20048eaaf08",
+      "name": "AI Answer Rejected - Nothing Written",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2840,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "scrapedAt": "={{ $json.scrapedAt }}",
+            "repository": "={{ $json.repository }}",
+            "number": "={{ $json.number }}",
+            "title": "={{ $json.title }}",
+            "url": "={{ $json.url }}",
+            "authorLogin": "={{ $json.authorLogin }}",
+            "labels": "={{ $json.labels }}",
+            "commentsCount": "={{ $json.commentsCount }}",
+            "reactions": "={{ $json.reactions }}",
+            "createdAt": "={{ $json.createdAt }}",
+            "updatedAt": "={{ $json.updatedAt }}",
+            "category": "={{ $json.category }}",
+            "riskScore": "={{ $json.riskScore }}",
+            "affectsUpgrade": "={{ $json.affectsUpgrade }}",
+            "summary": "={{ $json.summary }}",
+            "alerted": "={{ $json.alerted }}"
+          },
+          "matchingColumns": [
+            "url"
+          ],
+          "schema": [
+            {
+              "id": "scrapedAt",
+              "displayName": "scrapedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "repository",
+              "displayName": "repository",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "number",
+              "displayName": "number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "authorLogin",
+              "displayName": "authorLogin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "labels",
+              "displayName": "labels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "commentsCount",
+              "displayName": "commentsCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reactions",
+              "displayName": "reactions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "createdAt",
+              "displayName": "createdAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updatedAt",
+              "displayName": "updatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "riskScore",
+              "displayName": "riskScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "affectsUpgrade",
+              "displayName": "affectsUpgrade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alerted",
+              "displayName": "alerted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "754869b2-6f86-498f-b033-00d0d0eb2169",
+      "name": "4. Log Issues to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3140,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds one Slack message after the sheet write succeeded. A quiet day posts nothing.\nconst rows = $('Check Scores and Build Sheet Rows').all().map((item) => item.json);\nconst summary = $('Pick New or Updated Issues').first().json.summary;\nconst settings = $('1. Set your watched repositories').first().json;\nconst threshold = Math.min(5, Math.max(1, Math.round(Number(settings.alertMinRiskScore) || 4)));\nconst alerts = rows.filter((row) => row.alertNow).sort((a, b) => b.riskScore - a.riskScore || String(b.updatedAt).localeCompare(String(a.updatedAt)));\nconst notScored = summary.toScore - rows.length;\nif (!alerts.length) {\n  return [{ json: { hasAlerts: false, message: rows.length + ' issues logged to Google Sheets; none scored ' + threshold + ' or higher for the first time, so no Slack message was sent.' } }];\n}\nconst clean = (text) => String(text ?? '').replace(/[<>|*_~\\x60]/g, ' ').replace(/\\s+/g, ' ').trim();\nconst lines = ['*Dependency risk: ' + alerts.length + ' high-risk ' + (alerts.length === 1 ? 'item' : 'items') + '* (risk ' + threshold + '+ of 5)'];\nfor (const repository of [...new Set(alerts.map((row) => row.repository))]) {\n  lines.push('', '*' + clean(repository) + '*');\n  for (const row of alerts.filter((entry) => entry.repository === repository)) {\n    const upgrade = row.affectsUpgrade === 'yes' ? ', affects upgrades' : '';\n    lines.push('• <' + row.url + '|#' + row.number + ' ' + clean(row.title).slice(0, 90) + '>: risk ' + row.riskScore + ', ' + row.category + upgrade + '. ' + clean(row.summary));\n  }\n}\nconst notes = [rows.length + ' issues scored and logged'];\nif (summary.unchanged) notes.push(summary.unchanged + ' unchanged since the last run');\nif (summary.heldForNextRun) notes.push(summary.heldForNextRun + ' held for the next run by maxIssuesToScorePerRun');\nif (notScored > 0) notes.push(notScored + ' not scored by the AI, retried next run');\nlines.push('', '_' + notes.join('; ') + '._');\nif (summary.failedRepositories.length) lines.push('_Failed repositories: ' + clean(summary.failedRepositories.join('; ')).slice(0, 500) + '._');\nreturn [{ json: { hasAlerts: true, text: lines.join('\\n') } }];"
+      },
+      "id": "819a9fb1-44d2-45b7-9aa7-f6d90e00dc35",
+      "name": "Build High-Risk Slack Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-alerts",
+              "leftValue": "={{ $json.hasAlerts === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3becc73a-29dd-4a61-a2f3-6f80f1fe49d8",
+      "name": "High-Risk Issues Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3660,
+        320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "97492420-0c50-41fe-b8f4-8ee7ce47bdbb",
+      "name": "Quiet Day - No Slack Post",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3860,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "messageType": "text",
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "7d575bfe-fd3d-4cbb-be53-a89f56323a0f",
+      "name": "5. Send High-Risk Slack Digest",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        4080,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Run Manually": {
+      "main": [
+        [
+          {
+            "node": "1. Set your watched repositories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Weekday at 9:00": {
+      "main": [
+        [
+          {
+            "node": "1. Set your watched repositories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Set your watched repositories": {
+      "main": [
+        [
+          {
+            "node": "Build One Actor Input per Repository",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build One Actor Input per Repository": {
+      "main": [
+        [
+          {
+            "node": "2. Fetch Issues with Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Fetch Issues with Apify": {
+      "main": [
+        [
+          {
+            "node": "Stop If Every Apify Run Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stop If Every Apify Run Failed": {
+      "main": [
+        [
+          {
+            "node": "Read Logged Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Logged Issues": {
+      "main": [
+        [
+          {
+            "node": "Pick New or Updated Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick New or Updated Issues": {
+      "main": [
+        [
+          {
+            "node": "Issues to Score?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Issues to Score?": {
+      "main": [
+        [
+          {
+            "node": "3. Score Upgrade Risk with OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New Issues - Nothing Written",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Score Upgrade Risk with OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Check Scores and Build Sheet Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Scores and Build Sheet Rows": {
+      "main": [
+        [
+          {
+            "node": "AI Scores Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Scores Valid?": {
+      "main": [
+        [
+          {
+            "node": "4. Log Issues to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Answer Rejected - Nothing Written",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Log Issues to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Build High-Risk Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build High-Risk Slack Digest": {
+      "main": [
+        [
+          {
+            "node": "High-Risk Issues Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High-Risk Issues Found?": {
+      "main": [
+        [
+          {
+            "node": "5. Send High-Risk Slack Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quiet Day - No Slack Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
