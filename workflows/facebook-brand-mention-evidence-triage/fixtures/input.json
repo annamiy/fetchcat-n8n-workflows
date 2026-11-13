@@ -1,0 +1,9 @@
+{
+  "description": "Synthetic contract fixtures only; not scraped observations and not public sheet examples.",
+  "items": [
+    {"postId":"fixture-1","url":"https://www.facebook.com/example/posts/fixture-1","searchQuery":"Starbucks","postText":"Starbucks open today?","publishedAt":"2026-11-13T09:00:00Z","collectedAt":"2026-11-13T10:00:00Z","reactionsCount":null,"commentsCount":0,"sharesCount":null,"matchEvidence":{"textContainsQuery":true,"authorContainsQuery":false}},
+    {"postId":"fixture-2","url":"https://www.facebook.com/example/posts/fixture-2","searchQuery":"Starbucks","postText":"=source formula","reactionsCount":null,"matchEvidence":{"textContainsQuery":false,"authorContainsQuery":true}},
+    {"postId":"fixture-3","url":"https://www.facebook.com/example/posts/fixture-3","searchQuery":"Starbucks","postText":"An unrelated cafe","matchEvidence":{"textContainsQuery":false,"authorContainsQuery":false}},
+    {"postId":"fixture-4","url":"https://www.facebook.com/example/posts/fixture-4","searchQuery":"Starbucks","postText":null,"matchEvidence":{"textContainsQuery":false,"authorContainsQuery":true}}
+  ]
+}

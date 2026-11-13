@@ -1,0 +1,22 @@
+{
+  "slug": "facebook-brand-mention-evidence-triage",
+  "title": "Triage Facebook brand mentions with Apify, OpenAI and Google Sheets",
+  "workflowKind": "actor-template",
+  "actorId": "XfwikbuyOMuMnO1eJ",
+  "actorSlug": "fetch_cat/facebook-post-search-scraper",
+  "version": "1.0.0",
+  "minimumN8nVersion": "2.47.4",
+  "apifyNodeVersion": "0.9.0",
+  "integrations": [
+    "Apify",
+    "OpenAI",
+    "Google Sheets"
+  ],
+  "testLimits": {
+    "actorItems": 10,
+    "apifyBackedExecutions": 3,
+    "budgetUsd": 1
+  },
+  "releaseState": "development",
+  "pipelineIssue": "APIA-14733"
+}
