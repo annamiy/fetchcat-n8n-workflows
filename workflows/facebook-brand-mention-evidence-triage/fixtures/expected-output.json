@@ -1,0 +1,12 @@
+{
+  "assertions": [
+    "Four audit rows: one literal, one author-only, one context-only and one missing-text result.",
+    "Only fixture-1 enters AI; one triage row and three needs-review rows follow a valid response.",
+    "Reject missing, unknown and duplicate AI post IDs, invalid categories, malformed JSON and unsupported source quotes before every destination write.",
+    "Empty or malformed datasets stop with a truthful readable explanation and zero sheet writes or AI calls.",
+    "Null engagement remains blank; true zero remains zero. Formula-leading source text is escaped.",
+    "Refreshes upsert by serialized runKey+postId and never map the human Review status column.",
+    "One manual trigger, zero schedules, zero Data Tables and one bounded OpenAI batch maximum.",
+    "At most 1,000 characters per excerpt and 4,000 UTF-8 bytes across the batch; budget-excluded literal matches need review."
+  ]
+}

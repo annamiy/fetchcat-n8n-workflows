@@ -1,0 +1,233 @@
+{
+  "title": "Facebook Mention Evidence Triage - n8n Template",
+  "startHere": {
+    "heading": "Facebook Mention Evidence Triage",
+    "subtitle": "Validate search relevance before AI classification",
+    "whatItDoes": "Retains every bounded public keyword result in Search audit. Only literal text matches enter one AI classification batch. Author/context-only and missing-text results go to Needs review. Run summary reports the match funnel, not an exhaustive brand count.",
+    "checklist": [
+      "Make your own copy of this spreadsheet.",
+      "Connect Google Sheets in n8n. Set sheetUrl in node 1 to your copy; all four Sheets nodes use it.",
+      "Keep every tab and row-1 header unchanged. Record key (run key plus post ID) is the row match key; Run summary uses Run key.",
+      "Connect Apify and OpenAI, edit node 1, and run once manually. Reuse a run key only to refresh the same search snapshot.",
+      "Keep this workflow inactive; this template has no schedule. Review the output before sharing or acting."
+    ],
+    "links": [
+      {
+        "label": "Facebook Posts Search Scraper on Apify",
+        "url": "https://apify.com/fetch_cat/facebook-post-search-scraper"
+      }
+    ],
+    "columnGuide": [
+      "Review status is reserved for your human decisions and never overwritten by the workflow.",
+      "Blank counts mean unknown, not zero. Literal matching can miss aliases or confuse ambiguous brand names."
+    ],
+    "dataNote": "No example rows yet: independent QA will add sanitized public examples. Never place emails, private data or author identifiers in the public template."
+  },
+  "tabs": [
+    {
+      "name": "Search audit",
+      "headers": [
+        "Record key",
+        "Run key",
+        "Post ID",
+        "Post URL",
+        "Query",
+        "Published",
+        "Collected",
+        "Post text",
+        "Text contains query",
+        "Author contains query",
+        "Match bucket",
+        "Reactions",
+        "Comments",
+        "Shares"
+      ],
+      "columns": {
+        "Record key": {
+          "width": 145
+        },
+        "Run key": {
+          "width": 145
+        },
+        "Post ID": {
+          "width": 145
+        },
+        "Post URL": {
+          "width": 145,
+          "link": "Open post"
+        },
+        "Query": {
+          "width": 145
+        },
+        "Published": {
+          "width": 145
+        },
+        "Collected": {
+          "width": 145
+        },
+        "Post text": {
+          "width": 330,
+          "wrap": true
+        },
+        "Text contains query": {
+          "width": 145
+        },
+        "Author contains query": {
+          "width": 145
+        },
+        "Match bucket": {
+          "width": 145
+        },
+        "Reactions": {
+          "width": 145,
+          "format": "integer"
+        },
+        "Comments": {
+          "width": 145,
+          "format": "integer"
+        },
+        "Shares": {
+          "width": 145,
+          "format": "integer"
+        }
+      },
+      "exampleRows": []
+    },
+    {
+      "name": "Mention triage",
+      "headers": [
+        "Record key",
+        "Run key",
+        "Post ID",
+        "Post URL",
+        "Discussion type",
+        "Rationale",
+        "Source quote",
+        "Review status"
+      ],
+      "columns": {
+        "Record key": {
+          "width": 145
+        },
+        "Run key": {
+          "width": 145
+        },
+        "Post ID": {
+          "width": 145
+        },
+        "Post URL": {
+          "width": 145,
+          "link": "Open post"
+        },
+        "Discussion type": {
+          "width": 145
+        },
+        "Rationale": {
+          "width": 330,
+          "wrap": true
+        },
+        "Source quote": {
+          "width": 330,
+          "wrap": true
+        },
+        "Review status": {
+          "width": 145
+        }
+      },
+      "exampleRows": []
+    },
+    {
+      "name": "Needs review",
+      "headers": [
+        "Record key",
+        "Run key",
+        "Post ID",
+        "Post URL",
+        "Match bucket",
+        "Reason"
+      ],
+      "columns": {
+        "Record key": {
+          "width": 145
+        },
+        "Run key": {
+          "width": 145
+        },
+        "Post ID": {
+          "width": 145
+        },
+        "Post URL": {
+          "width": 145,
+          "link": "Open post"
+        },
+        "Match bucket": {
+          "width": 145
+        },
+        "Reason": {
+          "width": 330,
+          "wrap": true
+        }
+      },
+      "exampleRows": []
+    },
+    {
+      "name": "Run summary",
+      "headers": [
+        "Run key",
+        "Query",
+        "Requested",
+        "Returned",
+        "Literal text matches",
+        "Author-only matches",
+        "Context-only matches",
+        "Missing text",
+        "Classified",
+        "Coverage note"
+      ],
+      "columns": {
+        "Run key": {
+          "width": 145
+        },
+        "Query": {
+          "width": 145
+        },
+        "Requested": {
+          "width": 145,
+          "format": "integer"
+        },
+        "Returned": {
+          "width": 145,
+          "format": "integer"
+        },
+        "Literal text matches": {
+          "width": 330,
+          "wrap": true,
+          "format": "integer"
+        },
+        "Author-only matches": {
+          "width": 145,
+          "format": "integer"
+        },
+        "Context-only matches": {
+          "width": 330,
+          "wrap": true,
+          "format": "integer"
+        },
+        "Missing text": {
+          "width": 330,
+          "wrap": true,
+          "format": "integer"
+        },
+        "Classified": {
+          "width": 145,
+          "format": "integer"
+        },
+        "Coverage note": {
+          "width": 330,
+          "wrap": true
+        }
+      },
+      "exampleRows": []
+    }
+  ]
+}
