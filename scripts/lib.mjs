@@ -51,7 +51,7 @@ export function sanitizeWorkflow(workflow) {
   ];
   for (const key of topLevelKeys) delete copy[key];
 
-  const recursiveKeys = new Set(['credentials', 'instanceId', 'webhookId', 'cachedResultName']);
+  const recursiveKeys = new Set(['credentials', 'instanceId', 'webhookId', 'cachedResultName', 'cachedResultUrl']);
 
   function clean(value) {
     if (Array.isArray(value)) {
@@ -69,11 +69,28 @@ export function sanitizeWorkflow(workflow) {
   }
 
   clean(copy);
+  // Preserve only a declarative read from a public setup field, not arbitrary
+  // expressions (which can embed private IDs or execute unrelated code).
+  function setupDocumentExpression(value) {
+    if (typeof value !== 'string') return false;
+    const match = value.match(/^=\{\{\s*\$\('([^']+)'\)\.first\(\)\.json\.([A-Za-z_$][\w$]*)(?:\.split\('\/'\)\[5\])?\s*\}\}$/);
+    if (!match) return false;
+    const setup = (copy.nodes ?? []).find((n) => n.name === match[1]);
+    if (setup?.type !== 'n8n-nodes-base.set' || !setup.name.startsWith('1. Set your ')) return false;
+    const field = setup.parameters?.assignments?.assignments?.find((a) => a.name === match[2]);
+    return field?.type === 'string' && (field.value === '' || field.value === 'YOUR_SHEET_URL' || field.value === 'YOUR_SHEET_ID');
+  }
   for (const node of copy.nodes ?? []) {
     const parameters = node.parameters ?? {};
     if (node.type === 'n8n-nodes-base.googleSheets') {
-      if (parameters.documentId?.value) parameters.documentId.value = '0000000000000000000000000000000000000000000';
-      if (parameters.sheetName?.value) parameters.sheetName.value = '0';
+      if (parameters.documentId?.value && !setupDocumentExpression(parameters.documentId.value)) {
+        parameters.documentId.value = '0000000000000000000000000000000000000000000';
+      }
+      // Name-mode tabs are public template schema, unlike instance-specific gids.
+      const tab = parameters.sheetName;
+      const publicTab = tab?.mode === 'name' && typeof tab.value === 'string'
+        && /^[A-Za-z][A-Za-z0-9 _-]{0,99}$/.test(tab.value);
+      if (tab?.value && !publicTab) tab.value = '0';
     }
     if (node.type === 'n8n-nodes-base.notion' && parameters.databaseId?.value) {
       parameters.databaseId.value = '00000000-0000-0000-0000-000000000000';
