@@ -1,0 +1,39 @@
+{
+  "synthetic": true,
+  "description": "Expected transformed unit-test output, not live evidence.",
+  "assertions": [
+    "Canonical URL deduplication retains both queries.",
+    "Reviewer columns are omitted from upsert mapping.",
+    "Malformed AI stops without writes; unknown metadata does not exclude groups."
+  ],
+  "valid": true,
+  "rows": [
+    {
+      "Group URL": "https://www.facebook.com/groups/syntheticgarden/",
+      "Group Name": "Synthetic gardening fixture",
+      "Query": "gardening London | gardening UK",
+      "Search Rank": 1,
+      "Source Title": "Synthetic gardening fixture",
+      "Source Snippet": "A synthetic gardening discussion example, not a real group.",
+      "Collected At": "",
+      "Privacy Label": "unknown",
+      "Member Count": "",
+      "Count Approximate": "",
+      "Topic Fit": "relevant",
+      "Evidence": "gardening",
+      "Unknowns": "Location, activity, accessibility and permission unverified. Location not verified."
+    }
+  ],
+  "shortlist": [
+    {
+      "Position": 1,
+      "Group URL": "https://www.facebook.com/groups/syntheticgarden/",
+      "Group Name": "Synthetic gardening fixture",
+      "Research Rationale": "Topic evidence supports human review; not an endorsement.",
+      "Evidence": "gardening",
+      "Verification Needed": "Location, activity, accessibility and permission unverified. Location not verified."
+    }
+  ],
+  "status": "partial",
+  "message": "Partial output: invalid rows omitted; review coverage."
+}

@@ -1,0 +1,25 @@
+{
+  "synthetic": true,
+  "description": "Unit-test records only; not actual public search results.",
+  "items": [
+    {
+      "groupUrl": "https://m.facebook.com/groups/SyntheticGarden/?ref=search",
+      "groupName": "Synthetic gardening fixture",
+      "query": "gardening London",
+      "rank": 1,
+      "sourceTitle": "Synthetic gardening fixture",
+      "sourceSnippet": "A synthetic gardening discussion example, not a real group.",
+      "privacyLabel": null,
+      "memberCount": null
+    },
+    {
+      "groupUrl": "https://www.facebook.com/groups/syntheticgarden/posts/123",
+      "query": "gardening UK",
+      "groupName": "duplicate"
+    },
+    {
+      "groupUrl": "https://facebook.com.evil.test/groups/123",
+      "groupName": "bad"
+    }
+  ]
+}
