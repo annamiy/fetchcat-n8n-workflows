@@ -1,0 +1,160 @@
+{
+  "title": "Facebook Group Research Shortlist - n8n Template",
+  "startHere": {
+    "heading": "Facebook Group Research Shortlist",
+    "subtitle": "An evidence-limited human review workbench",
+    "whatItDoes": "Discover indexed groups, assess topic fit, preserve your review notes and refresh a top-five research shortlist. Location and activity are not verified.",
+    "checklist": [
+      "Make your own copy of this spreadsheet.",
+      "Connect Google Sheets OAuth and put the copy spreadsheet ID in node 1; every Sheets node uses it.",
+      "Keep Groups and Shortlist tab names and row-1 headers unchanged. Group URL is the match key.",
+      "Connect Apify and OpenAI; set the topic and brief in node 1 and run once manually.",
+      "Keep this manual workflow inactive. Do not publish a schedule. Review the evidence and unknowns before further research."
+    ],
+    "links": [
+      {
+        "label": "Facebook Groups Search Scraper on Apify",
+        "url": "https://apify.com/fetch_cat/facebook-groups-search-scraper"
+      }
+    ],
+    "columnGuide": [
+      {
+        "column": "Review Status",
+        "description": "Human-owned; blank initially. Record your decision here."
+      },
+      {
+        "column": "Reviewer Notes",
+        "description": "Human-owned; never overwritten on reruns."
+      }
+    ],
+    "dataNote": "No real example rows yet. Independent QA will add public evidence rows; synthetic test fixtures are not actual search results."
+  },
+  "tabs": [
+    {
+      "name": "Groups",
+      "headers": [
+        "Group URL",
+        "Group Name",
+        "Query",
+        "Search Rank",
+        "Source Title",
+        "Source Snippet",
+        "Collected At",
+        "Privacy Label",
+        "Member Count",
+        "Count Approximate",
+        "Topic Fit",
+        "Evidence",
+        "Unknowns",
+        "Review Status",
+        "Reviewer Notes"
+      ],
+      "freezeColumns": 0,
+      "columns": {
+        "Group URL": {
+          "width": 290,
+          "wrap": true
+        },
+        "Group Name": {
+          "width": 180,
+          "wrap": true
+        },
+        "Query": {
+          "width": 180,
+          "wrap": true
+        },
+        "Search Rank": {
+          "width": 180,
+          "wrap": true,
+          "format": "integer"
+        },
+        "Source Title": {
+          "width": 180,
+          "wrap": true
+        },
+        "Source Snippet": {
+          "width": 360,
+          "wrap": true
+        },
+        "Collected At": {
+          "width": 180,
+          "wrap": true
+        },
+        "Privacy Label": {
+          "width": 180,
+          "wrap": true
+        },
+        "Member Count": {
+          "width": 180,
+          "wrap": true,
+          "format": "integer"
+        },
+        "Count Approximate": {
+          "width": 180,
+          "wrap": true
+        },
+        "Topic Fit": {
+          "width": 180,
+          "wrap": true
+        },
+        "Evidence": {
+          "width": 360,
+          "wrap": true
+        },
+        "Unknowns": {
+          "width": 360,
+          "wrap": true
+        },
+        "Review Status": {
+          "width": 180,
+          "wrap": true
+        },
+        "Reviewer Notes": {
+          "width": 360,
+          "wrap": true
+        }
+      },
+      "exampleRows": []
+    },
+    {
+      "name": "Shortlist",
+      "headers": [
+        "Position",
+        "Group URL",
+        "Group Name",
+        "Research Rationale",
+        "Evidence",
+        "Verification Needed"
+      ],
+      "freezeColumns": 0,
+      "columns": {
+        "Position": {
+          "width": 180,
+          "wrap": true,
+          "format": "integer"
+        },
+        "Group URL": {
+          "width": 290,
+          "wrap": true
+        },
+        "Group Name": {
+          "width": 180,
+          "wrap": true
+        },
+        "Research Rationale": {
+          "width": 360,
+          "wrap": true
+        },
+        "Evidence": {
+          "width": 360,
+          "wrap": true
+        },
+        "Verification Needed": {
+          "width": 360,
+          "wrap": true
+        }
+      },
+      "exampleRows": []
+    }
+  ]
+}

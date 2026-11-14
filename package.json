@@ -10,6 +10,7 @@
   "scripts": {
     "build": "node scripts/build-workflows.mjs",
     "test:pinterest": "node scripts/test-pinterest-monitor.mjs",
+    "test:facebook-research": "node scripts/test-facebook-group-research.mjs",
     "test:tiktok": "node scripts/test-tiktok-workflows.mjs",
     "test:telegram": "node scripts/test-telegram-workflows.mjs",
     "test:demand": "node scripts/test-demand-workflows.mjs",
@@ -21,7 +22,7 @@
     "execute": "node scripts/n8n-cli.mjs execute",
     "export": "node scripts/n8n-cli.mjs export",
     "package": "node scripts/package.mjs",
-    "check": "npm run build && git diff --exit-code && npm run test:sanitize && npm run validate && npm run test:pinterest && npm run test:tiktok && npm run test:telegram && npm run test:demand && npm run test:vinted && npm run test:youtube-breakouts && npm run test:creator-portal && npm run test:sheet-style",
+    "check": "npm run build && git diff --exit-code && npm run test:sanitize && npm run validate && npm run test:pinterest && npm run test:tiktok && npm run test:telegram && npm run test:demand && npm run test:vinted && npm run test:youtube-breakouts && npm run test:creator-portal && npm run test:sheet-style && npm run test:facebook-research",
     "test:youtube-breakouts": "node scripts/test-youtube-niche-breakout-finder.mjs",
     "test:creator-portal": "node scripts/test-creator-portal.mjs",
     "test:sheet-style": "node scripts/test-sheet-style.mjs"
