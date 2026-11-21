@@ -9,9 +9,17 @@ This directory is the reproducible source for the private development instance a
 - PostgreSQL `17` (moved from 16 by dump and restore on 12 Nov 2026)
 - `@apify/n8n-nodes-apify` `0.9.0`
 
-The n8n port is bound to `127.0.0.1` and is exposed only through Caddy. Caddy
-asks for a basic-auth login on the editor, UI and internal REST paths; webhooks,
-forms, `/healthz` and the API-key-protected `/api/v1` stay reachable. The
+The n8n port is bound to `127.0.0.1` and is exposed only through Caddy, behind
+Cloudflare Access (since 12 Nov 2026; the earlier Caddy basic auth is gone).
+Webhooks, forms, `/healthz` and the API-key-protected `/api/v1` bypass Access.
+
+Since 21 Nov 2026 the external hook `hooks/cf-access-login.cjs` (mounted from
+`/data/n8n/hooks`) skips n8n's own login page: a request with a valid Cloudflare
+Access token (RS256 signature against the team keys, issuer, the n8n app AUD,
+expiry) for an email in `N8N_CF_ACCESS_EMAILS` gets the normal n8n session cookie
+of `N8N_CF_ACCESS_USER`. Plain email headers are never trusted; requests without
+an Access token fall back to n8n's login. If the Access app is recreated, update
+`N8N_CF_ACCESS_AUD`. Tests: `node --test infra/hooks/cf-access-verify.test.cjs`. The
 committed Caddy file carries a placeholder hash (`caddy hash-password`). Runtime
 secrets live in `/data/n8n/.env` on the VPS and are never committed.
 
