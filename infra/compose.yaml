@@ -47,6 +47,8 @@ services:
         condition: service_completed_successfully
     ports:
       - "127.0.0.1:5678:5678"
+    env_file:
+      - /data/paperclip/bootstrap-secrets/n8n-smtp.env
     environment:
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
@@ -62,6 +64,13 @@ services:
       N8N_WEBHOOK_URL: https://n8n.nosova.me/
       N8N_PROXY_HOPS: 1
       N8N_SECURE_COOKIE: "true"
+      N8N_USER_MANAGEMENT_JWT_DURATION_HOURS: 336
+      # Cloudflare Access sign-in (hooks/cf-access-login.cjs): skips n8n's own login page
+      EXTERNAL_HOOK_FILES: /opt/n8n-hooks/cf-access-login.cjs
+      N8N_CF_ACCESS_TEAM_DOMAIN: nosova.cloudflareaccess.com
+      N8N_CF_ACCESS_AUD: b928ece0ccfa0f9abbe2407c1933fb035fd955d28420b984e277163a318f5a61
+      N8N_CF_ACCESS_EMAILS: anna@nosova.me,fetchcat@nosova.me
+      N8N_CF_ACCESS_USER: fetchcat@nosova.me
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_PERSONALIZATION_ENABLED: "false"
@@ -80,6 +89,7 @@ services:
     volumes:
       - /data/n8n/state:/home/node/.n8n
       - /data/n8n/qa-evidence:/data/qa-evidence
+      - /data/n8n/hooks:/opt/n8n-hooks:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5678/healthz').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
       interval: 15s
