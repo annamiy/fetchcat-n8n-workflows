@@ -68,7 +68,7 @@ services:
       # Cloudflare Access sign-in (hooks/cf-access-login.cjs): skips n8n's own login page
       EXTERNAL_HOOK_FILES: /opt/n8n-hooks/cf-access-login.cjs
       N8N_CF_ACCESS_TEAM_DOMAIN: nosova.cloudflareaccess.com
-      N8N_CF_ACCESS_AUD: b928ece0ccfa0f9abbe2407c1933fb035fd955d28420b984e277163a318f5a61
+      N8N_CF_ACCESS_AUD: b928ece0ccfa0f9abbe2407c1933fb035fd955d28420b984e277163a318f5a61 # gitleaks:allow (public Access app AUD, not a secret)
       N8N_CF_ACCESS_EMAILS: anna@nosova.me,fetchcat@nosova.me
       N8N_CF_ACCESS_USER: fetchcat@nosova.me
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
